@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { formatDistanceToNow } from 'date-fns';
-import { client } from '@/lib/sanity';
+import { client, listenClient } from '@/lib/sanity';
 import { vehicleCommentsQuery } from '@/lib/queries';
 import type { Comment } from '@/types/transfer';
 
@@ -19,14 +19,20 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchComments = async () => {
       try {
+        setError(null);
         const data = await client.fetch(vehicleCommentsQuery, { vehicleId });
-        setComments(data);
+        console.log('Fetched comments for vehicle:', vehicleId, data);
+        setComments(data || []);
       } catch (error) {
         console.error('Failed to fetch comments:', error);
+        setError('Failed to load comments. Please check your connection.');
+        setComments([]);
       } finally {
         setLoading(false);
       }
@@ -34,17 +40,23 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
 
     fetchComments();
     
-    // Subscribe to real-time updates
-    const subscription = client
+    // Subscribe to real-time updates using listenClient
+    const subscription = listenClient
       .listen(`*[_type == "comment" && vehicle._ref == $vehicleId]`, { vehicleId })
-      .subscribe((update) => {
-        if (update.transition === 'appear' || update.transition === 'disappear') {
-          fetchComments();
+      .subscribe({
+        next: (update) => {
+          console.log('Comment real-time update:', update);
+          if (update.transition === 'appear' || update.transition === 'disappear') {
+            fetchComments();
+          }
+        },
+        error: (err) => {
+          console.error('Comment subscription error:', err);
         }
       });
 
     return () => subscription.unsubscribe();
-  }, [vehicleId]);
+  }, [vehicleId, refreshTrigger]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,10 +75,16 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
 
       if (response.ok) {
         setNewComment('');
-        fetchComments();
+        // Refresh comments by updating trigger
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        const error = await response.json();
+        console.error('Failed to post comment:', error);
+        alert(`Failed to post comment: ${error.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to post comment:', error);
+      alert('Failed to post comment. Please try again.');
     } finally {
       setPosting(false);
     }
@@ -81,15 +99,29 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
       });
 
       if (response.ok) {
-        fetchComments();
+        // Refresh comments after successful deletion
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        const error = await response.json();
+        console.error('Failed to delete comment:', error);
+        alert(`Failed to delete comment: ${error.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to delete comment:', error);
+      alert('Failed to delete comment. Please try again.');
     }
   };
 
   if (loading) {
     return <div className="animate-pulse bg-[#2a2a2a] h-32 rounded"></div>;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-[#1f1f1f] border border-red-800/50 rounded-lg p-4">
+        <p className="text-red-400 text-sm">{error}</p>
+      </div>
+    );
   }
 
   return (

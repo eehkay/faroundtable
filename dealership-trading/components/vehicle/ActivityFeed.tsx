@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { client } from '@/lib/sanity';
+import { client, listenClient } from '@/lib/sanity';
 import { vehicleActivityQuery } from '@/lib/queries';
 import type { Activity } from '@/types/transfer';
 
@@ -13,14 +13,19 @@ interface ActivityFeedProps {
 export default function ActivityFeed({ vehicleId }: ActivityFeedProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchActivities = async () => {
       try {
+        setError(null);
         const data = await client.fetch(vehicleActivityQuery, { vehicleId });
-        setActivities(data);
+        console.log('Fetched activities for vehicle:', vehicleId, data);
+        setActivities(data || []);
       } catch (error) {
         console.error('Failed to fetch activities:', error);
+        setError('Failed to load activity feed. Please check your connection.');
+        setActivities([]);
       } finally {
         setLoading(false);
       }
@@ -28,12 +33,18 @@ export default function ActivityFeed({ vehicleId }: ActivityFeedProps) {
 
     fetchActivities();
     
-    // Subscribe to real-time updates
-    const subscription = client
+    // Subscribe to real-time updates using listenClient
+    const subscription = listenClient
       .listen(`*[_type == "activity" && vehicle._ref == $vehicleId]`, { vehicleId })
-      .subscribe((update) => {
-        if (update.transition === 'appear') {
-          fetchActivities();
+      .subscribe({
+        next: (update) => {
+          console.log('Activity real-time update:', update);
+          if (update.transition === 'appear') {
+            fetchActivities();
+          }
+        },
+        error: (err) => {
+          console.error('Activity subscription error:', err);
         }
       });
 
@@ -75,6 +86,14 @@ export default function ActivityFeed({ vehicleId }: ActivityFeedProps) {
 
   if (loading) {
     return <div className="animate-pulse bg-[#2a2a2a] h-32 rounded"></div>;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-[#1f1f1f] border border-red-800/50 rounded-lg p-4">
+        <p className="text-red-400 text-sm">{error}</p>
+      </div>
+    );
   }
 
   return (

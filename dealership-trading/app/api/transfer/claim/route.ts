@@ -69,18 +69,15 @@ export async function POST(request: NextRequest) {
     await writeClient.create({
       _type: 'activity',
       vehicle: { _type: 'reference', _ref: vehicleId },
-      transfer: { _type: 'reference', _ref: transfer._id },
       user: { _type: 'reference', _ref: session.user.id },
-      action: 'transfer_requested',
-      fromLocation: { _type: 'reference', _ref: vehicle.location._id },
-      toLocation: { _type: 'reference', _ref: session.user.location._id },
+      action: 'claimed',
+      details: `Transfer requested from ${vehicle.location.name} to ${session.user.location.name}`,
       metadata: {
-        vehicleDetails: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
         fromStore: vehicle.location.name,
         toStore: session.user.location.name,
         reason
       },
-      timestamp: new Date().toISOString()
+      createdAt: new Date().toISOString()
     });
     
     // Send email notification

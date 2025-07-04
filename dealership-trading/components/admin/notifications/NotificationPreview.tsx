@@ -84,16 +84,20 @@ export default function NotificationPreview() {
             <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px' }}>
               <h2 style={{ color: '#059669', marginBottom: '24px' }}>✅ Transfer Approved</h2>
               
+              <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                <img src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+              </div>
+              
               <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
                 <h3 style={{ color: '#1f1f1f', marginTop: 0 }}>Vehicle Details</h3>
-                <p style={{ margin: '8px 0' }}><strong>{sampleData.vehicle.year} {sampleData.vehicle.make} {sampleData.vehicle.model}</strong></p>
-                <p style={{ margin: '8px 0' }}>VIN: {sampleData.vehicle.vin}</p>
-                <p style={{ margin: '8px 0' }}>From: {sampleData.fromStore}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}><strong style={{ color: '#1f1f1f' }}>{sampleData.vehicle.year} {sampleData.vehicle.make} {sampleData.vehicle.model}</strong></p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>VIN: {sampleData.vehicle.vin}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>From: {sampleData.fromStore}</p>
               </div>
               
               <div style={{ backgroundColor: '#d1fae5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
-                <p style={{ margin: '8px 0' }}><strong>{sampleData.approverName}</strong> has approved the transfer request.</p>
-                <p style={{ margin: '8px 0' }}>You can now arrange transportation for this vehicle.</p>
+                <p style={{ margin: '8px 0', color: '#059669' }}><strong>{sampleData.approverName}</strong> has approved the transfer request.</p>
+                <p style={{ margin: '8px 0', color: '#059669' }}>You can now arrange transportation for this vehicle.</p>
               </div>
               
               <div style={{ textAlign: 'center', marginTop: '32px' }}>
@@ -111,15 +115,19 @@ export default function NotificationPreview() {
             <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px' }}>
               <h2 style={{ color: '#f59e0b', marginBottom: '24px' }}>🚚 Vehicle In Transit</h2>
               
+              <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                <img src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+              </div>
+              
               <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
                 <h3 style={{ color: '#1f1f1f', marginTop: 0 }}>Vehicle Details</h3>
-                <p style={{ margin: '8px 0' }}><strong>{sampleData.vehicle.year} {sampleData.vehicle.make} {sampleData.vehicle.model}</strong></p>
-                <p style={{ margin: '8px 0' }}>VIN: {sampleData.vehicle.vin}</p>
-                <p style={{ margin: '8px 0' }}>From: {sampleData.fromStore} → To: {sampleData.toStore}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}><strong style={{ color: '#1f1f1f' }}>{sampleData.vehicle.year} {sampleData.vehicle.make} {sampleData.vehicle.model}</strong></p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>VIN: {sampleData.vehicle.vin}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>From: {sampleData.fromStore} → To: {sampleData.toStore}</p>
               </div>
               
               <div style={{ backgroundColor: '#fef3c7', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
-                <p style={{ margin: '8px 0' }}>The vehicle is now in transit to your location.</p>
+                <p style={{ margin: '8px 0', color: '#f59e0b' }}>The vehicle is now in transit to your location.</p>
               </div>
             </div>
           </div>
@@ -131,15 +139,19 @@ export default function NotificationPreview() {
             <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px' }}>
               <h2 style={{ color: '#059669', marginBottom: '24px' }}>✅ Vehicle Delivered</h2>
               
+              <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                <img src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+              </div>
+              
               <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
                 <h3 style={{ color: '#1f1f1f', marginTop: 0 }}>Vehicle Details</h3>
-                <p style={{ margin: '8px 0' }}><strong>{sampleData.vehicle.year} {sampleData.vehicle.make} {sampleData.vehicle.model}</strong></p>
-                <p style={{ margin: '8px 0' }}>VIN: {sampleData.vehicle.vin}</p>
-                <p style={{ margin: '8px 0' }}>From: {sampleData.fromStore} → To: {sampleData.toStore}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}><strong style={{ color: '#1f1f1f' }}>{sampleData.vehicle.year} {sampleData.vehicle.make} {sampleData.vehicle.model}</strong></p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>VIN: {sampleData.vehicle.vin}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>From: {sampleData.fromStore} → To: {sampleData.toStore}</p>
               </div>
               
               <div style={{ backgroundColor: '#d1fae5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
-                <p style={{ margin: '8px 0' }}>The vehicle has been successfully delivered to your location.</p>
+                <p style={{ margin: '8px 0', color: '#059669' }}>The vehicle has been successfully delivered to your location.</p>
               </div>
             </div>
           </div>
@@ -151,17 +163,21 @@ export default function NotificationPreview() {
             <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px' }}>
               <h2 style={{ color: '#dc2626', marginBottom: '24px' }}>❌ Transfer Cancelled</h2>
               
+              <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                <img src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+              </div>
+              
               <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
                 <h3 style={{ color: '#1f1f1f', marginTop: 0 }}>Vehicle Details</h3>
-                <p style={{ margin: '8px 0' }}><strong>{sampleData.vehicle.year} {sampleData.vehicle.make} {sampleData.vehicle.model}</strong></p>
-                <p style={{ margin: '8px 0' }}>VIN: {sampleData.vehicle.vin}</p>
-                <p style={{ margin: '8px 0' }}>Transfer was: {sampleData.fromStore} → {sampleData.toStore}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}><strong style={{ color: '#1f1f1f' }}>{sampleData.vehicle.year} {sampleData.vehicle.make} {sampleData.vehicle.model}</strong></p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>VIN: {sampleData.vehicle.vin}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>Transfer was: {sampleData.fromStore} → {sampleData.toStore}</p>
               </div>
               
               <div style={{ backgroundColor: '#fee2e2', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
-                <p style={{ margin: '8px 0' }}>This transfer has been cancelled.</p>
-                <p style={{ margin: '8px 0' }}>Reason: {sampleData.reason}</p>
-                <p style={{ margin: '8px 0' }}>The vehicle remains at {sampleData.fromStore} and is available for other requests.</p>
+                <p style={{ margin: '8px 0', color: '#dc2626' }}>This transfer has been cancelled.</p>
+                <p style={{ margin: '8px 0', color: '#dc2626' }}>Reason: {sampleData.reason}</p>
+                <p style={{ margin: '8px 0', color: '#dc2626' }}>The vehicle remains at {sampleData.fromStore} and is available for other requests.</p>
               </div>
             </div>
           </div>
