@@ -5,6 +5,7 @@ import transfer from './transfer'
 import activity from './activity'
 import comment from './comment'
 import importLog from './importLog'
+import emailSettings from './emailSettings'
 
 export const schemaTypes = [
   user,
@@ -13,5 +14,6 @@ export const schemaTypes = [
   transfer,
   activity,
   comment,
-  importLog
+  importLog,
+  emailSettings
 ]

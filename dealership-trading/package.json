@@ -41,6 +41,7 @@
     "use-debounce": "^10.0.5"
   },
   "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.11.4",
     "@types/node": "^20.19.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
