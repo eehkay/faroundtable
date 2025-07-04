@@ -15,7 +15,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !canManageUsers(session.user.role)) {
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Allow users to view their own profile or admins to view any profile
+    if (session.user.id !== params.id && !canManageUsers(session.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -81,6 +86,56 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     console.error('Failed to update user:', error);
     return NextResponse.json(
       { error: 'Failed to update user' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Users can only update their own profile
+    if (session.user.id !== params.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    const data = await request.json();
+    const { name, image, location } = data;
+
+    // Build update object - users can only update limited fields
+    const updates: any = {};
+    if (name !== undefined) updates.name = name;
+    if (image !== undefined) updates.image = image;
+    
+    if (location !== undefined) {
+      if (location) {
+        updates.location = {
+          _type: 'reference',
+          _ref: location
+        };
+      } else {
+        updates.location = null;
+      }
+    }
+
+    const updatedUser = await client
+      .patch(params.id)
+      .set(updates)
+      .commit();
+
+    // Fetch the updated user with references populated
+    const populatedUser = await client.fetch(userByIdQuery, { userId: params.id });
+
+    return NextResponse.json(populatedUser);
+  } catch (error) {
+    console.error('Failed to update user profile:', error);
+    return NextResponse.json(
+      { error: 'Failed to update profile' },
       { status: 500 }
     );
   }

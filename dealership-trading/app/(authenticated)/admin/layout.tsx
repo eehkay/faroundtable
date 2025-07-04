@@ -1,43 +1,165 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { canManageUsers } from "@/lib/permissions";
-import { redirect } from "next/navigation";
-import { Shield, Users } from "lucide-react";
-import Link from "next/link";
+'use client'
 
-export default async function AdminLayout({
+import { useSession } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
+import Link from "next/link";
+import { isAdmin, isManager } from "@/lib/permissions";
+import { 
+  LayoutDashboard, 
+  Users, 
+  TruckIcon, 
+  Mail, 
+  Settings, 
+  FileText, 
+  Activity,
+  ChevronLeft
+} from "lucide-react";
+import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
+
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
-  
-  if (!session || !canManageUsers(session.user.role)) {
-    redirect("/dashboard");
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    } else if (status === "authenticated" && !isAdmin(session.user.role) && !isManager(session.user.role)) {
+      router.push("/dashboard");
+    }
+  }, [status, session, router]);
+
+  if (status === "loading") {
+    return (
+      <div className="flex h-screen">
+        <div className="animate-pulse bg-[#1f1f1f] w-64 h-full"></div>
+        <div className="flex-1 p-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-[#2a2a2a] rounded w-1/4 mb-4"></div>
+            <div className="h-4 bg-[#2a2a2a] rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
+  if (!session || (!isAdmin(session.user.role) && !isManager(session.user.role))) {
+    return null;
+  }
+
+  const navigationItems = [
+    {
+      name: "Dashboard",
+      href: "/admin",
+      icon: LayoutDashboard,
+      show: true
+    },
+    {
+      name: "Users",
+      href: "/admin/users",
+      icon: Users,
+      show: isAdmin(session.user.role)
+    },
+    {
+      name: "Transfers",
+      href: "/admin/transfers",
+      icon: TruckIcon,
+      show: true
+    },
+    {
+      name: "Notifications",
+      href: "/admin/notifications",
+      icon: Mail,
+      show: isAdmin(session.user.role)
+    },
+    {
+      name: "Settings",
+      href: "/admin/settings",
+      icon: Settings,
+      show: isAdmin(session.user.role),
+      comingSoon: true
+    },
+    {
+      name: "Reports",
+      href: "/admin/reports",
+      icon: FileText,
+      show: true,
+      comingSoon: true
+    },
+    {
+      name: "Activity Logs",
+      href: "/admin/activity",
+      icon: Activity,
+      show: isAdmin(session.user.role),
+      comingSoon: true
+    }
+  ];
+
+  const isActive = (href: string) => {
+    if (href === '/admin') {
+      return pathname === '/admin';
+    }
+    return pathname.startsWith(href);
+  };
+
   return (
-    <div className="min-h-screen">
-      {/* Admin Header */}
-      <div className="bg-[#1f1f1f] border-b border-[#2a2a2a] mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4 py-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-500/20 rounded-lg">
-                <Shield className="h-6 w-6 text-red-400" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">Admin Panel</h1>
-                <p className="text-sm text-gray-400">System administration and user management</p>
-              </div>
-            </div>
-          </div>
+    <div className="flex h-[calc(100vh-4rem)]">
+      {/* Sidebar */}
+      <div className="w-64 bg-[#1f1f1f] border-r border-[#2a2a2a]">
+        <div className="p-4">
+          <Link 
+            href="/dashboard"
+            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-6"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to Main Dashboard
+          </Link>
+          
+          <h2 className="text-lg font-semibold text-white mb-4">Admin Panel</h2>
+          
+          <nav className="space-y-1">
+            {navigationItems.filter(item => item.show).map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.comingSoon ? '#' : item.href}
+                  className={`
+                    flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                    ${active 
+                      ? 'bg-blue-600 text-white' 
+                      : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                    }
+                    ${item.comingSoon ? 'cursor-not-allowed opacity-50' : ''}
+                  `}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.name}</span>
+                  {item.comingSoon && (
+                    <span className="ml-auto text-xs bg-[#2a2a2a] text-gray-500 px-2 py-1 rounded">
+                      Soon
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {children}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-8">
+          <AdminBreadcrumb />
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Car, Package, TruckIcon, LayoutDashboard, ChevronDown, LogOut, User, Shield, Moon, Sun } from 'lucide-react'
+import { Car, Package, TruckIcon, LayoutDashboard, ChevronDown, LogOut, User, Shield, Moon, Sun, Mail } from 'lucide-react'
 import { useState } from 'react'
 import { canViewAllTransfers, canManageUsers, isAdmin, isManager } from '@/lib/permissions'
 import { useTheme } from 'next-themes'
@@ -48,10 +48,10 @@ export default function Navigation() {
       show: true
     },
     {
-      href: '/admin/users',
+      href: '/admin',
       label: 'Admin',
       icon: Shield,
-      show: session ? canManageUsers(session.user.role) : false
+      show: session ? (isAdmin(session.user.role) || isManager(session.user.role)) : false
     }
   ]
 
@@ -153,20 +153,11 @@ export default function Navigation() {
                   </Link>
                 </DropdownMenuItem>
 
-                {canManageUsers(session.user.role) && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/users" className="cursor-pointer">
-                      <Shield className="mr-2 h-4 w-4" />
-                      User Management
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-
                 {(isAdmin(session.user.role) || isManager(session.user.role)) && (
                   <DropdownMenuItem asChild>
-                    <Link href="/admin/transfers" className="cursor-pointer">
-                      <TruckIcon className="mr-2 h-4 w-4" />
-                      Transfer Management
+                    <Link href="/admin" className="cursor-pointer">
+                      <Shield className="mr-2 h-4 w-4" />
+                      Admin Dashboard
                     </Link>
                   </DropdownMenuItem>
                 )}
