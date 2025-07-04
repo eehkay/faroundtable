@@ -35,7 +35,8 @@ export async function PUT(request: NextRequest, props: RouteParams) {
           model,
           stockNumber,
           price,
-          status
+          status,
+          images
         },
         requestedBy->{
           _id,

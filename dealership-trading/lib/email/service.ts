@@ -16,19 +16,25 @@ const emailTemplates = {
   }) => ({
     subject: `Transfer Request: ${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`,
     html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <h2 style="color: #1f1f1f; margin-bottom: 24px;">New Transfer Request</h2>
+        
+        ${data.vehicle.images && data.vehicle.images.length > 0 ? `
+        <div style="margin-bottom: 24px; text-align: center;">
+          <img src="${data.vehicle.images[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        </div>
+        ` : ''}
         
         <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
           <h3 style="color: #1f1f1f; margin-top: 0;">Vehicle Details</h3>
-          <p style="margin: 8px 0;"><strong>${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
-          <p style="margin: 8px 0;">VIN: ${data.vehicle.vin}</p>
-          <p style="margin: 8px 0;">Stock #: ${data.vehicle.stockNumber || 'N/A'}</p>
-          <p style="margin: 8px 0;">Price: $${data.vehicle.price.toLocaleString()}</p>
+          <p style="margin: 8px 0; color: #4a5568;"><strong style="color: #1f1f1f;">${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
+          <p style="margin: 8px 0; color: #4a5568;">VIN: ${data.vehicle.vin}</p>
+          <p style="margin: 8px 0; color: #4a5568;">Stock #: ${data.vehicle.stockNumber || 'N/A'}</p>
+          <p style="margin: 8px 0; color: #4a5568;">Price: $${data.vehicle.price.toLocaleString()}</p>
         </div>
         
         <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="margin: 8px 0;"><strong>${data.requesterName}</strong> from <strong>${data.requestingStore.name}</strong> has requested to transfer this vehicle from your location.</p>
+          <p style="margin: 8px 0; color: #1976d2;"><strong>${data.requesterName}</strong> from <strong>${data.requestingStore.name}</strong> has requested to transfer this vehicle from your location.</p>
         </div>
         
         <div style="text-align: center; margin-top: 32px;">
@@ -51,19 +57,25 @@ const emailTemplates = {
   }) => ({
     subject: `Transfer Approved: ${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`,
     html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <h2 style="color: #059669; margin-bottom: 24px;">✅ Transfer Approved</h2>
+        
+        ${data.vehicle.images && data.vehicle.images.length > 0 ? `
+        <div style="margin-bottom: 24px; text-align: center;">
+          <img src="${data.vehicle.images[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        </div>
+        ` : ''}
         
         <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
           <h3 style="color: #1f1f1f; margin-top: 0;">Vehicle Details</h3>
-          <p style="margin: 8px 0;"><strong>${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
-          <p style="margin: 8px 0;">VIN: ${data.vehicle.vin}</p>
-          <p style="margin: 8px 0;">From: ${data.originStore.name}</p>
+          <p style="margin: 8px 0; color: #4a5568;"><strong style="color: #1f1f1f;">${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
+          <p style="margin: 8px 0; color: #4a5568;">VIN: ${data.vehicle.vin}</p>
+          <p style="margin: 8px 0; color: #4a5568;">From: ${data.originStore.name}</p>
         </div>
         
         <div style="background-color: #d1fae5; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="margin: 8px 0;"><strong>${data.approverName}</strong> has approved the transfer request.</p>
-          <p style="margin: 8px 0;">You can now arrange transportation for this vehicle.</p>
+          <p style="margin: 8px 0; color: #059669;"><strong>${data.approverName}</strong> has approved the transfer request.</p>
+          <p style="margin: 8px 0; color: #059669;">You can now arrange transportation for this vehicle.</p>
         </div>
         
         <div style="text-align: center; margin-top: 32px;">
@@ -87,21 +99,27 @@ const emailTemplates = {
   }) => ({
     subject: `Transfer ${data.status === 'in-transit' ? 'In Transit' : 'Delivered'}: ${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`,
     html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <h2 style="color: ${data.status === 'delivered' ? '#059669' : '#f59e0b'}; margin-bottom: 24px;">
           ${data.status === 'in-transit' ? '🚚 Vehicle In Transit' : '✅ Vehicle Delivered'}
         </h2>
         
+        ${data.vehicle.images && data.vehicle.images.length > 0 ? `
+        <div style="margin-bottom: 24px; text-align: center;">
+          <img src="${data.vehicle.images[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        </div>
+        ` : ''}
+        
         <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
           <h3 style="color: #1f1f1f; margin-top: 0;">Vehicle Details</h3>
-          <p style="margin: 8px 0;"><strong>${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
-          <p style="margin: 8px 0;">VIN: ${data.vehicle.vin}</p>
-          <p style="margin: 8px 0;">From: ${data.originStore.name} → To: ${data.requestingStore.name}</p>
+          <p style="margin: 8px 0; color: #4a5568;"><strong style="color: #1f1f1f;">${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
+          <p style="margin: 8px 0; color: #4a5568;">VIN: ${data.vehicle.vin}</p>
+          <p style="margin: 8px 0; color: #4a5568;">From: ${data.originStore.name} → To: ${data.requestingStore.name}</p>
         </div>
         
         <div style="background-color: ${data.status === 'delivered' ? '#d1fae5' : '#fef3c7'}; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="margin: 8px 0;">Status updated by <strong>${data.updaterName}</strong></p>
-          <p style="margin: 8px 0;">
+          <p style="margin: 8px 0; color: ${data.status === 'delivered' ? '#059669' : '#f59e0b'};">Status updated by <strong>${data.updaterName}</strong></p>
+          <p style="margin: 8px 0; color: ${data.status === 'delivered' ? '#059669' : '#f59e0b'};">
             ${data.status === 'in-transit' 
               ? 'The vehicle is now in transit to your location.' 
               : 'The vehicle has been successfully delivered to your location.'}
@@ -128,20 +146,26 @@ const emailTemplates = {
   }) => ({
     subject: `Transfer Cancelled: ${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`,
     html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <h2 style="color: #dc2626; margin-bottom: 24px;">❌ Transfer Cancelled</h2>
+        
+        ${data.vehicle.images && data.vehicle.images.length > 0 ? `
+        <div style="margin-bottom: 24px; text-align: center;">
+          <img src="${data.vehicle.images[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        </div>
+        ` : ''}
         
         <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
           <h3 style="color: #1f1f1f; margin-top: 0;">Vehicle Details</h3>
-          <p style="margin: 8px 0;"><strong>${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
-          <p style="margin: 8px 0;">VIN: ${data.vehicle.vin}</p>
-          <p style="margin: 8px 0;">Transfer was: ${data.originStore.name} → ${data.requestingStore.name}</p>
+          <p style="margin: 8px 0; color: #4a5568;"><strong style="color: #1f1f1f;">${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
+          <p style="margin: 8px 0; color: #4a5568;">VIN: ${data.vehicle.vin}</p>
+          <p style="margin: 8px 0; color: #4a5568;">Transfer was: ${data.originStore.name} → ${data.requestingStore.name}</p>
         </div>
         
         <div style="background-color: #fee2e2; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="margin: 8px 0;">This transfer has been cancelled by <strong>${data.cancellerName}</strong></p>
-          ${data.reason ? `<p style="margin: 8px 0;">Reason: ${data.reason}</p>` : ''}
-          <p style="margin: 8px 0;">The vehicle remains at ${data.originStore.name} and is available for other requests.</p>
+          <p style="margin: 8px 0; color: #dc2626;">This transfer has been cancelled by <strong>${data.cancellerName}</strong></p>
+          ${data.reason ? `<p style="margin: 8px 0; color: #dc2626;">Reason: ${data.reason}</p>` : ''}
+          <p style="margin: 8px 0; color: #dc2626;">The vehicle remains at ${data.originStore.name} and is available for other requests.</p>
         </div>
         
         <p style="color: #666; font-size: 14px; margin-top: 32px; text-align: center;">

@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
         model,
         stockNumber,
         price,
+        images,
         location->{_id, name, code, email},
         currentTransfer
       }

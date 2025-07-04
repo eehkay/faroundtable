@@ -49,16 +49,20 @@ export default function NotificationPreview() {
             <div style={{ backgroundColor: 'white', borderRadius: '8px', padding: '20px' }}>
               <h2 style={{ color: '#1f1f1f', marginBottom: '24px' }}>New Transfer Request</h2>
               
+              <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+                <img src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+              </div>
+              
               <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
                 <h3 style={{ color: '#1f1f1f', marginTop: 0 }}>Vehicle Details</h3>
-                <p style={{ margin: '8px 0' }}><strong>{sampleData.vehicle.year} {sampleData.vehicle.make} {sampleData.vehicle.model}</strong></p>
-                <p style={{ margin: '8px 0' }}>VIN: {sampleData.vehicle.vin}</p>
-                <p style={{ margin: '8px 0' }}>Stock #: {sampleData.vehicle.stockNumber}</p>
-                <p style={{ margin: '8px 0' }}>Price: ${sampleData.vehicle.price.toLocaleString()}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}><strong style={{ color: '#1f1f1f' }}>{sampleData.vehicle.year} {sampleData.vehicle.make} {sampleData.vehicle.model}</strong></p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>VIN: {sampleData.vehicle.vin}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>Stock #: {sampleData.vehicle.stockNumber}</p>
+                <p style={{ margin: '8px 0', color: '#4a5568' }}>Price: ${sampleData.vehicle.price.toLocaleString()}</p>
               </div>
               
               <div style={{ backgroundColor: '#e3f2fd', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
-                <p style={{ margin: '8px 0' }}><strong>{sampleData.requesterName}</strong> from <strong>{sampleData.toStore}</strong> has requested to transfer this vehicle from your location.</p>
+                <p style={{ margin: '8px 0', color: '#1976d2' }}><strong>{sampleData.requesterName}</strong> from <strong>{sampleData.toStore}</strong> has requested to transfer this vehicle from your location.</p>
               </div>
               
               <div style={{ textAlign: 'center', marginTop: '32px' }}>

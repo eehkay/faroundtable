@@ -42,7 +42,8 @@ export async function PUT(request: NextRequest, props: RouteParams) {
           make,
           model,
           stockNumber,
-          price
+          price,
+          images
         },
         requestedBy->{
           _id,

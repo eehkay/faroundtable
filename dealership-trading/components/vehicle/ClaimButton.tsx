@@ -111,6 +111,7 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
                 onChange={(e) => setFormData({...formData, reason: e.target.value})}
                 rows={3}
                 placeholder="Customer waiting, specific request, etc."
+                className="bg-zinc-800 border-zinc-700"
                 required
               />
             </div>
@@ -149,6 +150,7 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
                 value={formData.expectedPickupDate}
                 onChange={(e) => setFormData({...formData, expectedPickupDate: e.target.value})}
                 min={new Date().toISOString().split('T')[0]}
+                className="bg-zinc-800 border-zinc-700"
               />
             </div>
           </div>
