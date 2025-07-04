@@ -52,7 +52,13 @@ export default {
     { name: 'originalLocation', title: 'Original Location', type: 'reference', to: [{type: 'dealershipLocation'}] },
     
     // Transfer Information
-    { name: 'currentTransfer', title: 'Current Transfer', type: 'reference', to: [{type: 'transfer'}] },
+    { 
+      name: 'activeTransferRequests', 
+      title: 'Active Transfer Requests', 
+      type: 'array', 
+      of: [{type: 'reference', to: [{type: 'transfer'}]}],
+      description: 'All pending transfer requests for this vehicle'
+    },
     
     // Images
     { name: 'imageUrls', title: 'Image URLs', type: 'array', of: [{type: 'url'}] },

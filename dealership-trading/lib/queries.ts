@@ -32,10 +32,9 @@ export const vehiclesQuery = groq`
       name,
       code
     },
-    currentTransfer->{
+    activeTransferRequests[]->{
       _id,
-      status,
-      toStore->{name}
+      status
     },
     daysOnLot
   }
@@ -59,11 +58,17 @@ export const vehicleByStockNumberQuery = groq`
       name,
       code
     },
-    currentTransfer->{
-      ...,
-      fromStore->{name, code},
-      toStore->{name, code},
-      requestedBy->{name, email}
+    activeTransferRequests[]->{
+      _id,
+      status,
+      transferNotes,
+      moneyOffer,
+      requestedByDate,
+      customerWaiting,
+      priority,
+      fromLocation->{_id, name, code},
+      toLocation->{_id, name, code},
+      requestedBy->{_id, name, email}
     }
   }
 `

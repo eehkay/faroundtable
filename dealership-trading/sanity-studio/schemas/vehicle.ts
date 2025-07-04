@@ -2,6 +2,35 @@ export default {
   name: 'vehicle',
   title: 'Vehicle',
   type: 'document',
+  preview: {
+    select: {
+      title: 'title',
+      stockNumber: 'stockNumber',
+      status: 'status',
+      price: 'price',
+      locationName: 'location.name',
+      imageUrl: 'imageUrls.0',
+      year: 'year',
+      make: 'make',
+      model: 'model'
+    },
+    prepare({title, stockNumber, status, price, locationName, imageUrl, year, make, model}: any) {
+      const statusEmoji = {
+        'available': '✅',
+        'claimed': '🔄',
+        'in-transit': '🚚',
+        'delivered': '📦'
+      }[status] || '❓'
+      
+      const vehicleTitle = title || `${year} ${make} ${model}`.trim() || stockNumber
+      
+      return {
+        title: `${stockNumber} - ${vehicleTitle}`,
+        subtitle: `${statusEmoji} ${locationName || 'Unknown'} • $${price?.toLocaleString() || 'N/A'}`,
+        media: imageUrl ? {_type: 'url', url: imageUrl} : undefined
+      }
+    }
+  },
   fields: [
     // Identification
     { name: 'stockNumber', title: 'Stock Number', type: 'string', validation: Rule => Rule.required() },

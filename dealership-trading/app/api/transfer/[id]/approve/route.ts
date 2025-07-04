@@ -43,7 +43,12 @@ export async function PUT(request: NextRequest, props: RouteParams) {
           model,
           stockNumber,
           price,
-          images
+          images,
+          activeTransferRequests[]->{
+            _id,
+            status,
+            toLocation->{_id, name}
+          }
         },
         requestedBy->{
           _id,
@@ -65,6 +70,11 @@ export async function PUT(request: NextRequest, props: RouteParams) {
       );
     }
 
+    // Get all other pending transfers for this vehicle
+    const otherPendingTransfers = transfer.vehicle.activeTransferRequests?.filter(
+      (req: any) => req._id !== transferId && req.status === 'requested'
+    ) || [];
+    
     // Approve the transfer
     const updatedTransfer = await writeClient
       .patch(transferId)
@@ -74,14 +84,52 @@ export async function PUT(request: NextRequest, props: RouteParams) {
           _type: 'reference',
           _ref: session.user.id
         },
-        approvedAt: new Date().toISOString()
+        approvedAt: new Date().toISOString(),
+        approvedOver: otherPendingTransfers.map((req: any) => ({
+          _type: 'reference',
+          _ref: req._id
+        }))
       })
       .commit();
 
-    // Update vehicle status to in-transfer
+    // Auto-reject all other pending transfers
+    const rejectionTime = new Date().toISOString();
+    for (const pendingTransfer of otherPendingTransfers) {
+      await writeClient
+        .patch(pendingTransfer._id)
+        .set({
+          status: 'rejected',
+          rejectedAt: rejectionTime,
+          rejectedBy: { _type: 'reference', _ref: session.user.id },
+          rejectionReason: 'Another transfer request was approved for this vehicle'
+        })
+        .commit();
+        
+      // Create activity log for rejection
+      await writeClient.create({
+        _type: 'activity',
+        vehicle: { _type: 'reference', _ref: transfer.vehicle._id },
+        user: { _type: 'reference', _ref: session.user.id },
+        action: 'transfer_auto_rejected',
+        details: `Transfer request from ${pendingTransfer.toLocation.name} auto-rejected - another request was approved`,
+        metadata: {
+          transferId: pendingTransfer._id,
+          approvedTransferId: transferId
+        },
+        createdAt: rejectionTime
+      });
+    }
+
+    // Update vehicle status to claimed and set only the approved transfer
     await writeClient
       .patch(transfer.vehicle._id)
-      .set({ status: 'in-transfer' })
+      .set({ 
+        status: 'claimed',
+        activeTransferRequests: [{
+          _type: 'reference',
+          _ref: transferId
+        }]
+      })
       .commit();
 
     // Create activity log
@@ -111,7 +159,8 @@ export async function PUT(request: NextRequest, props: RouteParams) {
       metadata: {
         vehicleDetails: `${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}`,
         fromStore: transfer.fromLocation.name,
-        toStore: transfer.toLocation.name
+        toStore: transfer.toLocation.name,
+        autoRejectedCount: otherPendingTransfers.length
       },
       timestamp: new Date().toISOString()
     });

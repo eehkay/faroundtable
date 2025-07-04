@@ -12,6 +12,7 @@ import VehicleActions from "@/components/vehicle/VehicleActions";
 import ActivityFeed from "@/components/vehicle/ActivityFeed";
 import CommentSection from "@/components/vehicle/CommentSection";
 import TransferStatus from "@/components/inventory/TransferStatus";
+import TransferRequestsPanel from "@/components/vehicle/TransferRequestsPanel";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -71,6 +72,7 @@ export default async function VehicleDetailPage({ params }: PageProps) {
               vehicleId={vehicle._id}
               vehicleStatus={vehicle.status}
               vehicleLocation={vehicle.location?._id}
+              activeTransferRequests={vehicle.activeTransferRequests?.filter((t: any) => t.status === 'requested').length || 0}
             />
           </div>
         </div>
@@ -114,29 +116,12 @@ export default async function VehicleDetailPage({ params }: PageProps) {
           {/* Location Info */}
           <VehicleLocation location={vehicle.location} />
 
-          {/* Transfer Info */}
-          {vehicle.currentTransfer && vehicle.status !== 'available' && (
-            <div className="bg-[#1f1f1f] rounded-lg shadow-sm p-6 transition-all duration-200">
-              <h3 className="font-semibold mb-4 text-white">Transfer Information</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Status:</span>
-                  <span className="font-medium capitalize text-gray-100">{vehicle.currentTransfer.status}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">From:</span>
-                  <span className="font-medium text-gray-100">{vehicle.currentTransfer.fromStore?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">To:</span>
-                  <span className="font-medium text-gray-100">{vehicle.currentTransfer.toStore?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Requested by:</span>
-                  <span className="font-medium text-gray-100">{vehicle.currentTransfer.requestedBy?.name}</span>
-                </div>
-              </div>
-            </div>
+          {/* Transfer Requests Panel */}
+          {vehicle.activeTransferRequests && vehicle.activeTransferRequests.length > 0 && (
+            <TransferRequestsPanel 
+              vehicleId={vehicle._id}
+              vehicleLocation={vehicle.location?._id}
+            />
           )}
 
           {/* Activity Feed */}

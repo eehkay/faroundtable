@@ -2,6 +2,21 @@ export default {
   name: 'dealershipLocation',
   title: 'Dealership Location',
   type: 'document',
+  preview: {
+    select: {
+      title: 'name',
+      code: 'code',
+      city: 'city',
+      state: 'state',
+      active: 'active'
+    },
+    prepare({title, code, city, state, active}: any) {
+      return {
+        title: `${title} (${code})`,
+        subtitle: `${city}, ${state} ${active === false ? '• INACTIVE' : ''}`
+      }
+    }
+  },
   fields: [
     { name: 'name', title: 'Name', type: 'string', validation: Rule => Rule.required() },
     { name: 'code', title: 'Location Code', type: 'string', validation: Rule => Rule.required() },

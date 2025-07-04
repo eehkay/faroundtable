@@ -185,18 +185,17 @@ export default function VehicleCard({ vehicle, userLocation, userRole, onUpdate 
               vehicleId={vehicle._id}
               vehicleStatus={vehicle.status}
               vehicleLocation={vehicle.location?._id || ''}
+              activeTransferRequests={vehicle.activeTransferRequests?.filter((t: any) => t.status === 'requested').length || 0}
               onSuccess={onUpdate}
               className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold py-3 px-6 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl"
             />
           </div>
 
           {/* Transfer Info */}
-          {vehicle.currentTransfer && vehicle.status !== 'available' && (
+          {vehicle.activeTransferRequests && vehicle.activeTransferRequests.length > 0 && (
             <div className="mt-3 text-center">
               <p className="text-xs text-gray-400">
-                {vehicle.status === 'claimed' && 'Transfer requested'}
-                {vehicle.status === 'in-transit' && `In transit to ${vehicle.currentTransfer.toStore?.name}`}
-                {vehicle.status === 'delivered' && 'Recently delivered'}
+                {vehicle.activeTransferRequests.filter((t: any) => t.status === 'requested').length} pending transfer request(s)
               </p>
             </div>
           )}

@@ -96,3 +96,64 @@
 .dark::-webkit-scrollbar-thumb:hover {
   background: #404040;
 }
+
+/* Date picker styles */
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: rgb(59, 130, 246);
+  --rdp-background-color: rgb(59, 130, 246);
+  margin: 0;
+}
+
+.rdp-day_selected:not([aria-disabled='true']) {
+  background-color: var(--rdp-accent-color);
+  color: white;
+}
+
+.rdp-day_selected:hover:not([aria-disabled='true']) {
+  background-color: var(--rdp-accent-color);
+  color: white;
+}
+
+.rdp-day:hover:not([aria-disabled='true']):not(.rdp-day_selected) {
+  background-color: rgb(42, 42, 42);
+}
+
+.rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+  background-color: rgb(42, 42, 42);
+}
+
+.rdp-nav_button:hover:not([disabled]) {
+  background-color: rgb(42, 42, 42);
+}
+
+.rdp-head_cell {
+  color: rgb(163, 163, 163);
+  font-weight: 500;
+}
+
+.rdp-caption {
+  color: white;
+}
+
+.rdp-day {
+  color: rgb(229, 229, 229);
+}
+
+.rdp-day_disabled {
+  color: rgb(82, 82, 82);
+}
+
+.rdp-day_outside {
+  color: rgb(82, 82, 82);
+}
+
+/* Time input in date-time picker */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
