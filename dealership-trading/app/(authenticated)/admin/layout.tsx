@@ -8,6 +8,7 @@ import { isAdmin, isManager } from "@/lib/permissions";
 import { 
   LayoutDashboard, 
   Users, 
+  Building2,
   TruckIcon, 
   Mail, 
   Settings, 
@@ -63,6 +64,12 @@ export default function AdminLayout({
       name: "Users",
       href: "/admin/users",
       icon: Users,
+      show: isAdmin(session.user.role)
+    },
+    {
+      name: "Dealerships",
+      href: "/admin/dealerships",
+      icon: Building2,
       show: isAdmin(session.user.role)
     },
     {

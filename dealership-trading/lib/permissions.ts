@@ -46,3 +46,7 @@ export function canApproveTransfers(role: string): boolean {
 export function canViewTransfers(role: string): boolean {
   return ['sales', 'manager', 'admin', 'transport'].includes(role)
 }
+
+export function canManageDealerships(role: string): boolean {
+  return role === 'admin'
+}
