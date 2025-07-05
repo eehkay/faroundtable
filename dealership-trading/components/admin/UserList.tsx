@@ -28,8 +28,15 @@ interface UserListProps {
 }
 
 export default function UserList({ initialUsers, locations, currentUserId }: UserListProps) {
-  const [users, setUsers] = useState(initialUsers);
-  const [filteredUsers, setFilteredUsers] = useState(initialUsers);
+  console.log('UserList Component - Initial users:', initialUsers);
+  console.log('UserList Component - User count:', initialUsers?.length || 0);
+  console.log('UserList Component - Current user ID:', currentUserId);
+  
+  // Ensure initialUsers is always an array
+  const safeInitialUsers = initialUsers || [];
+  
+  const [users, setUsers] = useState(safeInitialUsers);
+  const [filteredUsers, setFilteredUsers] = useState(safeInitialUsers);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -195,9 +202,14 @@ export default function UserList({ initialUsers, locations, currentUserId }: Use
               <div key={i} className="animate-pulse bg-[#2a2a2a] h-16 rounded-lg"></div>
             ))}
           </div>
+        ) : users.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400 text-lg">No users in the system</p>
+            <p className="text-gray-500 text-sm mt-2">Users will be created automatically when they sign in with Google</p>
+          </div>
         ) : filteredUsers.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">No users found</p>
+            <p className="text-gray-400 text-lg">No users match your filters</p>
             <p className="text-gray-500 text-sm mt-2">Try adjusting your search or filters</p>
           </div>
         ) : (

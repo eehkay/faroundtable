@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { client } from "@/lib/sanity";
+import { writeClient } from "@/lib/sanity";
 import { allUsersQuery, dealershipLocationsQuery } from "@/lib/queries";
 import { canManageUsers } from "@/lib/permissions";
 import { redirect } from "next/navigation";
@@ -20,9 +20,13 @@ export default async function UsersPage() {
 
   // Fetch users and locations
   const [users, locations] = await Promise.all([
-    client.fetch(allUsersQuery),
-    client.fetch(dealershipLocationsQuery)
+    writeClient.fetch(allUsersQuery),
+    writeClient.fetch(dealershipLocationsQuery)
   ]);
+
+  console.log('Admin Users Page - Fetched users:', users.length);
+  console.log('Admin Users Page - Users data:', JSON.stringify(users, null, 2));
+  console.log('Admin Users Page - Locations:', locations.length);
 
   return (
     <div className="space-y-6">

@@ -21,8 +21,6 @@ export const authOptions: NextAuthOptions = {
           prompt: "consent",
           access_type: "offline",
           response_type: "code"
-          // Removed hd parameter to allow any Google account to attempt sign in
-          // We'll handle domain validation in the signIn callback
         }
       }
     })
@@ -40,7 +38,6 @@ export const authOptions: NextAuthOptions = {
         return false
       }
       
-      // User passed domain check
       console.log(`Accepted login from authorized domain: ${domain}`)
       
       // Create/update user in Supabase

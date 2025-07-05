@@ -6,7 +6,7 @@ declare module "next-auth" {
       id: string
       role: string
       location?: {
-        _id: string
+        id: string
         name: string
         code: string
       }

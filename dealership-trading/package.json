@@ -9,7 +9,8 @@
     "lint": "next lint",
     "import-csv": "tsx scripts/import-csv.ts",
     "migrate-dealerships": "tsx scripts/migrate-dealerships.ts",
-    "merge-users": "tsx scripts/merge-duplicate-users.ts"
+    "merge-users": "tsx scripts/merge-duplicate-users.ts",
+    "migrate-to-supabase": "tsx scripts/migrate-sanity-to-supabase.ts"
   },
   "dependencies": {
     "@netlify/functions": "^4.1.8",
@@ -22,6 +23,10 @@
     "@sanity/client": "^7.6.0",
     "@sanity/image-url": "^1.1.0",
     "@sanity/vision": "^3.96.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/auth-helpers-react": "^0.5.0",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.50.3",
     "@types/papaparse": "^5.3.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
