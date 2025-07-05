@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/lib/supabase-client";
 import { Activity, Car, MessageSquare, TruckIcon, CheckCircle, XCircle } from "lucide-react";
+import Link from "next/link";
 import type { DealershipLocation } from "@/types/vehicle";
 
 interface ActivityItem {
@@ -224,21 +225,39 @@ export default function RecentActivity({ initialActivity, userLocation }: Recent
     const userName = activity.user?.name || 'Someone';
     const vehicleTitle = activity.vehicle?.title || `Stock #${activity.vehicle?.stockNumber || 'Unknown'}`;
     
+    // Create vehicle link if we have a stock number
+    const vehicleLink = activity.vehicle?.stockNumber ? (
+      <Link 
+        href={`/inventory/${activity.vehicle.stockNumber}`}
+        className="text-blue-600 dark:text-blue-400 hover:underline"
+      >
+        {vehicleTitle}
+      </Link>
+    ) : (
+      <span>{vehicleTitle}</span>
+    );
+    
     switch (activity.action) {
       case 'claimed':
-        return `${userName} claimed ${vehicleTitle}`;
+        return <>{userName} claimed {vehicleLink}</>;
       case 'released':
-        return `${userName} released claim on ${vehicleTitle}`;
+        return <>{userName} released claim on {vehicleLink}</>;
       case 'commented':
-        return `${userName} commented on ${vehicleTitle}`;
+        return <>{userName} commented on {vehicleLink}</>;
       case 'status-updated':
-        return `${userName} updated status of ${vehicleTitle}`;
+        return <>{userName} updated status of {vehicleLink}</>;
+      case 'transfer-approved':
+        // For transfer activities, check if details contains store information
+        if (activity.details?.includes(' to ')) {
+          return <>Transfer approved for {vehicleLink}</>;
+        }
+        return <>Transfer approved for {vehicleLink}</>;
       case 'transfer-started':
-        return `Transfer started for ${vehicleTitle}`;
+        return <>Transfer started for {vehicleLink}</>;
       case 'transfer-completed':
-        return `Transfer completed for ${vehicleTitle}`;
+        return <>Transfer completed for {vehicleLink}</>;
       default:
-        return activity.details || `${userName} performed an action on ${vehicleTitle}`;
+        return <>{activity.details || `${userName} performed an action on`} {vehicleLink}</>;
     }
   };
 
@@ -274,9 +293,9 @@ export default function RecentActivity({ initialActivity, userLocation }: Recent
                   {getActivityIcon(activity.action)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900 dark:text-gray-100">
+                  <div className="text-sm text-gray-900 dark:text-gray-100">
                     {getActivityDescription(activity)}
-                  </p>
+                  </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
                   </p>
