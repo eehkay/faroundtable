@@ -449,6 +449,97 @@ export async function getDashboardStats() {
   }
 }
 
+// Get all transfers for a vehicle (for unified feed)
+export async function getVehicleTransfers(vehicleId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('transfers')
+    .select(`
+      id,
+      status,
+      reason,
+      transfer_notes,
+      money_offer,
+      requested_by_date,
+      customer_waiting,
+      priority,
+      expected_pickup_date,
+      actual_pickup_date,
+      delivered_date,
+      approved_at,
+      rejected_at,
+      rejection_reason,
+      cancelled_at,
+      transport_notes,
+      competing_requests_count,
+      created_at,
+      from_location:from_location_id(id, name, code),
+      to_location:to_location_id(id, name, code),
+      requested_by:requested_by_id(id, name, email),
+      approved_by:approved_by_id(id, name, email),
+      rejected_by:rejected_by_id(id, name, email),
+      cancelled_by:cancelled_by_id(id, name, email)
+    `)
+    .eq('vehicle_id', vehicleId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching vehicle transfers:', error)
+    return []
+  }
+
+  // Transform to match feed format
+  return data?.map((transfer: any) => ({
+    _id: transfer.id,
+    status: transfer.status,
+    reason: transfer.reason,
+    transferNotes: transfer.transfer_notes,
+    moneyOffer: transfer.money_offer,
+    requestedByDate: transfer.requested_by_date,
+    customerWaiting: transfer.customer_waiting,
+    priority: transfer.priority,
+    expectedPickupDate: transfer.expected_pickup_date,
+    actualPickupDate: transfer.actual_pickup_date,
+    deliveredDate: transfer.delivered_date,
+    approvedAt: transfer.approved_at,
+    rejectedAt: transfer.rejected_at,
+    rejectionReason: transfer.rejection_reason,
+    cancelledAt: transfer.cancelled_at,
+    transportNotes: transfer.transport_notes,
+    competingRequestsCount: transfer.competing_requests_count,
+    createdAt: transfer.created_at,
+    fromLocation: transfer.from_location ? {
+      _id: transfer.from_location.id,
+      name: transfer.from_location.name,
+      code: transfer.from_location.code
+    } : undefined,
+    toLocation: transfer.to_location ? {
+      _id: transfer.to_location.id,
+      name: transfer.to_location.name,
+      code: transfer.to_location.code
+    } : undefined,
+    requestedBy: transfer.requested_by ? {
+      _id: transfer.requested_by.id,
+      name: transfer.requested_by.name,
+      email: transfer.requested_by.email
+    } : undefined,
+    approvedBy: transfer.approved_by ? {
+      _id: transfer.approved_by.id,
+      name: transfer.approved_by.name,
+      email: transfer.approved_by.email
+    } : undefined,
+    rejectedBy: transfer.rejected_by ? {
+      _id: transfer.rejected_by.id,
+      name: transfer.rejected_by.name,
+      email: transfer.rejected_by.email
+    } : undefined,
+    cancelledBy: transfer.cancelled_by ? {
+      _id: transfer.cancelled_by.id,
+      name: transfer.cancelled_by.name,
+      email: transfer.cancelled_by.email
+    } : undefined
+  })) || []
+}
+
 // Get dealership locations
 export async function getDealershipLocations() {
   const { data, error } = await supabaseAdmin

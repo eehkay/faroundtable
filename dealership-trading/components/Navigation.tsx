@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Car, Package, TruckIcon, LayoutDashboard, ChevronDown, LogOut, User, Shield, Moon, Sun } from 'lucide-react'
+import { Car, TruckIcon, LayoutDashboard, ChevronDown, LogOut, User, Shield, Moon, Sun } from 'lucide-react'
 import { useState } from 'react'
 import { canViewAllTransfers, canManageUsers, isAdmin, isManager } from '@/lib/permissions'
 import { useTheme } from 'next-themes'
@@ -70,9 +70,16 @@ export default function Navigation() {
           {/* Logo and main nav */}
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <Package className="h-8 w-8 text-blue-600" />
-                <span className="text-xl font-bold text-gray-900 dark:text-gray-100">Round Table</span>
+              <Link href="/dashboard" className="flex items-center">
+                <Image
+                  src="https://vchtbaawxxruwtvebxlg.supabase.co/storage/v1/object/public/branding/roundtable_logo.png"
+                  alt="Round Table Logo"
+                  width={150}
+                  height={50}
+                  className="h-10 w-auto"
+                  priority
+                  quality={100}
+                />
               </Link>
             </div>
 

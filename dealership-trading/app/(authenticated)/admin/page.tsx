@@ -155,7 +155,7 @@ export default function AdminDashboard() {
       title: "Transfer Management",
       description: "Review and approve transfer requests",
       icon: TruckIcon,
-      href: "/admin/transfers",
+      href: "/transfers",
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
       show: true

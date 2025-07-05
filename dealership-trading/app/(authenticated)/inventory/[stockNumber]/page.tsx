@@ -8,8 +8,7 @@ import VehiclePricing from "@/components/vehicle/VehiclePricing";
 import VehicleFeatures from "@/components/vehicle/VehicleFeatures";
 import VehicleLocation from "@/components/vehicle/VehicleLocation";
 import VehicleActions from "@/components/vehicle/VehicleActions";
-import ActivityFeed from "@/components/vehicle/ActivityFeed";
-import CommentSection from "@/components/vehicle/CommentSection";
+import UnifiedActivityFeed from "@/components/vehicle/UnifiedActivityFeed";
 import TransferStatus from "@/components/inventory/TransferStatus";
 import TransferRequestsPanel from "@/components/vehicle/TransferRequestsPanel";
 import { ArrowLeft } from "lucide-react";
@@ -128,11 +127,8 @@ export default async function VehicleDetailPage({ params }: PageProps) {
             />
           )}
 
-          {/* Activity Feed */}
-          <ActivityFeed vehicleId={vehicle._id} />
-
-          {/* Comments Section */}
-          <CommentSection vehicleId={vehicle._id} />
+          {/* Unified Activity Feed (Activities, Comments, Transfers) */}
+          <UnifiedActivityFeed vehicleId={vehicle._id} />
         </div>
       </div>
     </div>

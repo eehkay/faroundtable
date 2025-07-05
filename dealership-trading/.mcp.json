@@ -6,7 +6,9 @@
         "-y",
         "@supabase/mcp-server-supabase@latest",
         "--access-token",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjaHRiYWF3eHhydXd0dmVieGxnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTczMjQ1OSwiZXhwIjoyMDY3MzA4NDU5fQ.8JTGLi1Swn1jS_AQbbUMedFFjqZUVsLrxdb8QC3AG2U"
+        "sbp_0d7c9fa6c6bc49e248cbd28faa3bc7ce96239c4e",
+        "--project-ref",
+        "vchtbaawxxruwtvebxlg"
       ]
     }
   }

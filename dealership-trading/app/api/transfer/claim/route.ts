@@ -63,6 +63,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User does not have a location assigned' }, { status: 400 });
     }
     
+    // Prevent self-transfers
+    if (vehicle.location.id === session.user.location.id) {
+      return NextResponse.json({ error: 'Cannot transfer vehicle to the same location' }, { status: 400 });
+    }
+    
     // Count existing pending requests
     const pendingRequests = vehicle.transfers?.filter(
       (req: any) => req.status === 'requested'

@@ -20,45 +20,39 @@ export default function ActivityFeed({ vehicleId }: ActivityFeedProps) {
       try {
         setError(null);
         
-        const { data, error: fetchError } = await supabase
-          .from('activities')
-          .select(`
-            *,
-            user:user_id(
-              id,
-              name,
-              email,
-              image
-            )
-          `)
-          .eq('vehicle_id', vehicleId)
-          .order('created_at', { ascending: false })
-          .limit(20);
+        const response = await fetch(`/api/activities/${vehicleId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-        if (fetchError) {
-          throw fetchError;
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const { activities: data } = await response.json();
+
         // Transform data to match existing Activity type
-        const transformedData: Activity[] = data?.map(activity => ({
-          _id: activity.id,
+        const transformedData: Activity[] = data?.map((activity: any) => ({
+          _id: activity._id,
           _type: 'activity' as const,
           vehicle: { _ref: vehicleId },
           action: activity.action,
           details: activity.details,
           metadata: activity.metadata,
-          createdAt: activity.created_at,
+          createdAt: activity.createdAt,
           user: activity.user ? {
-            _id: activity.user.id,
+            _id: activity.user._id || 'unknown',
             _type: 'user' as const,
             name: activity.user.name,
             email: activity.user.email,
             image: activity.user.image,
-            domain: activity.user.email.split('@')[1],
+            domain: activity.user.email ? activity.user.email.split('@')[1] : 'unknown',
             role: 'sales' as const,
             lastLogin: new Date().toISOString(),
             active: true
-          } : { _ref: activity.user_id }
+          } : { _ref: 'unknown' }
         })) || [];
 
         console.log('Fetched activities for vehicle:', vehicleId, transformedData);

@@ -76,6 +76,13 @@ interface TransferListProps {
 }
 
 export default function TransferList({ transfers, userRole, currentUserId }: TransferListProps) {
+  console.log('TransferList rendering with:', {
+    transfersCount: transfers.length,
+    userRole,
+    currentUserId,
+    transfers: transfers
+  });
+  
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [actionType, setActionType] = useState<'approve' | 'status' | 'cancel' | null>(null);
 

@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session) {
+    if (!session || !session.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -17,12 +17,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Vehicle ID and text are required' }, { status: 400 });
     }
     
+    // Get the user ID from the email
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
+    
+    if (userError || !user) {
+      console.error('Error finding user:', userError);
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
     // Create comment
     const { data: comment, error: commentError } = await supabaseAdmin
       .from('comments')
       .insert({
         vehicle_id: vehicleId,
-        author_id: session.user.id,
+        author_id: user.id,
         text,
         edited: false
       })
@@ -46,16 +58,8 @@ export async function POST(request: NextRequest) {
         .insert(mentionRecords);
     }
     
-    // Create activity log
-    await supabaseAdmin
-      .from('activities')
-      .insert({
-        vehicle_id: vehicleId,
-        user_id: session.user.id,
-        action: 'commented',
-        details: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-        metadata: {}
-      });
+    // Note: We don't create an activity log for comments since the comments 
+    // themselves are shown in the unified feed, avoiding duplication
     
     return NextResponse.json({ success: true, commentId: comment.id });
   } catch (error) {
@@ -68,7 +72,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session) {
+    if (!session || !session.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -77,6 +81,18 @@ export async function DELETE(request: NextRequest) {
     
     if (!commentId) {
       return NextResponse.json({ error: 'Comment ID is required' }, { status: 400 });
+    }
+    
+    // Get the user ID from the email
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id, role')
+      .eq('email', session.user.email)
+      .single();
+    
+    if (userError || !user) {
+      console.error('Error finding user:', userError);
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
     // Get comment to check ownership
@@ -92,8 +108,8 @@ export async function DELETE(request: NextRequest) {
     
     // Check permissions
     const canDelete = 
-      session.user.role === 'admin' || 
-      comment.author_id === session.user.id;
+      user.role === 'admin' || 
+      comment.author_id === user.id;
     
     if (!canDelete) {
       return NextResponse.json({ error: 'Unauthorized to delete this comment' }, { status: 403 });
