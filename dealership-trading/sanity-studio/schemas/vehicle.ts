@@ -79,6 +79,7 @@ export default {
     
     // Store Information
     { name: 'storeCode', title: 'Store Code', type: 'string', validation: (Rule: any) => Rule.required() },
+    { name: 'address', title: 'Address', type: 'string' },
     { name: 'location', title: 'Current Location', type: 'reference', to: [{type: 'dealershipLocation'}] },
     { name: 'originalLocation', title: 'Original Location', type: 'reference', to: [{type: 'dealershipLocation'}] },
     

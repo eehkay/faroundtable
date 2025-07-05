@@ -20,6 +20,7 @@ export interface Vehicle {
   features?: string[]
   status: 'available' | 'claimed' | 'in-transit' | 'delivered'
   storeCode: string
+  address?: string
   location?: DealershipLocation | { _ref: string }
   originalLocation?: DealershipLocation | { _ref: string }
   currentTransfer?: { _ref: string } | any // Using 'any' to avoid circular dependency

@@ -24,47 +24,50 @@ const client = createClient({
   useCdn: false,
 });
 
-async function cleanVehicleFields() {
+// Function to generate random number between min and max (inclusive)
+function randomBetween(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+async function populateDaysOnLot() {
   try {
-    console.log('Finding vehicles with deprecated fields...');
+    console.log('Finding all vehicles...');
     
-    // Find vehicles with old fields
+    // Find all vehicles
     const vehicles = await client.fetch(groq`
-      *[_type == "vehicle" && defined(dealershipName)] {
+      *[_type == "vehicle"] {
         _id,
         stockNumber,
-        dealershipName
+        daysOnLot
       }
     `);
     
-    console.log(`Found ${vehicles.length} vehicles with deprecated fields`);
+    console.log(`Found ${vehicles.length} vehicles`);
     
     if (vehicles.length === 0) {
-      console.log('No vehicles need cleaning');
+      console.log('No vehicles found');
       return;
     }
     
-    // Clean each vehicle
-    let cleaned = 0;
+    // Update each vehicle with random days on lot
+    let updated = 0;
     for (const vehicle of vehicles) {
       try {
-        const patch = client.patch(vehicle._id);
+        const randomDays = randomBetween(60, 180);
         
-        // Unset deprecated fields
-        if (vehicle.dealershipName !== undefined) {
-          patch.unset(['dealershipName']);
-        }
+        await client
+          .patch(vehicle._id)
+          .set({ daysOnLot: randomDays })
+          .commit();
         
-        await patch.commit();
-        
-        cleaned++;
-        console.log(`Cleaned vehicle ${vehicle.stockNumber || vehicle._id}`);
+        updated++;
+        console.log(`Updated vehicle ${vehicle.stockNumber || vehicle._id} with ${randomDays} days on lot`);
       } catch (error) {
-        console.error(`Failed to clean vehicle ${vehicle._id}:`, error);
+        console.error(`Failed to update vehicle ${vehicle._id}:`, error);
       }
     }
     
-    console.log(`\nSuccessfully cleaned ${cleaned} vehicles`);
+    console.log(`\nSuccessfully updated ${updated} vehicles with random days on lot (60-180 days)`);
     
   } catch (error) {
     console.error('Error:', error);
@@ -72,4 +75,4 @@ async function cleanVehicleFields() {
 }
 
 // Run the script
-cleanVehicleFields();
+populateDaysOnLot();

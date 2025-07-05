@@ -1,0 +1,4 @@
+// Backup of original file - keeping for reference
+import { schedule } from '@netlify/functions';
+import Client from 'ssh2-sftp-client';
+// ... rest of original file

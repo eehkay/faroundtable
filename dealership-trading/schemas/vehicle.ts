@@ -48,17 +48,12 @@ export default {
     
     // Store Information
     { name: 'storeCode', title: 'Store Code', type: 'string', validation: (Rule: any) => Rule.required() },
+    { name: 'address', title: 'Address', type: 'string' },
     { name: 'location', title: 'Current Location', type: 'reference', to: [{type: 'dealershipLocation'}] },
     { name: 'originalLocation', title: 'Original Location', type: 'reference', to: [{type: 'dealershipLocation'}] },
     
     // Transfer Information
-    { 
-      name: 'activeTransferRequests', 
-      title: 'Active Transfer Requests', 
-      type: 'array', 
-      of: [{type: 'reference', to: [{type: 'transfer'}]}],
-      description: 'All pending transfer requests for this vehicle'
-    },
+    { name: 'currentTransfer', title: 'Current Transfer', type: 'reference', to: [{type: 'transfer'}] },
     
     // Images
     { name: 'imageUrls', title: 'Image URLs', type: 'array', of: [{type: 'url'}] },
