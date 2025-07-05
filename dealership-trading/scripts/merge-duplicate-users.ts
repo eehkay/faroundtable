@@ -5,6 +5,17 @@ import { resolve } from 'path'
 // Load environment variables
 dotenv.config({ path: resolve(__dirname, '../.env.local') })
 
+// Define user type
+interface SanityUser {
+  _id: string
+  email?: string
+  name?: string
+  role?: string
+  location?: any
+  lastLogin?: string
+  active?: boolean
+}
+
 const client = createClient({
   projectId: process.env.SANITY_PROJECT_ID!,
   dataset: process.env.SANITY_DATASET || 'production',
@@ -18,7 +29,7 @@ async function findAndMergeDuplicateUsers() {
 
   try {
     // Fetch all users
-    const users = await client.fetch(`
+    const users: SanityUser[] = await client.fetch(`
       *[_type == "user"] | order(email asc) {
         _id,
         email,
@@ -31,7 +42,7 @@ async function findAndMergeDuplicateUsers() {
     `)
 
     // Group users by email (case-insensitive)
-    const usersByEmail = new Map<string, typeof users>()
+    const usersByEmail = new Map<string, SanityUser[]>()
     
     for (const user of users) {
       const normalizedEmail = user.email?.toLowerCase() || ''
@@ -55,7 +66,7 @@ async function findAndMergeDuplicateUsers() {
       console.log(`\n📧 Email: ${email}`)
       console.log('Duplicate accounts:')
       
-      userList.forEach((user, index) => {
+      userList.forEach((user: SanityUser, index: number) => {
         console.log(`  ${index + 1}. ID: ${user._id}`)
         console.log(`     Name: ${user.name || 'N/A'}`)
         console.log(`     Role: ${user.role || 'N/A'}`)
@@ -64,7 +75,7 @@ async function findAndMergeDuplicateUsers() {
       })
 
       // Determine which account to keep (prefer the one with most recent login or highest role)
-      const primaryUser = userList.reduce((best, current) => {
+      const primaryUser = userList.reduce((best: SanityUser, current: SanityUser) => {
         // Priority: admin > manager > transport > sales
         const roleOrder = { admin: 4, manager: 3, transport: 2, sales: 1 }
         const bestRole = roleOrder[best.role as keyof typeof roleOrder] || 0
@@ -118,7 +129,7 @@ async function mergeDuplicates(email: string, keepId: string) {
 
   try {
     // Fetch all users with this email
-    const users = await client.fetch(`
+    const users: SanityUser[] = await client.fetch(`
       *[_type == "user" && email == $email] {
         _id,
         email,
@@ -129,7 +140,7 @@ async function mergeDuplicates(email: string, keepId: string) {
       }
     `, { email })
 
-    const toDelete = users.filter((u: any) => u._id !== keepId)
+    const toDelete = users.filter((u: SanityUser) => u._id !== keepId)
     
     if (toDelete.length === 0) {
       console.log('No duplicates to delete.')
@@ -141,7 +152,7 @@ async function mergeDuplicates(email: string, keepId: string) {
     
     for (const duplicate of toDelete) {
       // Update transfers
-      const transfers = await client.fetch(`
+      const transfers: string[] = await client.fetch(`
         *[_type == "transfer" && (requestedBy._ref == $id || approvedBy._ref == $id || cancelledBy._ref == $id)]._id
       `, { id: duplicate._id })
 
@@ -157,7 +168,7 @@ async function mergeDuplicates(email: string, keepId: string) {
       }
 
       // Update activities
-      const activities = await client.fetch(`
+      const activities: string[] = await client.fetch(`
         *[_type == "activity" && user._ref == $id]._id
       `, { id: duplicate._id })
 
@@ -169,7 +180,7 @@ async function mergeDuplicates(email: string, keepId: string) {
       }
 
       // Update comments
-      const comments = await client.fetch(`
+      const comments: string[] = await client.fetch(`
         *[_type == "comment" && author._ref == $id]._id
       `, { id: duplicate._id })
 
