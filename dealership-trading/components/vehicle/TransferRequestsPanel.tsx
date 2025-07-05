@@ -77,7 +77,7 @@ export default function TransferRequestsPanel({ vehicleId, vehicleLocation, onUp
   const [actionLoading, setActionLoading] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
 
-  const canManageTransfers = session && vehicleLocation === session.user.location?._id && canApproveTransfers(session.user.role);
+  const canManageTransfers = session && vehicleLocation === session.user.location?.id && canApproveTransfers(session.user.role);
 
   useEffect(() => {
     const fetchTransfers = async () => {

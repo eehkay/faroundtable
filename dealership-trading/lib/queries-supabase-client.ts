@@ -29,7 +29,7 @@ export async function getVehicleActivity(vehicleId: string) {
   }
 
   // Transform to match existing format
-  return data?.map(activity => ({
+  return data?.map((activity: any) => ({
     _id: activity.id,
     action: activity.action,
     details: activity.details,
@@ -69,18 +69,25 @@ export async function getVehicleComments(vehicleId: string) {
   }
 
   // Transform to match existing format
-  return data?.map(comment => ({
+  return data?.map((comment: any) => ({
     _id: comment.id,
+    _type: 'comment' as const,
+    vehicle: { _ref: vehicleId },
     text: comment.text,
     edited: comment.edited,
     editedAt: comment.edited_at,
     createdAt: comment.created_at,
     author: comment.author ? {
       _id: comment.author.id,
+      _type: 'user' as const,
       name: comment.author.name,
       email: comment.author.email,
-      image: comment.author.image_url
-    } : null,
+      image: comment.author.image_url,
+      domain: comment.author.email.split('@')[1],
+      role: 'sales' as const,
+      lastLogin: new Date().toISOString(),
+      active: true
+    } : { _ref: comment.author_id },
     mentions: [] // Mentions will be fetched separately if needed
   })) || []
 }

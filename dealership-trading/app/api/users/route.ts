@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform to match existing format
-    const users = data?.map(user => ({
+    const users = data?.map((user: any) => ({
       _id: user.id,
       email: user.email,
       name: user.name,

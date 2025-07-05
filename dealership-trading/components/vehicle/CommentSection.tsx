@@ -196,7 +196,7 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
           {comments.map((comment) => (
             <div key={comment._id} className="flex items-start gap-3">
               <div className="flex-shrink-0">
-                {comment.author?.image && !imageErrors[comment._id] ? (
+                {comment.author && '_id' in comment.author && comment.author.image && !imageErrors[comment._id] ? (
                   <Image
                     src={comment.author.image}
                     alt={comment.author.name || 'User'}
@@ -207,14 +207,14 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-xs font-medium">
-                    {getInitials(comment.author?.name || comment.author?.email || 'U')}
+                    {getInitials(comment.author && '_id' in comment.author ? comment.author.name || comment.author.email || 'U' : 'U')}
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-white">
-                    {comment.author?.name || 'Unknown User'}
+                    {comment.author && '_id' in comment.author ? comment.author.name || 'Unknown User' : 'Unknown User'}
                   </span>
                   <span className="text-xs text-gray-500">
                     {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}

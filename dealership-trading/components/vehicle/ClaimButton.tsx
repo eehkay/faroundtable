@@ -51,7 +51,7 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
   }
 
   // Don't show claim button if vehicle is at user's location
-  if (vehicleLocation === session.user.location?._id) {
+  if (vehicleLocation === session.user.location?.id) {
     return null;
   }
 

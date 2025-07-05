@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/lib/supabase-client';
 import type { Activity } from '@/types/transfer';
+import type { User } from '@/types/user';
 
 interface ActivityFeedProps {
   vehicleId: string;
@@ -39,17 +40,25 @@ export default function ActivityFeed({ vehicleId }: ActivityFeedProps) {
         }
 
         // Transform data to match existing Activity type
-        const transformedData = data?.map(activity => ({
+        const transformedData: Activity[] = data?.map(activity => ({
           _id: activity.id,
+          _type: 'activity' as const,
+          vehicle: { _ref: vehicleId },
           action: activity.action,
           details: activity.details,
           metadata: activity.metadata,
           createdAt: activity.created_at,
           user: activity.user ? {
+            _id: activity.user.id,
+            _type: 'user' as const,
             name: activity.user.name,
             email: activity.user.email,
-            image: activity.user.image
-          } : null
+            image: activity.user.image,
+            domain: activity.user.email.split('@')[1],
+            role: 'sales' as const,
+            lastLogin: new Date().toISOString(),
+            active: true
+          } : { _ref: activity.user_id }
         })) || [];
 
         console.log('Fetched activities for vehicle:', vehicleId, transformedData);

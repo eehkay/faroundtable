@@ -7,7 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 // GET specific email setting by key
 export async function GET(
   request: NextRequest,
-  { params }: { params: { key: string } }
+  { params }: { params: Promise<{ key: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,10 +15,12 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { key } = await params;
+
     const { data, error } = await supabaseAdmin
       .from('email_settings')
       .select('*')
-      .eq('setting_key', params.key)
+      .eq('setting_key', key)
       .single();
 
     if (error) {
@@ -39,7 +41,7 @@ export async function GET(
 // DELETE specific email setting
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { key: string } }
+  { params }: { params: Promise<{ key: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -47,10 +49,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { key } = await params;
+
     const { error } = await supabaseAdmin
       .from('email_settings')
       .delete()
-      .eq('setting_key', params.key);
+      .eq('setting_key', key);
 
     if (error) {
       console.error('Error deleting email setting:', error);

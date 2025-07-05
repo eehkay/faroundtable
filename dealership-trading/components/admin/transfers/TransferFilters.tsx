@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
 
+interface Location {
+  id: string;
+  name: string;
+  code: string;
+}
+
 interface TransferFiltersProps {
   filters: {
     status: string;
@@ -13,7 +19,7 @@ interface TransferFiltersProps {
 }
 
 export default function TransferFilters({ filters, onFilterChange }: TransferFiltersProps) {
-  const [locations, setLocations] = useState([]);
+  const [locations, setLocations] = useState<Location[]>([]);
 
   useEffect(() => {
     const fetchLocations = async () => {

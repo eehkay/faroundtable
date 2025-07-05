@@ -8,10 +8,73 @@ import TransferList from "@/components/admin/transfers/TransferList";
 import TransferFilters from "@/components/admin/transfers/TransferFilters";
 import { isAdmin, isManager } from "@/lib/permissions";
 
+interface Transfer {
+  _id: string;
+  status: string;
+  reason?: string;
+  customerWaiting: boolean;
+  priority: boolean;
+  expectedPickupDate?: string;
+  requestedAt: string;
+  approvedAt?: string;
+  intransitAt?: string;
+  deliveredAt?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
+  vehicle: {
+    _id: string;
+    vin: string;
+    year: number;
+    make: string;
+    model: string;
+    trim?: string;
+    stockNumber?: string;
+    price: number;
+    mileage?: number;
+    images?: string[];
+  };
+  fromLocation: {
+    _id: string;
+    name: string;
+    code: string;
+  };
+  toLocation: {
+    _id: string;
+    name: string;
+    code: string;
+  };
+  requestedBy: {
+    _id: string;
+    name: string;
+    email: string;
+    image?: string;
+  };
+  approvedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  intransitBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  deliveredBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  cancelledBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+}
+
 export default function TransfersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [transfers, setTransfers] = useState([]);
+  const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     status: 'all',
@@ -122,7 +185,13 @@ export default function TransfersPage() {
         }
 
         // Transform data to match existing format
-        const transformedData = data?.map(transfer => ({
+        // Filter out transfers with missing required data
+        const transformedData = data?.filter(transfer => 
+          transfer.vehicle && 
+          transfer.from_location && 
+          transfer.to_location && 
+          transfer.requested_by
+        ).map(transfer => ({
           _id: transfer.id,
           status: transfer.status,
           reason: transfer.reason,
@@ -135,7 +204,7 @@ export default function TransfersPage() {
           deliveredAt: transfer.delivered_date,
           cancelledAt: transfer.cancelled_at,
           cancellationReason: transfer.cancellation_reason,
-          vehicle: transfer.vehicle ? {
+          vehicle: {
             _id: transfer.vehicle.id,
             vin: transfer.vehicle.vin,
             year: transfer.vehicle.year,
@@ -146,35 +215,35 @@ export default function TransfersPage() {
             price: transfer.vehicle.price,
             mileage: transfer.vehicle.mileage,
             images: transfer.vehicle.image_urls || []
-          } : null,
-          fromLocation: transfer.from_location ? {
+          },
+          fromLocation: {
             _id: transfer.from_location.id,
             name: transfer.from_location.name,
             code: transfer.from_location.code
-          } : null,
-          toLocation: transfer.to_location ? {
+          },
+          toLocation: {
             _id: transfer.to_location.id,
             name: transfer.to_location.name,
             code: transfer.to_location.code
-          } : null,
-          requestedBy: transfer.requested_by ? {
+          },
+          requestedBy: {
             _id: transfer.requested_by.id,
             name: transfer.requested_by.name,
             email: transfer.requested_by.email,
             image: transfer.requested_by.image
-          } : null,
+          },
           approvedBy: transfer.approved_by ? {
             _id: transfer.approved_by.id,
             name: transfer.approved_by.name,
             email: transfer.approved_by.email
-          } : null,
-          intransitBy: null, // Not tracked in Supabase schema
-          deliveredBy: null, // Not tracked in Supabase schema
+          } : undefined,
+          intransitBy: undefined, // Not tracked in Supabase schema
+          deliveredBy: undefined, // Not tracked in Supabase schema
           cancelledBy: transfer.cancelled_by ? {
             _id: transfer.cancelled_by.id,
             name: transfer.cancelled_by.name,
             email: transfer.cancelled_by.email
-          } : null
+          } : undefined
         })) || [];
         
         setTransfers(transformedData);

@@ -52,7 +52,10 @@ export async function PUT(request: NextRequest, props: RouteParams) {
           model,
           stock_number,
           price,
-          image_urls
+          image_urls,
+          condition,
+          status,
+          store_code
         ),
         requested_by:requested_by_id(
           id,
@@ -118,7 +121,7 @@ export async function PUT(request: NextRequest, props: RouteParams) {
         vehicle_id: transfer.vehicle_id,
         user_id: session.user.id,
         action: 'transfer_auto_rejected' as const,
-        details: `Transfer request from ${pendingTransfer.to_location?.name} auto-rejected - another request was approved`,
+        details: `Transfer request from ${pendingTransfer.to_location?.[0]?.name || 'unknown location'} auto-rejected - another request was approved`,
         metadata: {
           transferId: pendingTransfer.id,
           approvedTransferId: transferId
@@ -187,7 +190,10 @@ export async function PUT(request: NextRequest, props: RouteParams) {
           model: transfer.vehicle.model,
           stockNumber: transfer.vehicle.stock_number,
           price: transfer.vehicle.price,
-          images: transfer.vehicle.image_urls || []
+          imageUrls: transfer.vehicle.image_urls || [],
+          condition: transfer.vehicle.condition,
+          status: transfer.vehicle.status,
+          storeCode: transfer.vehicle.store_code
         },
         approver: {
           name: session.user.name || session.user.email || 'Unknown',

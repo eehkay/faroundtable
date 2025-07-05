@@ -8,11 +8,12 @@ import VehicleFilters from "@/components/inventory/VehicleFilters";
 import VehicleSearch from "@/components/inventory/VehicleSearch";
 import { supabase } from "@/lib/supabase-client";
 import { LoadingCard } from "@/components/Loading";
+import type { DealershipLocation } from "@/types/vehicle";
 
 export default function InventoryPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [locations, setLocations] = useState([]);
+  const [locations, setLocations] = useState<DealershipLocation[]>([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
   
   useEffect(() => {
@@ -27,12 +28,28 @@ export default function InventoryPage() {
       try {
         const { data, error } = await supabase
           .from('dealership_locations')
-          .select('id, name, code')
+          .select('*')
           .eq('active', true)
           .order('name', { ascending: true });
         
         if (error) throw error;
-        setLocations(data || []);
+        
+        // Transform to match DealershipLocation type
+        const transformedLocations: DealershipLocation[] = (data || []).map(loc => ({
+          _id: loc.id,
+          _type: 'dealershipLocation' as const,
+          name: loc.name,
+          code: loc.code,
+          address: loc.address,
+          city: loc.city,
+          state: loc.state,
+          zip: loc.zip,
+          phone: loc.phone,
+          csvFileName: loc.csv_file_name,
+          active: loc.active
+        }));
+        
+        setLocations(transformedLocations);
       } catch (error) {
         console.error('Failed to fetch locations:', error);
       } finally {
@@ -82,7 +99,10 @@ export default function InventoryPage() {
       {/* Vehicle Grid */}
       <VehicleGrid 
         userLocation={session.user.location ? {
-          ...session.user.location,
+          _id: session.user.location.id,
+          _type: 'dealershipLocation' as const,
+          name: session.user.location.name,
+          code: session.user.location.code,
           active: true
         } : undefined} 
         userRole={session.user.role}

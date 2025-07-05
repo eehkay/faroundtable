@@ -131,12 +131,12 @@ export const authOptions: NextAuthOptions = {
             session.user.id = crypto.randomUUID()
             session.user.role = 'sales'
             session.user.domain = session.user.email.split('@')[1]
-            session.user.location = null
+            session.user.location = undefined
           } else if (user) {
             session.user.id = user.id
             session.user.role = user.role || 'sales'
             session.user.domain = user.domain || session.user.email.split('@')[1]
-            session.user.location = user.location || null
+            session.user.location = user.location && !Array.isArray(user.location) ? user.location : undefined
           }
         } catch (error) {
           console.error('Error enriching session:', error)
@@ -144,7 +144,7 @@ export const authOptions: NextAuthOptions = {
           session.user.id = crypto.randomUUID()
           session.user.role = 'sales'
           session.user.domain = session.user.email.split('@')[1]
-          session.user.location = null
+          session.user.location = undefined
         }
       }
       return session

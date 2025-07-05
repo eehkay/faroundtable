@@ -61,7 +61,10 @@ export async function PUT(request: NextRequest, props: RouteParams) {
           model,
           stock_number,
           price,
-          image_urls
+          image_urls,
+          condition,
+          store_code,
+          status
         ),
         requested_by:requested_by_id(
           id,
@@ -187,7 +190,10 @@ export async function PUT(request: NextRequest, props: RouteParams) {
           model: transfer.vehicle.model,
           stockNumber: transfer.vehicle.stock_number,
           price: transfer.vehicle.price,
-          images: transfer.vehicle.image_urls || []
+          imageUrls: transfer.vehicle.image_urls || [],
+          condition: transfer.vehicle.condition,
+          status: transfer.vehicle.status,
+          storeCode: transfer.vehicle.store_code
         },
         status: status as 'in-transit' | 'delivered',
         updater: {

@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
             _type: 'dealershipLocation' as const,
             name: session.user.location.name,
             code: session.user.location.code || '',
-            email: session.user.location.email || '',
+            email: '', // Session location doesn't include email
             active: true
           } as DealershipLocation,
           requestedBy: { _ref: session.user.id },
@@ -147,7 +147,10 @@ export async function POST(request: NextRequest) {
             model: vehicle.model,
             stockNumber: vehicle.stock_number,
             price: vehicle.price,
-            images: vehicle.image_urls || [],
+            imageUrls: vehicle.image_urls || [],
+            condition: vehicle.condition,
+            status: vehicle.status,
+            storeCode: vehicle.store_code,
             location: vehicle.location
           },
           customerWaiting: customerWaiting || false,

@@ -144,7 +144,7 @@ export async function getVehicleActivity(vehicleId: string) {
   }
 
   // Transform to match existing format
-  return data?.map(activity => ({
+  return data?.map((activity: any) => ({
     _id: activity.id,
     action: activity.action,
     details: activity.details,
@@ -184,7 +184,7 @@ export async function getVehicleComments(vehicleId: string) {
   }
 
   // Transform to match existing format
-  return data?.map(comment => ({
+  return data?.map((comment: any) => ({
     _id: comment.id,
     text: comment.text,
     edited: comment.edited,
@@ -227,7 +227,7 @@ export async function getAllUsers() {
   }
 
   // Transform to match existing format
-  return data?.map(user => ({
+  return data?.map((user: any) => ({
     _id: user.id,
     email: user.email,
     name: user.name,
@@ -272,21 +272,23 @@ export async function getUserById(userId: string) {
     return null
   }
 
+  const userData = data as any;
+  
   // Transform to match existing format
   return {
-    _id: data.id,
-    email: data.email,
-    name: data.name,
-    image: data.image_url,
-    domain: data.domain,
-    role: data.role,
-    active: data.active,
-    lastLogin: data.last_login,
-    location: data.location ? {
-      _id: data.location.id,
-      name: data.location.name,
-      code: data.location.code,
-      address: data.location.address
+    _id: userData.id,
+    email: userData.email,
+    name: userData.name,
+    image: userData.image_url,
+    domain: userData.domain,
+    role: userData.role,
+    active: userData.active,
+    lastLogin: userData.last_login,
+    location: userData.location ? {
+      _id: userData.location.id,
+      name: userData.location.name,
+      code: userData.location.code,
+      address: userData.location.address
     } : undefined
   }
 }
@@ -318,7 +320,7 @@ export async function searchUsers(search: string) {
   }
 
   // Transform to match existing format
-  return data?.map(user => ({
+  return data?.map((user: any) => ({
     _id: user.id,
     email: user.email,
     name: user.name,
@@ -359,7 +361,7 @@ export async function getUsersByRole(role: string) {
   }
 
   // Transform to match existing format
-  return data?.map(user => ({
+  return data?.map((user: any) => ({
     _id: user.id,
     email: user.email,
     name: user.name,
@@ -418,7 +420,7 @@ export async function getDashboardStats() {
     availableVehicles: availableVehiclesResult.count || 0,
     activeTransfers: activeTransfersResult.count || 0,
     inTransitVehicles: inTransitResult.count || 0,
-    recentActivity: recentActivityResult.data?.map(activity => {
+    recentActivity: recentActivityResult.data?.map((activity: any) => {
       // Handle both single object and array returns from Supabase
       const vehicle = Array.isArray(activity.vehicle) ? activity.vehicle[0] : activity.vehicle;
       const user = Array.isArray(activity.user) ? activity.user[0] : activity.user;
@@ -470,7 +472,7 @@ export async function getDealershipLocations() {
   }
 
   // Transform to match existing format
-  return data?.map(location => ({
+  return data?.map((location: any) => ({
     _id: location.id,
     _type: 'dealershipLocation' as const,
     name: location.name,

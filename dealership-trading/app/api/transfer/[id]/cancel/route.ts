@@ -45,7 +45,9 @@ export async function PUT(request: NextRequest, props: RouteParams) {
           stock_number,
           price,
           status,
-          image_urls
+          image_urls,
+          condition,
+          store_code
         ),
         requested_by:requested_by_id(
           id,
@@ -159,7 +161,10 @@ export async function PUT(request: NextRequest, props: RouteParams) {
           model: transfer.vehicle.model,
           stockNumber: transfer.vehicle.stock_number,
           price: transfer.vehicle.price,
-          images: transfer.vehicle.image_urls || []
+          imageUrls: transfer.vehicle.image_urls || [],
+          condition: transfer.vehicle.condition,
+          status: transfer.vehicle.status,
+          storeCode: transfer.vehicle.store_code
         },
         canceller: {
           name: session.user.name || session.user.email || 'Unknown',
