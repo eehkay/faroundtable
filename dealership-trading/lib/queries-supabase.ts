@@ -1,8 +1,8 @@
-import { supabase } from './supabase'
+import { supabaseAdmin } from './supabase-server'
 
 // Helper function to get vehicle by stock number
 export async function getVehicleByStockNumber(stockNumber: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('vehicles')
     .select(`
       *,
@@ -30,7 +30,7 @@ export async function getVehicleByStockNumber(stockNumber: string) {
   }
   
   // Fetch active transfer requests separately
-  const { data: transferRequests } = await supabase
+  const { data: transferRequests } = await supabaseAdmin
     .from('transfers')
     .select(`
       id,
@@ -120,7 +120,7 @@ export async function getVehicleByStockNumber(stockNumber: string) {
 
 // Get vehicle activity
 export async function getVehicleActivity(vehicleId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('activities')
     .select(`
       id,
@@ -160,7 +160,7 @@ export async function getVehicleActivity(vehicleId: string) {
 
 // Get vehicle comments
 export async function getVehicleComments(vehicleId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('comments')
     .select(`
       id,
@@ -202,7 +202,7 @@ export async function getVehicleComments(vehicleId: string) {
 
 // Get all users
 export async function getAllUsers() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('users')
     .select(`
       id,
@@ -246,7 +246,7 @@ export async function getAllUsers() {
 
 // Get user by ID
 export async function getUserById(userId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('users')
     .select(`
       id,
@@ -299,10 +299,10 @@ export async function getDashboardStats() {
     activeTransfersResult,
     recentActivityResult
   ] = await Promise.all([
-    supabase.from('vehicles').select('*', { count: 'exact', head: true }),
-    supabase.from('vehicles').select('*', { count: 'exact', head: true }).eq('status', 'available'),
-    supabase.from('transfers').select('*', { count: 'exact', head: true }).in('status', ['requested', 'approved', 'in-transit']),
-    supabase.from('activities').select(`
+    supabaseAdmin.from('vehicles').select('*', { count: 'exact', head: true }),
+    supabaseAdmin.from('vehicles').select('*', { count: 'exact', head: true }).eq('status', 'available'),
+    supabaseAdmin.from('transfers').select('*', { count: 'exact', head: true }).in('status', ['requested', 'approved', 'in-transit']),
+    supabaseAdmin.from('activities').select(`
       action,
       created_at,
       vehicle:vehicles!activities_vehicle_id_fkey(title, stock_number),
@@ -330,7 +330,7 @@ export async function getDashboardStats() {
 
 // Get dealership locations
 export async function getDealershipLocations() {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('dealership_locations')
     .select(`
       id,

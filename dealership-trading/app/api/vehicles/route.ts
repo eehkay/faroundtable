@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    
+    console.log('Vehicle API called by user:', session.user.email)
 
     const searchParams = request.nextUrl.searchParams
     const page = parseInt(searchParams.get('page') || '1')
@@ -24,7 +26,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit
 
     // Start building query
-    let query = supabase
+    let query = supabaseAdmin
       .from('vehicles')
       .select(`
         *,
@@ -81,6 +83,12 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1)
 
     const { data: vehicles, error, count } = await query
+
+    console.log('Query result:', { 
+      vehicleCount: vehicles?.length, 
+      totalCount: count,
+      error: error?.message 
+    })
 
     if (error) {
       console.error('Supabase error:', error)

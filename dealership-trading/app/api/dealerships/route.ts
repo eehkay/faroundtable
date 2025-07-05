@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
 export async function GET() {
   try {
@@ -11,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: dealerships, error } = await supabase
+    const { data: dealerships, error } = await supabaseAdmin
       .from('dealership_locations')
       .select('id, name, code, address, phone, email')
       .order('name', { ascending: true });

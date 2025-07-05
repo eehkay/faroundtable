@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { formatDistanceToNow } from 'date-fns';
-import { supabase } from '@/lib/supabase';
-import { getVehicleComments } from '@/lib/queries-supabase';
+import { supabase } from '@/lib/supabase-client';
+import { getVehicleComments } from '@/lib/queries-supabase-client';
 import type { Comment } from '@/types/transfer';
 
 interface CommentSectionProps {

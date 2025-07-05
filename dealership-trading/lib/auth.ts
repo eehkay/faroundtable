@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import { supabaseAdmin } from "./supabase"
+import { supabaseAdmin } from "./supabase-server"
 
 // Allowed domains from environment variable
 const ALLOWED_DOMAINS = process.env.ALLOWED_DOMAINS?.split(',').map(d => d.trim()) || ['delmaradv.com', 'formanautomotive.com']

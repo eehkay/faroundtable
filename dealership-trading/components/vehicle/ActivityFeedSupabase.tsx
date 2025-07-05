@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { supabase } from '@/lib/supabase';
-import { getVehicleActivity } from '@/lib/queries-supabase';
+import { supabase } from '@/lib/supabase-client';
+import { getVehicleActivity } from '@/lib/queries-supabase-client';
 import type { Activity } from '@/types/transfer';
 
 interface ActivityFeedProps {
