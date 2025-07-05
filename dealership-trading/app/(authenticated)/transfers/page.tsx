@@ -228,7 +228,15 @@ export default function TransfersPage() {
           transfer.from_location && 
           transfer.to_location && 
           transfer.requested_by
-        ).map(transfer => ({
+        ).map((transfer: any) => {
+          // TypeScript needs explicit type assertion after filtering
+          // Handle case where nested relations might be arrays
+          const vehicle = Array.isArray(transfer.vehicle) ? transfer.vehicle[0] : transfer.vehicle;
+          const fromLocation = Array.isArray(transfer.from_location) ? transfer.from_location[0] : transfer.from_location;
+          const toLocation = Array.isArray(transfer.to_location) ? transfer.to_location[0] : transfer.to_location;
+          const requestedBy = Array.isArray(transfer.requested_by) ? transfer.requested_by[0] : transfer.requested_by;
+          
+          return {
           _id: transfer.id,
           status: transfer.status,
           reason: transfer.reason,
@@ -242,32 +250,32 @@ export default function TransfersPage() {
           cancelledAt: transfer.cancelled_at,
           cancellationReason: transfer.rejection_reason,
           vehicle: {
-            _id: transfer.vehicle.id,
-            vin: transfer.vehicle.vin,
-            year: transfer.vehicle.year,
-            make: transfer.vehicle.make,
-            model: transfer.vehicle.model,
-            trim: transfer.vehicle.trim,
-            stockNumber: transfer.vehicle.stock_number,
-            price: transfer.vehicle.price,
-            mileage: transfer.vehicle.mileage,
-            images: transfer.vehicle.image_urls || []
+            _id: vehicle.id,
+            vin: vehicle.vin,
+            year: vehicle.year,
+            make: vehicle.make,
+            model: vehicle.model,
+            trim: vehicle.trim,
+            stockNumber: vehicle.stock_number,
+            price: vehicle.price,
+            mileage: vehicle.mileage,
+            images: vehicle.image_urls || []
           },
           fromLocation: {
-            _id: transfer.from_location.id,
-            name: transfer.from_location.name,
-            code: transfer.from_location.code
+            _id: fromLocation.id,
+            name: fromLocation.name,
+            code: fromLocation.code
           },
           toLocation: {
-            _id: transfer.to_location.id,
-            name: transfer.to_location.name,
-            code: transfer.to_location.code
+            _id: toLocation.id,
+            name: toLocation.name,
+            code: toLocation.code
           },
           requestedBy: {
-            _id: transfer.requested_by.id,
-            name: transfer.requested_by.name,
-            email: transfer.requested_by.email,
-            image: transfer.requested_by.image_url
+            _id: requestedBy.id,
+            name: requestedBy.name,
+            email: requestedBy.email,
+            image: requestedBy.image_url
           },
           approvedBy: transfer.approved_by ? {
             _id: transfer.approved_by.id,
@@ -281,7 +289,8 @@ export default function TransfersPage() {
             name: transfer.cancelled_by.name,
             email: transfer.cancelled_by.email
           } : undefined
-        }));
+          };
+        });
         
         setTransfers(transformedData);
       } catch (error) {
