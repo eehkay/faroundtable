@@ -169,7 +169,8 @@ async function migrateVehicles() {
       address,
       imageUrls,
       importedAt,
-      lastSeenInFeed
+      lastSeenInFeed,
+      daysOnLot
     }`
   )
   
@@ -207,6 +208,7 @@ async function migrateVehicles() {
         image_urls: vehicle.imageUrls || [],
         imported_at: vehicle.importedAt,
         last_seen_in_feed: vehicle.lastSeenInFeed,
+        days_on_lot: vehicle.daysOnLot || 0,
         legacy_sanity_id: vehicle._id
       }, {
         onConflict: 'vin'

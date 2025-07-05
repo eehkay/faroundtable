@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
           name: vehicle.current_transfer.to_location.name
         } : null
       } : null,
-      daysOnLot: vehicle.days_on_lot
+      daysOnLot: vehicle.days_on_lot || 0
     })) || []
 
     return NextResponse.json({

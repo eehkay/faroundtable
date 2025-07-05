@@ -75,7 +75,7 @@ export async function getVehicleByStockNumber(stockNumber: string) {
     imageUrls: data.image_urls || [],
     status: data.status,
     storeCode: data.store_code,
-    daysOnLot: data.days_on_lot,
+    daysOnLot: data.days_on_lot || 0,
     location: data.location ? {
       _id: data.location.id,
       name: data.location.name,
