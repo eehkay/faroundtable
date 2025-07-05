@@ -1,16 +1,15 @@
 import { notFound } from 'next/navigation';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { client } from "@/lib/sanity";
-import { vehicleByStockNumberQuery } from "@/lib/queries";
+import { getVehicleByStockNumber } from "@/lib/queries-supabase";
 import VehicleGallery from "@/components/vehicle/VehicleGallery";
 import VehicleSpecs from "@/components/vehicle/VehicleSpecs";
 import VehiclePricing from "@/components/vehicle/VehiclePricing";
 import VehicleFeatures from "@/components/vehicle/VehicleFeatures";
 import VehicleLocation from "@/components/vehicle/VehicleLocation";
 import VehicleActions from "@/components/vehicle/VehicleActions";
-import ActivityFeed from "@/components/vehicle/ActivityFeed";
-import CommentSection from "@/components/vehicle/CommentSection";
+import ActivityFeed from "@/components/vehicle/ActivityFeedSupabase";
+import CommentSection from "@/components/vehicle/CommentSectionSupabase";
 import TransferStatus from "@/components/inventory/TransferStatus";
 import TransferRequestsPanel from "@/components/vehicle/TransferRequestsPanel";
 import { ArrowLeft } from "lucide-react";
@@ -33,9 +32,7 @@ export default async function VehicleDetailPage({ params }: PageProps) {
   const { stockNumber } = await params;
 
   // Fetch vehicle details
-  const vehicle = await client.fetch(vehicleByStockNumberQuery, {
-    stockNumber
-  });
+  const vehicle = await getVehicleByStockNumber(stockNumber);
 
   if (!vehicle) {
     notFound();

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { writeClient } from '@/lib/sanity';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,27 +18,46 @@ export async function POST(request: NextRequest) {
     }
     
     // Create comment
-    const comment = await writeClient.create({
-      _type: 'comment',
-      vehicle: { _ref: vehicleId },
-      author: { _ref: session.user.id },
-      text,
-      mentions: mentions?.map((userId: string) => ({ _ref: userId })) || [],
-      edited: false,
-      createdAt: new Date().toISOString()
-    });
+    const { data: comment, error: commentError } = await supabaseAdmin
+      .from('comments')
+      .insert({
+        vehicle_id: vehicleId,
+        author_id: session.user.id,
+        text,
+        edited: false
+      })
+      .select()
+      .single();
+    
+    if (commentError) {
+      console.error('Error creating comment:', commentError);
+      throw commentError;
+    }
+    
+    // Create mentions if any
+    if (mentions && mentions.length > 0 && comment) {
+      const mentionRecords = mentions.map((userId: string) => ({
+        comment_id: comment.id,
+        user_id: userId
+      }));
+      
+      await supabaseAdmin
+        .from('comment_mentions')
+        .insert(mentionRecords);
+    }
     
     // Create activity log
-    await writeClient.create({
-      _type: 'activity',
-      vehicle: { _ref: vehicleId },
-      user: { _ref: session.user.id },
-      action: 'commented',
-      details: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-      createdAt: new Date().toISOString()
-    });
+    await supabaseAdmin
+      .from('activities')
+      .insert({
+        vehicle_id: vehicleId,
+        user_id: session.user.id,
+        action: 'commented',
+        details: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+        metadata: {}
+      });
     
-    return NextResponse.json({ success: true, commentId: comment._id });
+    return NextResponse.json({ success: true, commentId: comment.id });
   } catch (error) {
     console.error('Error creating comment:', error);
     return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
@@ -61,25 +80,34 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Get comment to check ownership
-    const comment = await writeClient.fetch(
-      `*[_type == "comment" && _id == $id][0]{ author }`,
-      { id: commentId }
-    );
+    const { data: comment, error: fetchError } = await supabaseAdmin
+      .from('comments')
+      .select('author_id')
+      .eq('id', commentId)
+      .single();
     
-    if (!comment) {
+    if (fetchError || !comment) {
       return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
     }
     
     // Check permissions
     const canDelete = 
       session.user.role === 'admin' || 
-      comment.author._ref === session.user.id;
+      comment.author_id === session.user.id;
     
     if (!canDelete) {
       return NextResponse.json({ error: 'Unauthorized to delete this comment' }, { status: 403 });
     }
     
-    await writeClient.delete(commentId);
+    const { error: deleteError } = await supabaseAdmin
+      .from('comments')
+      .delete()
+      .eq('id', commentId);
+    
+    if (deleteError) {
+      console.error('Error deleting comment:', deleteError);
+      throw deleteError;
+    }
     
     return NextResponse.json({ success: true });
   } catch (error) {
