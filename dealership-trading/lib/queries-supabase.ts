@@ -6,7 +6,7 @@ export async function getVehicleByStockNumber(stockNumber: string) {
     .from('vehicles')
     .select(`
       *,
-      location:dealership_locations!vehicles_location_id_fkey(
+      location:location_id(
         id,
         name,
         code,
@@ -16,27 +16,36 @@ export async function getVehicleByStockNumber(stockNumber: string) {
         zip,
         phone
       ),
-      original_location:dealership_locations!vehicles_original_location_id_fkey(
+      original_location:original_location_id(
         id,
         name,
         code
-      ),
-      active_transfer_requests:transfers!transfers_vehicle_id_fkey(
-        id,
-        status,
-        transfer_notes,
-        money_offer,
-        requested_by_date,
-        customer_waiting,
-        priority,
-        from_location:dealership_locations!transfers_from_location_id_fkey(id, name, code),
-        to_location:dealership_locations!transfers_to_location_id_fkey(id, name, code),
-        requested_by:users!transfers_requested_by_id_fkey(id, name, email)
       )
     `)
     .eq('stock_number', stockNumber)
-    .eq('active_transfer_requests.status', 'requested')
     .single()
+    
+  if (!data) {
+    return null
+  }
+  
+  // Fetch active transfer requests separately
+  const { data: transferRequests } = await supabase
+    .from('transfers')
+    .select(`
+      id,
+      status,
+      transfer_notes,
+      money_offer,
+      requested_by_date,
+      customer_waiting,
+      priority,
+      from_location:from_location_id(id, name, code),
+      to_location:to_location_id(id, name, code),
+      requested_by:requested_by_id(id, name, email)
+    `)
+    .eq('vehicle_id', data.id)
+    .eq('status', 'requested')
 
   if (error) {
     console.error('Error fetching vehicle:', error)
@@ -82,7 +91,7 @@ export async function getVehicleByStockNumber(stockNumber: string) {
       name: data.original_location.name,
       code: data.original_location.code
     } : null,
-    activeTransferRequests: data.active_transfer_requests?.map((transfer: any) => ({
+    activeTransferRequests: transferRequests?.map((transfer: any) => ({
       _id: transfer.id,
       status: transfer.status,
       transferNotes: transfer.transfer_notes,
@@ -119,7 +128,7 @@ export async function getVehicleActivity(vehicleId: string) {
       details,
       metadata,
       created_at,
-      user:users!activities_user_id_fkey(
+      user:user_id(
         name,
         email,
         image_url
@@ -159,17 +168,11 @@ export async function getVehicleComments(vehicleId: string) {
       edited,
       edited_at,
       created_at,
-      author:users!comments_author_id_fkey(
+      author:author_id(
         id,
         name,
         email,
         image_url
-      ),
-      mentions:comment_mentions(
-        user:users!comment_mentions_user_id_fkey(
-          id,
-          name
-        )
       )
     `)
     .eq('vehicle_id', vehicleId)
@@ -193,10 +196,7 @@ export async function getVehicleComments(vehicleId: string) {
       email: comment.author.email,
       image: comment.author.image_url
     } : null,
-    mentions: comment.mentions?.map((m: any) => ({
-      _id: m.user.id,
-      name: m.user.name
-    })) || []
+    mentions: [] // Mentions will be fetched separately if needed
   })) || []
 }
 
@@ -213,7 +213,7 @@ export async function getAllUsers() {
       role,
       active,
       last_login,
-      location:dealership_locations!users_location_id_fkey(
+      location:location_id(
         id,
         name,
         code
@@ -257,7 +257,7 @@ export async function getUserById(userId: string) {
       role,
       active,
       last_login,
-      location:dealership_locations!users_location_id_fkey(
+      location:location_id(
         id,
         name,
         code,

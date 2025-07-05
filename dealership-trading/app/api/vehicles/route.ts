@@ -28,20 +28,20 @@ export async function GET(request: NextRequest) {
       .from('vehicles')
       .select(`
         *,
-        location:dealership_locations!vehicles_location_id_fkey(
+        location:location_id(
           id,
           name,
           code
         ),
-        original_location:dealership_locations!vehicles_original_location_id_fkey(
+        original_location:original_location_id(
           id,
           name,
           code
         ),
-        current_transfer:transfers!vehicles_current_transfer_id_fkey(
+        current_transfer:current_transfer_id(
           id,
           status,
-          to_location:dealership_locations!transfers_to_location_id_fkey(
+          to_location:to_location_id(
             name
           )
         )
