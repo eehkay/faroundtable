@@ -6,11 +6,30 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { ProfileForm } from '@/components/profile/ProfileForm';
 import { Loader2 } from 'lucide-react';
+// User type as returned by the API with populated references
+interface UserData {
+  _id: string;
+  _type: 'user';
+  email: string;
+  name: string;
+  image?: string;
+  domain: string;
+  role: 'sales' | 'manager' | 'admin' | 'transport';
+  location?: {
+    _id: string;
+    name: string;
+    code?: string;
+  };
+  lastLogin: string;
+  active: boolean;
+  _createdAt?: string;
+  _updatedAt?: string;
+}
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +40,7 @@ export default function ProfilePage() {
 
     const fetchUserData = async () => {
       try {
+        if (!session?.user?.id) return;
         const response = await fetch(`/api/users/${session.user.id}`);
         if (response.ok) {
           const data = await response.json();
@@ -81,7 +101,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Member Since:</span>
-                <span>{new Date(userData._createdAt).toLocaleDateString()}</span>
+                <span>{userData._createdAt ? new Date(userData._createdAt).toLocaleDateString() : 'N/A'}</span>
               </div>
             </div>
           </div>

@@ -54,8 +54,8 @@ const handler = schedule('0 2 * * *', async (event) => {
       }`
     );
     
-    const existingByStock = new Map(
-      existingVehicles.map(v => [`${v.storeCode}-${v.stockNumber}`, v])
+    const existingByStock = new Map<string, any>(
+      existingVehicles.map((v: any) => [`${v.storeCode}-${v.stockNumber}`, v])
     );
     
     const seenVehicles = new Set<string>();

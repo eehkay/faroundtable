@@ -3,7 +3,7 @@ export default {
   title: 'User',
   type: 'document',
   fields: [
-    { name: 'email', title: 'Email', type: 'string', validation: Rule => Rule.required().email() },
+    { name: 'email', title: 'Email', type: 'string', validation: (Rule: any) => Rule.required().email() },
     { name: 'name', title: 'Name', type: 'string' },
     { name: 'image', title: 'Profile Image', type: 'url' },
     { name: 'domain', title: 'Email Domain', type: 'string' },
@@ -34,7 +34,14 @@ export default {
     select: {
       title: 'name',
       subtitle: 'email',
-      media: 'image'
+      role: 'role'
+    },
+    prepare(selection: any) {
+      const { title, subtitle, role } = selection
+      return {
+        title: title || subtitle,
+        subtitle: `${subtitle} • ${role || 'sales'}`
+      }
     }
   }
 }

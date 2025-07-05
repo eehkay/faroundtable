@@ -5,8 +5,9 @@ import { useSearchParams } from "next/navigation"
 import TechnicalBackground from "@/components/auth/TechnicalBackground"
 import GoogleIcon from "@/components/icons/GoogleIcon"
 import { AlertCircle } from "lucide-react"
+import { Suspense } from "react"
 
-export default function LoginPage() {
+function LoginContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get("error")
 
@@ -95,5 +96,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <LoginContent />
+    </Suspense>
   )
 }

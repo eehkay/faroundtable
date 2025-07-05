@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { writeClient } from '@/lib/sanity';
 import { canClaimVehicle } from '@/lib/permissions';
 import { sendTransferRequestedNotification } from '@/lib/email/service';
 import { groq } from 'next-sanity';
+import type { DealershipLocation } from '@/types/vehicle';
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,6 +54,11 @@ export async function POST(request: NextRequest) {
     // Check if vehicle is available or has pending requests only
     if (vehicle.status !== 'available' && vehicle.status !== 'claimed') {
       return NextResponse.json({ error: 'Vehicle is not available for transfer' }, { status: 400 });
+    }
+    
+    // Check if user has a location assigned
+    if (!session.user.location?._id) {
+      return NextResponse.json({ error: 'User does not have a location assigned' }, { status: 400 });
     }
     
     // Count existing pending requests
@@ -118,16 +124,24 @@ export async function POST(request: NextRequest) {
       await sendTransferRequestedNotification({
         transfer: {
           _id: transfer._id,
+          _type: 'transfer' as const,
           status: 'requested',
           fromStore: vehicle.location,
-          toStore: session.user.location,
-          requestedBy: session.user,
-          vehicle: vehicle
+          toStore: {
+            ...session.user.location,
+            _type: 'dealershipLocation' as const,
+            active: true
+          } as DealershipLocation,
+          requestedBy: { _ref: session.user.id },
+          vehicle: vehicle,
+          customerWaiting: customerWaiting || false,
+          priority: priority === 'urgent',
+          createdAt: transfer.createdAt
         },
         vehicle: vehicle,
         requester: {
-          name: session.user.name || session.user.email,
-          email: session.user.email
+          name: session.user.name || session.user.email || 'Unknown',
+          email: session.user.email || ''
         }
       });
     } catch (emailError) {

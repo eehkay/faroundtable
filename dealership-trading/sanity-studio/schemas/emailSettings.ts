@@ -17,7 +17,7 @@ export default {
           { title: 'Transfer Cancelled', value: 'transferCancelled' }
         ]
       },
-      validation: Rule => Rule.required()
+      validation: (Rule: any) => Rule.required()
     },
     {
       name: 'enabled',
@@ -29,14 +29,14 @@ export default {
       name: 'fromName',
       title: 'From Name',
       type: 'string',
-      hidden: ({ parent }) => parent?.settingType !== 'general'
+      hidden: ({ parent }: any) => parent?.settingType !== 'general'
     },
     {
       name: 'fromEmail',
       title: 'From Email',
       type: 'string',
-      hidden: ({ parent }) => parent?.settingType !== 'general',
-      validation: Rule => Rule.custom((email, context) => {
+      hidden: ({ parent }: any) => parent?.settingType !== 'general',
+      validation: (Rule: any) => Rule.custom((email: any, context: any) => {
         if (context.parent?.settingType === 'general' && !email) {
           return 'From email is required for general settings';
         }
@@ -50,14 +50,14 @@ export default {
       name: 'replyToEmail',
       title: 'Reply To Email',
       type: 'string',
-      hidden: ({ parent }) => parent?.settingType !== 'general'
+      hidden: ({ parent }: any) => parent?.settingType !== 'general'
     },
     {
       name: 'subjectTemplate',
       title: 'Subject Template',
       type: 'string',
       description: 'Use {{variable}} for dynamic content. Available: {{year}}, {{make}}, {{model}}, {{fromStore}}, {{toStore}}, {{requesterName}}',
-      hidden: ({ parent }) => parent?.settingType === 'general'
+      hidden: ({ parent }: any) => parent?.settingType === 'general'
     },
     {
       name: 'recipientRoles',
@@ -72,35 +72,35 @@ export default {
           { title: 'Transport', value: 'transport' }
         ]
       },
-      hidden: ({ parent }) => parent?.settingType === 'general'
+      hidden: ({ parent }: any) => parent?.settingType === 'general'
     },
     {
       name: 'notifyOriginStore',
       title: 'Notify Origin Store',
       type: 'boolean',
       initialValue: true,
-      hidden: ({ parent }) => !parent?.settingType || parent?.settingType === 'general'
+      hidden: ({ parent }: any) => !parent?.settingType || parent?.settingType === 'general'
     },
     {
       name: 'notifyDestinationStore',
       title: 'Notify Destination Store',
       type: 'boolean',
       initialValue: true,
-      hidden: ({ parent }) => !parent?.settingType || parent?.settingType === 'general'
+      hidden: ({ parent }: any) => !parent?.settingType || parent?.settingType === 'general'
     },
     {
       name: 'notifyRequester',
       title: 'Notify Original Requester',
       type: 'boolean',
       initialValue: true,
-      hidden: ({ parent }) => !['transferApproved', 'transferInTransit', 'transferDelivered', 'transferCancelled'].includes(parent?.settingType)
+      hidden: ({ parent }: any) => !['transferApproved', 'transferInTransit', 'transferDelivered', 'transferCancelled'].includes(parent?.settingType)
     },
     {
       name: 'customTemplate',
       title: 'Custom Email Template',
       type: 'text',
       description: 'Custom HTML template. Leave empty to use default. Variables: {{vehicleDetails}}, {{fromStore}}, {{toStore}}, {{requesterName}}, {{approverName}}, {{reason}}, {{transferLink}}',
-      hidden: ({ parent }) => parent?.settingType === 'general'
+      hidden: ({ parent }: any) => parent?.settingType === 'general'
     }
   ],
   preview: {
@@ -108,7 +108,8 @@ export default {
       title: 'settingType',
       subtitle: 'enabled'
     },
-    prepare({ title, subtitle }) {
+    prepare(selection: any) {
+      const { title, subtitle } = selection;
       return {
         title: title ? title.replace(/([A-Z])/g, ' $1').trim() : 'Email Setting',
         subtitle: subtitle ? 'Enabled' : 'Disabled'

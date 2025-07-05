@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/permissions';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend only if API key is available
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 export async function POST(request: NextRequest) {
   try {
@@ -165,6 +166,10 @@ export async function POST(request: NextRequest) {
 
       default:
         return NextResponse.json({ error: 'Invalid template' }, { status: 400 });
+    }
+
+    if (!resend) {
+      return NextResponse.json({ error: 'Email service not configured' }, { status: 500 });
     }
 
     const result = await resend.emails.send({

@@ -81,7 +81,11 @@ export default function InventoryPage() {
 
       {/* Vehicle Grid */}
       <VehicleGrid 
-        userLocation={session.user.location} 
+        userLocation={session.user.location ? {
+          ...session.user.location,
+          _type: 'dealershipLocation' as const,
+          active: true
+        } : undefined} 
         userRole={session.user.role}
       />
     </div>

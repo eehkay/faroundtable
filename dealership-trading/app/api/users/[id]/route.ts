@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { client } from '@/lib/sanity';
 import { userByIdQuery } from '@/lib/queries';
 import { canManageUsers } from '@/lib/permissions';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -19,12 +19,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Await the params to get the id
+    const { id } = await params;
+
     // Allow users to view their own profile or admins to view any profile
-    if (session.user.id !== params.id && !canManageUsers(session.user.role)) {
+    if (session.user.id !== id && !canManageUsers(session.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const user = await client.fetch(userByIdQuery, { userId: params.id });
+    const user = await client.fetch(userByIdQuery, { userId: id });
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -48,6 +51,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    // Await the params to get the id
+    const { id } = await params;
+
     const data = await request.json();
     const { name, role, locationId, active } = data;
 
@@ -69,7 +75,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Prevent self-demotion from admin
-    if (session.user.id === params.id && role && role !== 'admin') {
+    if (session.user.id === id && role && role !== 'admin') {
       return NextResponse.json(
         { error: 'Cannot change your own admin role' },
         { status: 400 }
@@ -77,7 +83,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const updatedUser = await client
-      .patch(params.id)
+      .patch(id)
       .set(updates)
       .commit();
 
@@ -99,8 +105,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Await the params to get the id
+    const { id } = await params;
+
     // Users can only update their own profile
-    if (session.user.id !== params.id) {
+    if (session.user.id !== id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -124,12 +133,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const updatedUser = await client
-      .patch(params.id)
+      .patch(id)
       .set(updates)
       .commit();
 
     // Fetch the updated user with references populated
-    const populatedUser = await client.fetch(userByIdQuery, { userId: params.id });
+    const populatedUser = await client.fetch(userByIdQuery, { userId: id });
 
     return NextResponse.json(populatedUser);
   } catch (error) {
@@ -149,8 +158,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    // Await the params to get the id
+    const { id } = await params;
+
     // Prevent self-deletion
-    if (session.user.id === params.id) {
+    if (session.user.id === id) {
       return NextResponse.json(
         { error: 'Cannot delete your own account' },
         { status: 400 }
@@ -159,7 +171,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Instead of deleting, deactivate the user
     const deactivatedUser = await client
-      .patch(params.id)
+      .patch(id)
       .set({ active: false })
       .commit();
 

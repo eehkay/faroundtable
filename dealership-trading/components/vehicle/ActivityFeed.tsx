@@ -64,7 +64,7 @@ export default function ActivityFeed({ vehicleId }: ActivityFeedProps) {
   };
 
   const getActivityDescription = (activity: Activity) => {
-    const userName = activity.user?.name || 'Someone';
+    const userName = activity.user && 'name' in activity.user ? activity.user.name : 'Someone';
     
     switch (activity.action) {
       case 'claimed':

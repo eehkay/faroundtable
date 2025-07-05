@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "import-csv": "tsx scripts/import-csv.ts",
-    "migrate-dealerships": "tsx scripts/migrate-dealerships.ts"
+    "migrate-dealerships": "tsx scripts/migrate-dealerships.ts",
+    "merge-users": "tsx scripts/merge-duplicate-users.ts"
   },
   "dependencies": {
     "@netlify/functions": "^4.1.8",
@@ -47,6 +48,7 @@
     "@types/node": "^20.19.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ssh2-sftp-client": "^9.0.4",
     "autoprefixer": "^10.4.21",
     "dotenv": "^17.0.1",
     "eslint": "^9.30.1",

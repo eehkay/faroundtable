@@ -76,12 +76,16 @@ export default function EmailTemplateEditor() {
     } else {
       // Create default template
       const templateType = templateTypes.find(t => t.value === selectedType);
+      const defaults = defaultTemplates[selectedType] || {};
       setCurrentTemplate({
         settingType: selectedType,
         enabled: true,
         subjectTemplate: templateType?.defaultSubject || '',
-        ...defaultTemplates[selectedType],
-        recipientRoles: defaultTemplates[selectedType]?.recipientRoles || ['admin']
+        recipientRoles: defaults.recipientRoles || ['admin'],
+        notifyOriginStore: defaults.notifyOriginStore ?? true,
+        notifyDestinationStore: defaults.notifyDestinationStore ?? true,
+        notifyRequester: defaults.notifyRequester ?? false,
+        customTemplate: defaults.customTemplate
       });
     }
   }, [selectedType, templates]);

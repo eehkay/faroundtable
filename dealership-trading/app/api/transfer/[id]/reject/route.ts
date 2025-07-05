@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { writeClient } from '@/lib/sanity';
 import { canApproveTransfer } from '@/lib/permissions';
 import { groq } from 'next-sanity';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,6 +15,9 @@ export async function PUT(
     if (!session || !canApproveTransfer(session.user.role)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Await the params to get the id
+    const { id } = await params;
     
     const { rejectionReason } = await request.json();
     
@@ -38,7 +41,7 @@ export async function PUT(
         toLocation->{_id, name},
         requestedBy->{_id, name, email}
       }
-    `, { id: params.id });
+    `, { id });
     
     if (!transfer) {
       return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
@@ -50,7 +53,7 @@ export async function PUT(
     
     // Update transfer status to rejected
     await writeClient
-      .patch(params.id)
+      .patch(id)
       .set({ 
         status: 'rejected',
         rejectedAt: new Date().toISOString(),
@@ -61,7 +64,7 @@ export async function PUT(
     
     // Remove this transfer from vehicle's activeTransferRequests
     const updatedActiveRequests = transfer.vehicle.activeTransferRequests
-      ?.filter((req: any) => req._id !== params.id)
+      ?.filter((req: any) => req._id !== id)
       .map((req: any) => ({ _type: 'reference', _ref: req._id })) || [];
     
     await writeClient
@@ -79,7 +82,7 @@ export async function PUT(
       action: 'transfer_rejected',
       details: `Transfer request from ${transfer.toLocation.name} rejected: ${rejectionReason}`,
       metadata: {
-        transferId: params.id,
+        transferId: id,
         rejectionReason,
         rejectedBy: session.user.name || session.user.email
       },

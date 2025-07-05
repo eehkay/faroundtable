@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { readClient } from '@/lib/sanity';
+import { authOptions } from '@/lib/auth';
+import { client } from '@/lib/sanity';
 import { groq } from 'next-sanity';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { vehicleId: string } }
+  { params }: { params: Promise<{ vehicleId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,8 +15,11 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
+    // Await the params to get the vehicleId
+    const { vehicleId } = await params;
+    
     // Fetch all transfer requests for the vehicle
-    const transfers = await readClient.fetch(groq`
+    const transfers = await client.fetch(groq`
       *[_type == "transfer" && vehicle._ref == $vehicleId] | order(createdAt desc) {
         _id,
         status,
@@ -60,7 +63,7 @@ export async function GET(
           email
         }
       }
-    `, { vehicleId: params.vehicleId });
+    `, { vehicleId });
     
     // Separate transfers by status
     const pendingTransfers = transfers.filter((t: any) => t.status === 'requested');

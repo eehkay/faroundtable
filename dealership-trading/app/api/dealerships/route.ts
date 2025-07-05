@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
-import { sanityClient } from '@/lib/sanity';
+import { authOptions } from '@/lib/auth';
+import { client } from '@/lib/sanity';
 import groq from 'groq';
 
 export async function GET() {
@@ -12,7 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const dealerships = await sanityClient.fetch(groq`
+    const dealerships = await client.fetch(groq`
       *[_type == "dealershipLocation"] | order(name asc) {
         _id,
         name,

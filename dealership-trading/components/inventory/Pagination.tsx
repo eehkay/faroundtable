@@ -1,4 +1,4 @@
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface PaginationProps {
   currentPage: number
@@ -31,7 +31,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
           disabled={currentPage === 1}
           className="inline-flex items-center border-t-2 border-transparent pr-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"
         >
-          <ChevronLeftIcon className="mr-3 h-5 w-5" aria-hidden="true" />
+          <ChevronLeft className="mr-3 h-5 w-5" aria-hidden="true" />
           Previous
         </button>
       </div>
@@ -89,7 +89,7 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
           className="inline-flex items-center border-t-2 border-transparent pl-1 pt-4 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"
         >
           Next
-          <ChevronRightIcon className="ml-3 h-5 w-5" aria-hidden="true" />
+          <ChevronRight className="ml-3 h-5 w-5" aria-hidden="true" />
         </button>
       </div>
     </nav>

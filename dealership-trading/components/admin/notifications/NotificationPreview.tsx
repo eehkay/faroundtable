@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Send } from 'lucide-react';
+import Image from 'next/image';
 
 const sampleData = {
   vehicle: {
@@ -50,7 +51,7 @@ export default function NotificationPreview() {
               <h2 style={{ color: '#1f1f1f', marginBottom: '24px' }}>New Transfer Request</h2>
               
               <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-                <img src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+                <Image src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" width={600} height={400} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
               </div>
               
               <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
@@ -85,7 +86,7 @@ export default function NotificationPreview() {
               <h2 style={{ color: '#059669', marginBottom: '24px' }}>✅ Transfer Approved</h2>
               
               <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-                <img src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+                <Image src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" width={600} height={400} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
               </div>
               
               <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
@@ -116,7 +117,7 @@ export default function NotificationPreview() {
               <h2 style={{ color: '#f59e0b', marginBottom: '24px' }}>🚚 Vehicle In Transit</h2>
               
               <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-                <img src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+                <Image src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" width={600} height={400} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
               </div>
               
               <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
@@ -140,7 +141,7 @@ export default function NotificationPreview() {
               <h2 style={{ color: '#059669', marginBottom: '24px' }}>✅ Vehicle Delivered</h2>
               
               <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-                <img src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+                <Image src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" width={600} height={400} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
               </div>
               
               <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
@@ -164,7 +165,7 @@ export default function NotificationPreview() {
               <h2 style={{ color: '#dc2626', marginBottom: '24px' }}>❌ Transfer Cancelled</h2>
               
               <div style={{ marginBottom: '24px', textAlign: 'center' }}>
-                <img src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
+                <Image src="https://images.unsplash.com/photo-1616789916664-dce56d9009da?w=600" alt="2024 Toyota Camry" width={600} height={400} style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} />
               </div>
               
               <div style={{ backgroundColor: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>

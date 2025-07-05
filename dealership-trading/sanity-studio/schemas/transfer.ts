@@ -8,28 +8,28 @@ export default {
       title: 'Vehicle', 
       type: 'reference', 
       to: [{type: 'vehicle'}],
-      validation: Rule => Rule.required()
+      validation: (Rule: any) => Rule.required()
     },
     { 
       name: 'fromStore', 
       title: 'From Store', 
       type: 'reference', 
       to: [{type: 'dealershipLocation'}],
-      validation: Rule => Rule.required()
+      validation: (Rule: any) => Rule.required()
     },
     { 
       name: 'toStore', 
       title: 'To Store', 
       type: 'reference', 
       to: [{type: 'dealershipLocation'}],
-      validation: Rule => Rule.required()
+      validation: (Rule: any) => Rule.required()
     },
     { 
       name: 'requestedBy', 
       title: 'Requested By', 
       type: 'reference', 
       to: [{type: 'user'}],
-      validation: Rule => Rule.required()
+      validation: (Rule: any) => Rule.required()
     },
     { 
       name: 'status', 
@@ -63,7 +63,8 @@ export default {
       toStore: 'toStore.name',
       status: 'status'
     },
-    prepare({ vehicleTitle, fromStore, toStore, status }) {
+    prepare(selection: any) {
+      const { vehicleTitle, fromStore, toStore, status } = selection;
       return {
         title: vehicleTitle || 'Vehicle Transfer',
         subtitle: `${fromStore} → ${toStore} (${status})`

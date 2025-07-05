@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { client } from "@/lib/sanity";
 import { vehicleByStockNumberQuery } from "@/lib/queries";
 import VehicleGallery from "@/components/vehicle/VehicleGallery";
@@ -17,9 +17,9 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     stockNumber: string;
-  };
+  }>;
 }
 
 export default async function VehicleDetailPage({ params }: PageProps) {
@@ -29,9 +29,12 @@ export default async function VehicleDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  // Await the params to get the stockNumber
+  const { stockNumber } = await params;
+
   // Fetch vehicle details
   const vehicle = await client.fetch(vehicleByStockNumberQuery, {
-    stockNumber: params.stockNumber
+    stockNumber
   });
 
   if (!vehicle) {

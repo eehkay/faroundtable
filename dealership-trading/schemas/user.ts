@@ -34,7 +34,14 @@ export default {
     select: {
       title: 'name',
       subtitle: 'email',
-      media: 'image'
+      role: 'role'
+    },
+    prepare(selection: any) {
+      const { title, subtitle, role } = selection
+      return {
+        title: title || subtitle,
+        subtitle: `${subtitle} • ${role || 'sales'}`
+      }
     }
   }
 }

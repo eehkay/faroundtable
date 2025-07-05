@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { client } from "@/lib/sanity";
 import { dashboardStatsQuery } from "@/lib/queries";
 import { redirect } from "next/navigation";
@@ -36,7 +36,11 @@ export default async function DashboardPage() {
       {/* Recent Activity */}
       <RecentActivity 
         initialActivity={stats.recentActivity} 
-        userLocation={session.user.location}
+        userLocation={session.user.location ? {
+          ...session.user.location,
+          _type: 'dealershipLocation' as const,
+          active: true
+        } : undefined}
       />
     </div>
   );

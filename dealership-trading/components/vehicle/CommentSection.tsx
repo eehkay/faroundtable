@@ -158,10 +158,10 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
             <div key={comment._id} className="pb-3 last:pb-0 border-b border-[#2a2a2a]/30 last:border-b-0">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  {comment.author.image && !imageErrors[comment._id] && (
+                  {'image' in comment.author && comment.author.image && !imageErrors[comment._id] && (
                     <Image
-                      src={comment.author.image}
-                      alt={comment.author.name}
+                      src={'image' in comment.author ? comment.author.image : ''}
+                      alt={'name' in comment.author ? comment.author.name : 'User'}
                       className="w-8 h-8 rounded-full"
                       width={32}
                       height={32}
@@ -169,14 +169,14 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
                     />
                   )}
                   <div>
-                    <p className="font-medium text-sm text-gray-100">{comment.author.name}</p>
+                    <p className="font-medium text-sm text-gray-100">{'name' in comment.author ? comment.author.name : 'Unknown'}</p>
                     <p className="text-xs text-gray-400">
                       {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                       {comment.edited && ' (edited)'}
                     </p>
                   </div>
                 </div>
-                {session && (session.user.id === comment.author._id || session.user.role === 'admin') && (
+                {session && ('_id' in comment.author && session.user.id === comment.author._id || session.user.role === 'admin') && (
                   <button
                     onClick={() => handleDelete(comment._id)}
                     className="text-red-400 hover:text-red-300 text-sm transition-all duration-200"

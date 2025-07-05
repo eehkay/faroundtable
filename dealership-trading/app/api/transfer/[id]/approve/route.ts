@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 import { writeClient } from '@/lib/sanity';
 import { groq } from 'next-sanity';
 import { canApproveTransfers } from '@/lib/permissions';
@@ -174,8 +174,8 @@ export async function PUT(request: NextRequest, props: RouteParams) {
         },
         vehicle: transfer.vehicle,
         approver: {
-          name: session.user.name || session.user.email,
-          email: session.user.email
+          name: session.user.name || session.user.email || 'Unknown',
+          email: session.user.email || ''
         }
       });
     } catch (emailError) {

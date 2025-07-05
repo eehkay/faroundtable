@@ -8,20 +8,20 @@ export default {
       title: 'Vehicle', 
       type: 'reference', 
       to: [{type: 'vehicle'}],
-      validation: Rule => Rule.required()
+      validation: (Rule: any) => Rule.required()
     },
     { 
       name: 'author', 
       title: 'Author', 
       type: 'reference', 
       to: [{type: 'user'}],
-      validation: Rule => Rule.required()
+      validation: (Rule: any) => Rule.required()
     },
     { 
       name: 'text', 
       title: 'Comment', 
       type: 'text',
-      validation: Rule => Rule.required()
+      validation: (Rule: any) => Rule.required()
     },
     { 
       name: 'mentions', 

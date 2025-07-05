@@ -10,7 +10,8 @@ export default {
       state: 'state',
       active: 'active'
     },
-    prepare({title, code, city, state, active}: any) {
+    prepare(selection: any) {
+      const {title, code, city, state, active} = selection;
       return {
         title: `${title} (${code})`,
         subtitle: `${city}, ${state} ${active === false ? '• INACTIVE' : ''}`
@@ -18,8 +19,8 @@ export default {
     }
   },
   fields: [
-    { name: 'name', title: 'Name', type: 'string', validation: Rule => Rule.required() },
-    { name: 'code', title: 'Location Code', type: 'string', validation: Rule => Rule.required() },
+    { name: 'name', title: 'Name', type: 'string', validation: (Rule: any) => Rule.required() },
+    { name: 'code', title: 'Location Code', type: 'string', validation: (Rule: any) => Rule.required() },
     { name: 'address', title: 'Address', type: 'string' },
     { name: 'city', title: 'City', type: 'string' },
     { name: 'state', title: 'State', type: 'string' },

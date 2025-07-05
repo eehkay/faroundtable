@@ -3,7 +3,7 @@ export default {
   title: 'Import Log',
   type: 'document',
   fields: [
-    { name: 'timestamp', title: 'Timestamp', type: 'datetime', validation: Rule => Rule.required() },
+    { name: 'timestamp', title: 'Timestamp', type: 'datetime', validation: (Rule: any) => Rule.required() },
     { name: 'success', title: 'Success', type: 'boolean' },
     { 
       name: 'results', 
@@ -29,7 +29,8 @@ export default {
       created: 'results.created',
       updated: 'results.updated'
     },
-    prepare({ timestamp, success, created, updated }) {
+    prepare(selection: any) {
+      const { timestamp, success, created, updated } = selection;
       return {
         title: `Import ${success ? '✓' : '✗'} - ${new Date(timestamp).toLocaleString()}`,
         subtitle: `Created: ${created || 0}, Updated: ${updated || 0}`

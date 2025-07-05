@@ -14,37 +14,39 @@ export default {
       make: 'make',
       model: 'model'
     },
-    prepare({title, stockNumber, status, price, locationName, imageUrl, year, make, model}: any) {
-      const statusEmoji = {
+    prepare(selection: any) {
+      const {title, stockNumber, status, price, locationName, imageUrl, year, make, model} = selection;
+      const statusEmojis = {
         'available': '✅',
         'claimed': '🔄',
         'in-transit': '🚚',
         'delivered': '📦'
-      }[status] || '❓'
+      };
+      const statusEmoji = statusEmojis[status as keyof typeof statusEmojis] || '❓'
       
       const vehicleTitle = title || `${year} ${make} ${model}`.trim() || stockNumber
       
       return {
         title: `${stockNumber} - ${vehicleTitle}`,
         subtitle: `${statusEmoji} ${locationName || 'Unknown'} • $${price?.toLocaleString() || 'N/A'}`,
-        media: imageUrl ? {_type: 'url', url: imageUrl} : undefined
+        media: imageUrl || undefined
       }
     }
   },
   fields: [
     // Identification
-    { name: 'stockNumber', title: 'Stock Number', type: 'string', validation: Rule => Rule.required() },
-    { name: 'vin', title: 'VIN', type: 'string', validation: Rule => Rule.required().length(17) },
+    { name: 'stockNumber', title: 'Stock Number', type: 'string', validation: (Rule: any) => Rule.required() },
+    { name: 'vin', title: 'VIN', type: 'string', validation: (Rule: any) => Rule.required().length(17) },
     
     // Basic Information
-    { name: 'year', title: 'Year', type: 'number', validation: Rule => Rule.required() },
-    { name: 'make', title: 'Make', type: 'string', validation: Rule => Rule.required() },
-    { name: 'model', title: 'Model', type: 'string', validation: Rule => Rule.required() },
+    { name: 'year', title: 'Year', type: 'number', validation: (Rule: any) => Rule.required() },
+    { name: 'make', title: 'Make', type: 'string', validation: (Rule: any) => Rule.required() },
+    { name: 'model', title: 'Model', type: 'string', validation: (Rule: any) => Rule.required() },
     { name: 'trim', title: 'Trim', type: 'string' },
     { name: 'title', title: 'Title', type: 'string' },
     
     // Pricing
-    { name: 'price', title: 'Price', type: 'number', validation: Rule => Rule.required().positive() },
+    { name: 'price', title: 'Price', type: 'number', validation: (Rule: any) => Rule.required().positive() },
     { name: 'salePrice', title: 'Sale Price', type: 'number' },
     { name: 'msrp', title: 'MSRP', type: 'number' },
     
@@ -76,7 +78,7 @@ export default {
     },
     
     // Store Information
-    { name: 'storeCode', title: 'Store Code', type: 'string', validation: Rule => Rule.required() },
+    { name: 'storeCode', title: 'Store Code', type: 'string', validation: (Rule: any) => Rule.required() },
     { name: 'location', title: 'Current Location', type: 'reference', to: [{type: 'dealershipLocation'}] },
     { name: 'originalLocation', title: 'Original Location', type: 'reference', to: [{type: 'dealershipLocation'}] },
     

@@ -1,16 +1,18 @@
 import { Resend } from 'resend';
 import { client } from '@/lib/sanity';
 import { groq } from 'next-sanity';
-import type { Vehicle, Transfer, DealershipLocation } from '@/types/vehicle';
+import type { Vehicle, DealershipLocation } from '@/types/vehicle';
+import type { Transfer } from '@/types/transfer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend only if API key is available
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // Email templates
 const emailTemplates = {
   transferRequested: (data: {
     vehicle: Vehicle;
-    requestingStore: DealershipLocation;
-    originStore: DealershipLocation;
+    requestingStore: DealershipLocation | { _ref: string };
+    originStore: DealershipLocation | { _ref: string };
     requesterName: string;
     transferId: string;
   }) => ({
@@ -19,9 +21,9 @@ const emailTemplates = {
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <h2 style="color: #1f1f1f; margin-bottom: 24px;">New Transfer Request</h2>
         
-        ${data.vehicle.images && data.vehicle.images.length > 0 ? `
+        ${data.vehicle.imageUrls && data.vehicle.imageUrls.length > 0 ? `
         <div style="margin-bottom: 24px; text-align: center;">
-          <img src="${data.vehicle.images[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <img src="${data.vehicle.imageUrls[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         </div>
         ` : ''}
         
@@ -34,7 +36,7 @@ const emailTemplates = {
         </div>
         
         <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="margin: 8px 0; color: #1976d2;"><strong>${data.requesterName}</strong> from <strong>${data.requestingStore.name}</strong> has requested to transfer this vehicle from your location.</p>
+          <p style="margin: 8px 0; color: #1976d2;"><strong>${data.requesterName}</strong> from <strong>${'_id' in data.requestingStore ? data.requestingStore.name : 'Store'}</strong> has requested to transfer this vehicle from your location.</p>
         </div>
         
         <div style="text-align: center; margin-top: 32px;">
@@ -51,8 +53,8 @@ const emailTemplates = {
   transferApproved: (data: {
     vehicle: Vehicle;
     approverName: string;
-    requestingStore: DealershipLocation;
-    originStore: DealershipLocation;
+    requestingStore: DealershipLocation | { _ref: string };
+    originStore: DealershipLocation | { _ref: string };
     transferId: string;
   }) => ({
     subject: `Transfer Approved: ${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`,
@@ -60,9 +62,9 @@ const emailTemplates = {
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <h2 style="color: #059669; margin-bottom: 24px;">✅ Transfer Approved</h2>
         
-        ${data.vehicle.images && data.vehicle.images.length > 0 ? `
+        ${data.vehicle.imageUrls && data.vehicle.imageUrls.length > 0 ? `
         <div style="margin-bottom: 24px; text-align: center;">
-          <img src="${data.vehicle.images[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <img src="${data.vehicle.imageUrls[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         </div>
         ` : ''}
         
@@ -70,7 +72,7 @@ const emailTemplates = {
           <h3 style="color: #1f1f1f; margin-top: 0;">Vehicle Details</h3>
           <p style="margin: 8px 0; color: #4a5568;"><strong style="color: #1f1f1f;">${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
           <p style="margin: 8px 0; color: #4a5568;">VIN: ${data.vehicle.vin}</p>
-          <p style="margin: 8px 0; color: #4a5568;">From: ${data.originStore.name}</p>
+          <p style="margin: 8px 0; color: #4a5568;">From: ${'_id' in data.originStore ? data.originStore.name : 'Origin Store'}</p>
         </div>
         
         <div style="background-color: #d1fae5; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
@@ -93,8 +95,8 @@ const emailTemplates = {
     vehicle: Vehicle;
     status: 'in-transit' | 'delivered';
     updaterName: string;
-    requestingStore: DealershipLocation;
-    originStore: DealershipLocation;
+    requestingStore: DealershipLocation | { _ref: string };
+    originStore: DealershipLocation | { _ref: string };
     transferId: string;
   }) => ({
     subject: `Transfer ${data.status === 'in-transit' ? 'In Transit' : 'Delivered'}: ${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`,
@@ -104,9 +106,9 @@ const emailTemplates = {
           ${data.status === 'in-transit' ? '🚚 Vehicle In Transit' : '✅ Vehicle Delivered'}
         </h2>
         
-        ${data.vehicle.images && data.vehicle.images.length > 0 ? `
+        ${data.vehicle.imageUrls && data.vehicle.imageUrls.length > 0 ? `
         <div style="margin-bottom: 24px; text-align: center;">
-          <img src="${data.vehicle.images[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <img src="${data.vehicle.imageUrls[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         </div>
         ` : ''}
         
@@ -114,7 +116,7 @@ const emailTemplates = {
           <h3 style="color: #1f1f1f; margin-top: 0;">Vehicle Details</h3>
           <p style="margin: 8px 0; color: #4a5568;"><strong style="color: #1f1f1f;">${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
           <p style="margin: 8px 0; color: #4a5568;">VIN: ${data.vehicle.vin}</p>
-          <p style="margin: 8px 0; color: #4a5568;">From: ${data.originStore.name} → To: ${data.requestingStore.name}</p>
+          <p style="margin: 8px 0; color: #4a5568;">From: ${'_id' in data.originStore ? data.originStore.name : 'Origin Store'} → To: ${'_id' in data.requestingStore ? data.requestingStore.name : 'Requesting Store'}</p>
         </div>
         
         <div style="background-color: ${data.status === 'delivered' ? '#d1fae5' : '#fef3c7'}; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
@@ -141,17 +143,17 @@ const emailTemplates = {
     vehicle: Vehicle;
     cancellerName: string;
     reason?: string;
-    requestingStore: DealershipLocation;
-    originStore: DealershipLocation;
+    requestingStore: DealershipLocation | { _ref: string };
+    originStore: DealershipLocation | { _ref: string };
   }) => ({
     subject: `Transfer Cancelled: ${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
         <h2 style="color: #dc2626; margin-bottom: 24px;">❌ Transfer Cancelled</h2>
         
-        ${data.vehicle.images && data.vehicle.images.length > 0 ? `
+        ${data.vehicle.imageUrls && data.vehicle.imageUrls.length > 0 ? `
         <div style="margin-bottom: 24px; text-align: center;">
-          <img src="${data.vehicle.images[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <img src="${data.vehicle.imageUrls[0]}" alt="${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         </div>
         ` : ''}
         
@@ -159,13 +161,13 @@ const emailTemplates = {
           <h3 style="color: #1f1f1f; margin-top: 0;">Vehicle Details</h3>
           <p style="margin: 8px 0; color: #4a5568;"><strong style="color: #1f1f1f;">${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</strong></p>
           <p style="margin: 8px 0; color: #4a5568;">VIN: ${data.vehicle.vin}</p>
-          <p style="margin: 8px 0; color: #4a5568;">Transfer was: ${data.originStore.name} → ${data.requestingStore.name}</p>
+          <p style="margin: 8px 0; color: #4a5568;">Transfer was: ${'_id' in data.originStore ? data.originStore.name : 'Origin Store'} → ${'_id' in data.requestingStore ? data.requestingStore.name : 'Requesting Store'}</p>
         </div>
         
         <div style="background-color: #fee2e2; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
           <p style="margin: 8px 0; color: #dc2626;">This transfer has been cancelled by <strong>${data.cancellerName}</strong></p>
           ${data.reason ? `<p style="margin: 8px 0; color: #dc2626;">Reason: ${data.reason}</p>` : ''}
-          <p style="margin: 8px 0; color: #dc2626;">The vehicle remains at ${data.originStore.name} and is available for other requests.</p>
+          <p style="margin: 8px 0; color: #dc2626;">The vehicle remains at ${'_id' in data.originStore ? data.originStore.name : 'Origin Store'} and is available for other requests.</p>
         </div>
         
         <p style="color: #666; font-size: 14px; margin-top: 32px; text-align: center;">
@@ -177,19 +179,17 @@ const emailTemplates = {
 };
 
 // Get recipients for different notification types
-async function getRecipients(store: DealershipLocation, roles: string[] = ['manager', 'admin']) {
+async function getRecipients(store: DealershipLocation | { _ref: string }, roles: string[] = ['manager', 'admin']): Promise<string[]> {
+  const locationId = '_id' in store ? store._id : store._ref;
   const users = await client.fetch(groq`
     *[_type == "user" && location._ref == $locationId && role in $roles && active == true] {
       email,
       name
     }
-  `, { locationId: store._id, roles });
+  `, { locationId, roles });
 
-  // Include store email as fallback if configured
-  const recipients = users.map((u: any) => u.email).filter(Boolean);
-  if (store.email) {
-    recipients.push(store.email);
-  }
+  // Get user emails
+  const recipients: string[] = users.map((u: any) => u.email).filter(Boolean);
 
   return [...new Set(recipients)]; // Remove duplicates
 }
@@ -200,23 +200,28 @@ export async function sendTransferRequestedNotification(data: {
   vehicle: Vehicle;
   requester: { name: string; email: string };
 }) {
+  if (!resend) {
+    console.warn('Email service not configured - RESEND_API_KEY is missing');
+    return;
+  }
+  
   try {
-    const recipients = await getRecipients(data.transfer.fromLocation);
+    const recipients = await getRecipients(data.transfer.fromStore);
     
     if (recipients.length === 0) {
-      console.warn(`No recipients found for transfer request notification at ${data.transfer.fromLocation.name}`);
+      console.warn(`No recipients found for transfer request notification at store ${'_id' in data.transfer.fromStore ? data.transfer.fromStore.name : data.transfer.fromStore._ref}`);
       return;
     }
 
     const emailData = emailTemplates.transferRequested({
       vehicle: data.vehicle,
-      requestingStore: data.transfer.toLocation,
-      originStore: data.transfer.fromLocation,
+      requestingStore: data.transfer.toStore,
+      originStore: data.transfer.fromStore,
       requesterName: data.requester.name,
-      transferId: data.transfer._id
+      transferId: data.transfer._id || ''
     });
 
-    const result = await resend.emails.send({
+    const result = await resend!.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
       to: recipients,
       subject: emailData.subject,
@@ -236,12 +241,17 @@ export async function sendTransferApprovedNotification(data: {
   vehicle: Vehicle;
   approver: { name: string; email: string };
 }) {
+  if (!resend) {
+    console.warn('Email service not configured - RESEND_API_KEY is missing');
+    return;
+  }
+  
   try {
     // Notify the requesting store
-    const recipients = await getRecipients(data.transfer.toLocation, ['manager', 'admin', 'sales']);
+    const recipients = await getRecipients(data.transfer.toStore, ['manager', 'admin', 'sales']);
     
     // Also notify the original requester
-    if (data.transfer.requestedBy?.email && !recipients.includes(data.transfer.requestedBy.email)) {
+    if ('email' in data.transfer.requestedBy && data.transfer.requestedBy.email && !recipients.includes(data.transfer.requestedBy.email)) {
       recipients.push(data.transfer.requestedBy.email);
     }
 
@@ -253,12 +263,12 @@ export async function sendTransferApprovedNotification(data: {
     const emailData = emailTemplates.transferApproved({
       vehicle: data.vehicle,
       approverName: data.approver.name,
-      requestingStore: data.transfer.toLocation,
-      originStore: data.transfer.fromLocation,
-      transferId: data.transfer._id
+      requestingStore: data.transfer.toStore,
+      originStore: data.transfer.fromStore,
+      transferId: data.transfer._id || ''
     });
 
-    const result = await resend.emails.send({
+    const result = await resend!.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
       to: recipients,
       subject: emailData.subject,
@@ -279,10 +289,15 @@ export async function sendTransferStatusUpdateNotification(data: {
   status: 'in-transit' | 'delivered';
   updater: { name: string; email: string };
 }) {
+  if (!resend) {
+    console.warn('Email service not configured - RESEND_API_KEY is missing');
+    return;
+  }
+  
   try {
     // Notify both stores
-    const recipientsFrom = await getRecipients(data.transfer.fromLocation);
-    const recipientsTo = await getRecipients(data.transfer.toLocation, ['manager', 'admin', 'sales']);
+    const recipientsFrom = await getRecipients(data.transfer.fromStore);
+    const recipientsTo = await getRecipients(data.transfer.toStore, ['manager', 'admin', 'sales']);
     const recipients = [...new Set([...recipientsFrom, ...recipientsTo])];
 
     if (recipients.length === 0) {
@@ -294,12 +309,12 @@ export async function sendTransferStatusUpdateNotification(data: {
       vehicle: data.vehicle,
       status: data.status,
       updaterName: data.updater.name,
-      requestingStore: data.transfer.toLocation,
-      originStore: data.transfer.fromLocation,
-      transferId: data.transfer._id
+      requestingStore: data.transfer.toStore,
+      originStore: data.transfer.fromStore,
+      transferId: data.transfer._id || ''
     });
 
-    const result = await resend.emails.send({
+    const result = await resend!.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
       to: recipients,
       subject: emailData.subject,
@@ -322,8 +337,8 @@ export async function sendTransferCancelledNotification(data: {
 }) {
   try {
     // Notify both stores
-    const recipientsFrom = await getRecipients(data.transfer.fromLocation);
-    const recipientsTo = await getRecipients(data.transfer.toLocation);
+    const recipientsFrom = await getRecipients(data.transfer.fromStore);
+    const recipientsTo = await getRecipients(data.transfer.toStore);
     const recipients = [...new Set([...recipientsFrom, ...recipientsTo])];
 
     if (recipients.length === 0) {
@@ -335,11 +350,11 @@ export async function sendTransferCancelledNotification(data: {
       vehicle: data.vehicle,
       cancellerName: data.canceller.name,
       reason: data.reason,
-      requestingStore: data.transfer.toLocation,
-      originStore: data.transfer.fromLocation
+      requestingStore: data.transfer.toStore,
+      originStore: data.transfer.fromStore
     });
 
-    const result = await resend.emails.send({
+    const result = await resend!.emails.send({
       from: process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
       to: recipients,
       subject: emailData.subject,

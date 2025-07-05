@@ -22,7 +22,7 @@ export interface Vehicle {
   storeCode: string
   location?: DealershipLocation | { _ref: string }
   originalLocation?: DealershipLocation | { _ref: string }
-  currentTransfer?: Transfer | { _ref: string }
+  currentTransfer?: { _ref: string } | any // Using 'any' to avoid circular dependency
   imageUrls?: string[]
   importedAt?: string
   lastSeenInFeed?: string

@@ -16,8 +16,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+interface VehicleWithTransfers extends Vehicle {
+  activeTransferRequests?: any[];
+}
+
 interface VehicleCardProps {
-  vehicle: Vehicle;
+  vehicle: VehicleWithTransfers;
   userLocation?: DealershipLocation;
   userRole: string;
   onUpdate?: () => void;
@@ -42,7 +46,7 @@ export default function VehicleCard({ vehicle, userLocation, userRole, onUpdate 
   };
 
   const images = vehicle.imageUrls && vehicle.imageUrls.length > 0 ? vehicle.imageUrls : ['/placeholder-vehicle.jpg'];
-  const isAtUserLocation = userLocation && vehicle.location?._id === userLocation._id;
+  const isAtUserLocation = userLocation && vehicle.location && '_id' in vehicle.location && vehicle.location._id === userLocation._id;
 
   const handlePreviousImage = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -135,7 +139,7 @@ export default function VehicleCard({ vehicle, userLocation, userRole, onUpdate 
             </h3>
             <p className="text-sm text-gray-400 line-clamp-2">
               {vehicle.trim || `Stock #${vehicle.stockNumber}`}
-              {vehicle.location && ` • ${vehicle.location.name}`}
+              {vehicle.location && '_id' in vehicle.location && ` • ${vehicle.location.name}`}
             </p>
           </div>
 
@@ -182,9 +186,9 @@ export default function VehicleCard({ vehicle, userLocation, userRole, onUpdate 
           {/* Claim Button */}
           <div onClick={(e) => e.preventDefault()}>
             <ClaimButton
-              vehicleId={vehicle._id}
+              vehicleId={vehicle._id || ''}
               vehicleStatus={vehicle.status}
-              vehicleLocation={vehicle.location?._id || ''}
+              vehicleLocation={vehicle.location && '_id' in vehicle.location ? vehicle.location._id : ''}
               activeTransferRequests={vehicle.activeTransferRequests?.filter((t: any) => t.status === 'requested').length || 0}
               onSuccess={onUpdate}
               className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold py-3 px-6 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl"

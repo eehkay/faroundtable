@@ -21,7 +21,7 @@ export default function VehicleActions({ vehicleId, vehicleStatus, vehicleLocati
     <ClaimButton
       vehicleId={vehicleId}
       vehicleStatus={vehicleStatus}
-      vehicleLocation={vehicleLocation}
+      vehicleLocation={vehicleLocation || ''}
       activeTransferRequests={activeTransferRequests}
       onSuccess={handleSuccess}
     />

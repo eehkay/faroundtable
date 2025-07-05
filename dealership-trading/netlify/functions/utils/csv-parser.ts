@@ -102,9 +102,9 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
 
   const uniqueImages = [...new Set(images)].slice(0, 10);
 
-  let features = [];
-  let dealershipName = null;
-  let fullDescription = null;
+  let features: string[] = [];
+  let dealershipName: string | null = null;
+  let fullDescription: string | null = null;
   
   if (row.__parsed_extra && Array.isArray(row.__parsed_extra)) {
     if (row.__parsed_extra[10] && typeof row.__parsed_extra[10] === 'string') {
