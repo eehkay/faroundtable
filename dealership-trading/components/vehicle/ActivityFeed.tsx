@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { client, listenClient } from '@/lib/sanity';
-import { vehicleActivityQuery } from '@/lib/queries';
+import { supabase } from '@/lib/supabase-client';
 import type { Activity } from '@/types/transfer';
 
 interface ActivityFeedProps {
@@ -19,9 +18,42 @@ export default function ActivityFeed({ vehicleId }: ActivityFeedProps) {
     const fetchActivities = async () => {
       try {
         setError(null);
-        const data = await client.fetch(vehicleActivityQuery, { vehicleId });
-        console.log('Fetched activities for vehicle:', vehicleId, data);
-        setActivities(data || []);
+        
+        const { data, error: fetchError } = await supabase
+          .from('activities')
+          .select(`
+            *,
+            user:user_id(
+              id,
+              name,
+              email,
+              image
+            )
+          `)
+          .eq('vehicle_id', vehicleId)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        // Transform data to match existing Activity type
+        const transformedData = data?.map(activity => ({
+          _id: activity.id,
+          action: activity.action,
+          details: activity.details,
+          metadata: activity.metadata,
+          createdAt: activity.created_at,
+          user: activity.user ? {
+            name: activity.user.name,
+            email: activity.user.email,
+            image: activity.user.image
+          } : null
+        })) || [];
+
+        console.log('Fetched activities for vehicle:', vehicleId, transformedData);
+        setActivities(transformedData);
       } catch (error) {
         console.error('Failed to fetch activities:', error);
         setError('Failed to load activity feed. Please check your connection.');
@@ -33,22 +65,27 @@ export default function ActivityFeed({ vehicleId }: ActivityFeedProps) {
 
     fetchActivities();
     
-    // Subscribe to real-time updates using listenClient
-    const subscription = listenClient
-      .listen(`*[_type == "activity" && vehicle._ref == $vehicleId]`, { vehicleId })
-      .subscribe({
-        next: (update) => {
-          console.log('Activity real-time update:', update);
-          if (update.transition === 'appear') {
-            fetchActivities();
-          }
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel(`activities-${vehicleId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'activities',
+          filter: `vehicle_id=eq.${vehicleId}`
         },
-        error: (err) => {
-          console.error('Activity subscription error:', err);
+        () => {
+          console.log('Activity real-time update received');
+          fetchActivities();
         }
-      });
+      )
+      .subscribe();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [vehicleId]);
 
   const getActivityIcon = (action: string) => {

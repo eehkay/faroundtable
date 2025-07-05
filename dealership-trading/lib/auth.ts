@@ -116,7 +116,7 @@ export const authOptions: NextAuthOptions = {
               id,
               role,
               domain,
-              location:dealership_locations(
+              location:location_id(
                 id,
                 name,
                 code

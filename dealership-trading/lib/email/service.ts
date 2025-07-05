@@ -1,6 +1,5 @@
 import { Resend } from 'resend';
-import { client } from '@/lib/sanity';
-import { groq } from 'next-sanity';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import type { Vehicle, DealershipLocation } from '@/types/vehicle';
 import type { Transfer } from '@/types/transfer';
 
@@ -181,17 +180,39 @@ const emailTemplates = {
 // Get recipients for different notification types
 async function getRecipients(store: DealershipLocation | { _ref: string }, roles: string[] = ['manager', 'admin']): Promise<string[]> {
   const locationId = '_id' in store ? store._id : store._ref;
-  const users = await client.fetch(groq`
-    *[_type == "user" && location._ref == $locationId && role in $roles && active == true] {
-      email,
-      name
-    }
-  `, { locationId, roles });
+  
+  const { data: users, error } = await supabaseAdmin
+    .from('users')
+    .select('email, name')
+    .eq('location_id', locationId)
+    .in('role', roles)
+    .eq('active', true);
+
+  if (error) {
+    console.error('Error fetching recipients:', error);
+    return [];
+  }
 
   // Get user emails
-  const recipients: string[] = users.map((u: any) => u.email).filter(Boolean);
+  const recipients: string[] = (users || []).map((u: any) => u.email).filter(Boolean);
 
   return [...new Set(recipients)]; // Remove duplicates
+}
+
+// Get email settings for a specific notification type
+async function getEmailSettings(settingKey: string) {
+  const { data, error } = await supabaseAdmin
+    .from('email_settings')
+    .select('*')
+    .eq('setting_key', settingKey)
+    .single();
+
+  if (error) {
+    console.error(`Error fetching email settings for ${settingKey}:`, error);
+    return null;
+  }
+
+  return data;
 }
 
 // Send notification functions
@@ -206,7 +227,36 @@ export async function sendTransferRequestedNotification(data: {
   }
   
   try {
-    const recipients = await getRecipients(data.transfer.fromStore);
+    // Get email settings for this notification type
+    const settings = await getEmailSettings('transferRequested');
+    if (!settings || !settings.enabled) {
+      console.log('Transfer requested notifications are disabled');
+      return;
+    }
+
+    // Get recipients based on settings
+    let recipients: string[] = [];
+    
+    // Add role-based recipients if configured
+    if (settings.metadata?.recipientRoles && Array.isArray(settings.metadata.recipientRoles)) {
+      if (settings.metadata?.notifyOriginStore !== false) {
+        const originRecipients = await getRecipients(data.transfer.fromStore, settings.metadata.recipientRoles);
+        recipients.push(...originRecipients);
+      }
+      
+      if (settings.metadata?.notifyDestinationStore === true) {
+        const destRecipients = await getRecipients(data.transfer.toStore, settings.metadata.recipientRoles);
+        recipients.push(...destRecipients);
+      }
+    }
+    
+    // Add custom recipients from settings
+    if (settings.recipients && settings.recipients.length > 0) {
+      recipients.push(...settings.recipients);
+    }
+    
+    // Remove duplicates
+    recipients = [...new Set(recipients)];
     
     if (recipients.length === 0) {
       console.warn(`No recipients found for transfer request notification at store ${'_id' in data.transfer.fromStore ? data.transfer.fromStore.name : data.transfer.fromStore._ref}`);
@@ -221,10 +271,13 @@ export async function sendTransferRequestedNotification(data: {
       transferId: data.transfer._id || ''
     });
 
+    // Use custom subject if provided in settings
+    const subject = settings.subject || emailData.subject;
+
     const result = await resend!.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
+      from: settings.metadata?.fromEmail || process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
       to: recipients,
-      subject: emailData.subject,
+      subject,
       html: emailData.html
     });
 
@@ -247,13 +300,41 @@ export async function sendTransferApprovedNotification(data: {
   }
   
   try {
-    // Notify the requesting store
-    const recipients = await getRecipients(data.transfer.toStore, ['manager', 'admin', 'sales']);
+    // Get email settings for this notification type
+    const settings = await getEmailSettings('transferApproved');
+    if (!settings || !settings.enabled) {
+      console.log('Transfer approved notifications are disabled');
+      return;
+    }
+
+    // Get recipients based on settings
+    let recipients: string[] = [];
     
-    // Also notify the original requester
-    if ('email' in data.transfer.requestedBy && data.transfer.requestedBy.email && !recipients.includes(data.transfer.requestedBy.email)) {
+    // Add role-based recipients if configured
+    if (settings.metadata?.recipientRoles && Array.isArray(settings.metadata.recipientRoles)) {
+      if (settings.metadata?.notifyOriginStore === true) {
+        const originRecipients = await getRecipients(data.transfer.fromStore, settings.metadata.recipientRoles);
+        recipients.push(...originRecipients);
+      }
+      
+      if (settings.metadata?.notifyDestinationStore !== false) {
+        const destRecipients = await getRecipients(data.transfer.toStore, settings.metadata.recipientRoles);
+        recipients.push(...destRecipients);
+      }
+    }
+    
+    // Notify the original requester if configured
+    if (settings.metadata?.notifyRequester === true && 'email' in data.transfer.requestedBy && data.transfer.requestedBy.email) {
       recipients.push(data.transfer.requestedBy.email);
     }
+    
+    // Add custom recipients from settings
+    if (settings.recipients && settings.recipients.length > 0) {
+      recipients.push(...settings.recipients);
+    }
+    
+    // Remove duplicates
+    recipients = [...new Set(recipients)];
 
     if (recipients.length === 0) {
       console.warn(`No recipients found for transfer approved notification`);
@@ -268,10 +349,13 @@ export async function sendTransferApprovedNotification(data: {
       transferId: data.transfer._id || ''
     });
 
+    // Use custom subject if provided in settings
+    const subject = settings.subject || emailData.subject;
+
     const result = await resend!.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
+      from: settings.metadata?.fromEmail || process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
       to: recipients,
-      subject: emailData.subject,
+      subject,
       html: emailData.html
     });
 
@@ -295,10 +379,37 @@ export async function sendTransferStatusUpdateNotification(data: {
   }
   
   try {
-    // Notify both stores
-    const recipientsFrom = await getRecipients(data.transfer.fromStore);
-    const recipientsTo = await getRecipients(data.transfer.toStore, ['manager', 'admin', 'sales']);
-    const recipients = [...new Set([...recipientsFrom, ...recipientsTo])];
+    // Get email settings for this notification type
+    const settingKey = data.status === 'in-transit' ? 'transferInTransit' : 'transferDelivered';
+    const settings = await getEmailSettings(settingKey);
+    if (!settings || !settings.enabled) {
+      console.log(`Transfer ${data.status} notifications are disabled`);
+      return;
+    }
+
+    // Get recipients based on settings
+    let recipients: string[] = [];
+    
+    // Add role-based recipients if configured
+    if (settings.metadata?.recipientRoles && Array.isArray(settings.metadata.recipientRoles)) {
+      if (settings.metadata?.notifyOriginStore !== false) {
+        const originRecipients = await getRecipients(data.transfer.fromStore, settings.metadata.recipientRoles);
+        recipients.push(...originRecipients);
+      }
+      
+      if (settings.metadata?.notifyDestinationStore !== false) {
+        const destRecipients = await getRecipients(data.transfer.toStore, settings.metadata.recipientRoles);
+        recipients.push(...destRecipients);
+      }
+    }
+    
+    // Add custom recipients from settings
+    if (settings.recipients && settings.recipients.length > 0) {
+      recipients.push(...settings.recipients);
+    }
+    
+    // Remove duplicates
+    recipients = [...new Set(recipients)];
 
     if (recipients.length === 0) {
       console.warn(`No recipients found for transfer status update notification`);
@@ -314,10 +425,13 @@ export async function sendTransferStatusUpdateNotification(data: {
       transferId: data.transfer._id || ''
     });
 
+    // Use custom subject if provided in settings
+    const subject = settings.subject || emailData.subject;
+
     const result = await resend!.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
+      from: settings.metadata?.fromEmail || process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
       to: recipients,
-      subject: emailData.subject,
+      subject,
       html: emailData.html
     });
 
@@ -335,11 +449,47 @@ export async function sendTransferCancelledNotification(data: {
   canceller: { name: string; email: string };
   reason?: string;
 }) {
+  if (!resend) {
+    console.warn('Email service not configured - RESEND_API_KEY is missing');
+    return;
+  }
+  
   try {
-    // Notify both stores
-    const recipientsFrom = await getRecipients(data.transfer.fromStore);
-    const recipientsTo = await getRecipients(data.transfer.toStore);
-    const recipients = [...new Set([...recipientsFrom, ...recipientsTo])];
+    // Get email settings for this notification type
+    const settings = await getEmailSettings('transferCancelled');
+    if (!settings || !settings.enabled) {
+      console.log('Transfer cancelled notifications are disabled');
+      return;
+    }
+
+    // Get recipients based on settings
+    let recipients: string[] = [];
+    
+    // Add role-based recipients if configured
+    if (settings.metadata?.recipientRoles && Array.isArray(settings.metadata.recipientRoles)) {
+      if (settings.metadata?.notifyOriginStore !== false) {
+        const originRecipients = await getRecipients(data.transfer.fromStore, settings.metadata.recipientRoles);
+        recipients.push(...originRecipients);
+      }
+      
+      if (settings.metadata?.notifyDestinationStore !== false) {
+        const destRecipients = await getRecipients(data.transfer.toStore, settings.metadata.recipientRoles);
+        recipients.push(...destRecipients);
+      }
+    }
+    
+    // Notify the original requester if configured
+    if (settings.metadata?.notifyRequester === true && 'email' in data.transfer.requestedBy && data.transfer.requestedBy.email) {
+      recipients.push(data.transfer.requestedBy.email);
+    }
+    
+    // Add custom recipients from settings
+    if (settings.recipients && settings.recipients.length > 0) {
+      recipients.push(...settings.recipients);
+    }
+    
+    // Remove duplicates
+    recipients = [...new Set(recipients)];
 
     if (recipients.length === 0) {
       console.warn(`No recipients found for transfer cancelled notification`);
@@ -354,10 +504,13 @@ export async function sendTransferCancelledNotification(data: {
       originStore: data.transfer.fromStore
     });
 
+    // Use custom subject if provided in settings
+    const subject = settings.subject || emailData.subject;
+
     const result = await resend!.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
+      from: settings.metadata?.fromEmail || process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
       to: recipients,
-      subject: emailData.subject,
+      subject,
       html: emailData.html
     });
 

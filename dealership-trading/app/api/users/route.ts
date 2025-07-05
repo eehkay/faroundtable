@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { client } from '@/lib/sanity';
-import { allUsersQuery, searchUsersQuery } from '@/lib/queries';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { canManageUsers } from '@/lib/permissions';
 
 export async function GET(request: NextRequest) {
@@ -17,27 +16,61 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const role = searchParams.get('role');
     
-    let query = allUsersQuery;
-    let params = {};
-
-    if (search) {
-      query = searchUsersQuery;
-      params = { search };
-    } else if (role) {
-      query = `*[_type == "user" && role == $role] | order(name asc) {
-        _id,
+    // Build the query
+    let query = supabaseAdmin
+      .from('users')
+      .select(`
+        id,
         email,
         name,
-        image,
+        image_url,
+        domain,
         role,
         active,
-        lastLogin,
-        location->{_id, name, code}
-      }`;
-      params = { role };
+        last_login,
+        location:location_id(
+          id,
+          name,
+          code
+        )
+      `)
+      .order('name', { ascending: true });
+
+    // Apply filters
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+    }
+    
+    if (role) {
+      query = query.eq('role', role);
     }
 
-    const users = await client.fetch(query, params);
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Failed to fetch users:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch users' },
+        { status: 500 }
+      );
+    }
+
+    // Transform to match existing format
+    const users = data?.map(user => ({
+      _id: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.image_url,
+      domain: user.domain,
+      role: user.role,
+      active: user.active,
+      lastLogin: user.last_login,
+      location: user.location ? {
+        _id: user.location.id,
+        name: user.location.name,
+        code: user.location.code
+      } : undefined
+    })) || [];
     
     return NextResponse.json(users);
   } catch (error) {
@@ -69,10 +102,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = await client.fetch(
-      `*[_type == "user" && email == $email][0]`,
-      { email }
-    );
+    const { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
 
     if (existingUser) {
       return NextResponse.json(
@@ -82,22 +116,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new user
-    const newUser = await client.create({
-      _type: 'user',
-      email,
-      name,
-      role,
-      active,
-      domain: email.split('@')[1],
-      ...(locationId && {
-        location: {
-          _type: 'reference',
-          _ref: locationId
-        }
+    const { data: newUser, error } = await supabaseAdmin
+      .from('users')
+      .insert({
+        email,
+        name,
+        role,
+        active,
+        domain: email.split('@')[1],
+        location_id: locationId || null
       })
-    });
+      .select()
+      .single();
 
-    return NextResponse.json(newUser, { status: 201 });
+    if (error) {
+      console.error('Failed to create user:', error);
+      return NextResponse.json(
+        { error: 'Failed to create user' },
+        { status: 500 }
+      );
+    }
+
+    // Transform to match existing format
+    const transformedUser = {
+      _id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role,
+      active: newUser.active,
+      domain: newUser.domain
+    };
+
+    return NextResponse.json(transformedUser, { status: 201 });
   } catch (error) {
     console.error('Failed to create user:', error);
     return NextResponse.json(

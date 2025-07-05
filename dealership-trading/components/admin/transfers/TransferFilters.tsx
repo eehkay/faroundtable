@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react';
-import { client } from '@/lib/sanity';
-import { groq } from 'next-sanity';
+import { supabase } from '@/lib/supabase-client';
 
 interface TransferFiltersProps {
   filters: {
@@ -19,14 +18,14 @@ export default function TransferFilters({ filters, onFilterChange }: TransferFil
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const data = await client.fetch(groq`
-          *[_type == "dealershipLocation" && active == true] {
-            _id,
-            name,
-            code
-          } | order(name asc)
-        `);
-        setLocations(data);
+        const { data, error } = await supabase
+          .from('dealership_locations')
+          .select('id, name, code')
+          .eq('active', true)
+          .order('name', { ascending: true });
+        
+        if (error) throw error;
+        setLocations(data || []);
       } catch (error) {
         console.error('Failed to fetch locations:', error);
       }
@@ -74,7 +73,7 @@ export default function TransferFilters({ filters, onFilterChange }: TransferFil
           >
             <option value="all">All Locations</option>
             {locations.map((location: any) => (
-              <option key={location._id} value={location._id}>
+              <option key={location.id} value={location.id}>
                 {location.name}
               </option>
             ))}

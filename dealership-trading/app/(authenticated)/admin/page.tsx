@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Users, TruckIcon, Mail, Activity, Package, AlertTriangle, Settings, FileText } from "lucide-react";
 import Link from "next/link";
-import { client } from "@/lib/sanity";
-import { groq } from "next-sanity";
+import { supabase } from "@/lib/supabase-client";
 import { isAdmin, isManager } from "@/lib/permissions";
 
 interface DashboardStats {
@@ -42,39 +41,55 @@ export default function AdminDashboard() {
 
     const fetchStats = async () => {
       try {
-        const [users, transfers, vehicles, activities] = await Promise.all([
-          // Total users
-          client.fetch(groq`count(*[_type == "user" && active == true])`),
+        const [
+          usersResult,
+          activeTransfersResult,
+          pendingTransfersResult,
+          vehiclesResult,
+          activitiesResult
+        ] = await Promise.all([
+          // Total active users
+          supabase.from('users').select('*', { count: 'exact', head: true }).eq('active', true),
           
           // Active transfers
-          client.fetch(groq`{
-            "active": count(*[_type == "transfer" && status in ["approved", "in-transit"]]),
-            "pending": count(*[_type == "transfer" && status == "requested"])
-          }`),
+          supabase.from('transfers').select('*', { count: 'exact', head: true })
+            .in('status', ['approved', 'in-transit']),
           
-          // Total vehicles
-          client.fetch(groq`count(*[_type == "vehicle" && status == "available"])`),
+          // Pending transfers
+          supabase.from('transfers').select('*', { count: 'exact', head: true })
+            .eq('status', 'requested'),
           
-          // Recent activities
-          client.fetch(groq`
-            *[_type == "activity"] | order(timestamp desc)[0...5] {
-              _id,
+          // Available vehicles
+          supabase.from('vehicles').select('*', { count: 'exact', head: true })
+            .eq('status', 'available'),
+          
+          // Recent activities with joins
+          supabase.from('activities')
+            .select(`
+              id,
               action,
-              timestamp,
-              user->{name, email},
-              vehicle->{year, make, model},
-              fromLocation->{name},
-              toLocation->{name}
-            }
-          `)
+              created_at,
+              user:user_id(
+                name,
+                email
+              ),
+              vehicle:vehicle_id(
+                year,
+                make,
+                model
+              ),
+              metadata
+            `)
+            .order('created_at', { ascending: false })
+            .limit(5)
         ]);
 
         setStats({
-          totalUsers: users,
-          activeTransfers: transfers.active,
-          pendingTransfers: transfers.pending,
-          totalVehicles: vehicles,
-          recentActivities: activities
+          totalUsers: usersResult.count || 0,
+          activeTransfers: activeTransfersResult.count || 0,
+          pendingTransfers: pendingTransfersResult.count || 0,
+          totalVehicles: vehiclesResult.count || 0,
+          recentActivities: activitiesResult.data || []
         });
       } catch (error) {
         console.error('Failed to fetch admin stats:', error);
@@ -84,6 +99,26 @@ export default function AdminDashboard() {
     };
 
     fetchStats();
+
+    // Set up real-time subscriptions
+    const transferChannel = supabase
+      .channel('admin-transfer-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transfers' }, () => {
+        fetchStats();
+      })
+      .subscribe();
+
+    const activityChannel = supabase
+      .channel('admin-activity-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activities' }, () => {
+        fetchStats();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(transferChannel);
+      supabase.removeChannel(activityChannel);
+    };
   }, [session]);
 
   if (status === "loading" || loading) {
@@ -265,14 +300,14 @@ export default function AdminDashboard() {
           {stats.recentActivities.length > 0 ? (
             <div className="divide-y divide-[#2a2a2a]">
               {stats.recentActivities.map((activity) => (
-                <div key={activity._id} className="p-4 hover:bg-[#2a2a2a] transition-colors">
+                <div key={activity.id} className="p-4 hover:bg-[#2a2a2a] transition-colors">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-sm text-white">
                         <span className="font-medium">{activity.user?.name || 'Unknown'}</span>
                         {' '}
                         <span className="text-gray-400">
-                          {activity.action.replace(/_/g, ' ')}
+                          {activity.action.replace(/-/g, ' ')}
                         </span>
                         {activity.vehicle && (
                           <span className="text-gray-300">
@@ -280,16 +315,16 @@ export default function AdminDashboard() {
                           </span>
                         )}
                       </p>
-                      {(activity.fromLocation || activity.toLocation) && (
+                      {activity.metadata && (activity.metadata.fromStore || activity.metadata.toStore) && (
                         <p className="text-xs text-gray-500 mt-1">
-                          {activity.fromLocation?.name}
-                          {activity.fromLocation && activity.toLocation && ' → '}
-                          {activity.toLocation?.name}
+                          {activity.metadata.fromStore}
+                          {activity.metadata.fromStore && activity.metadata.toStore && ' → '}
+                          {activity.metadata.toStore}
                         </p>
                       )}
                     </div>
                     <span className="text-xs text-gray-500">
-                      {new Date(activity.timestamp).toLocaleString()}
+                      {new Date(activity.created_at).toLocaleString()}
                     </span>
                   </div>
                 </div>

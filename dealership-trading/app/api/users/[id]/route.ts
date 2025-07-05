@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { client } from '@/lib/sanity';
-import { userByIdQuery } from '@/lib/queries';
+import { supabaseAdmin } from '@/lib/supabase-server';
+import { getUserById } from '@/lib/queries-supabase';
 import { canManageUsers } from '@/lib/permissions';
 
 interface RouteParams {
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const user = await client.fetch(userByIdQuery, { userId: id });
+    const user = await getUserById(id);
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -62,17 +62,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (name !== undefined) updates.name = name;
     if (role !== undefined) updates.role = role;
     if (active !== undefined) updates.active = active;
-    
-    if (locationId !== undefined) {
-      if (locationId) {
-        updates.location = {
-          _type: 'reference',
-          _ref: locationId
-        };
-      } else {
-        updates.location = null;
-      }
-    }
+    if (locationId !== undefined) updates.location_id = locationId || null;
 
     // Prevent self-demotion from admin
     if (session.user.id === id && role && role !== 'admin') {
@@ -82,12 +72,31 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const updatedUser = await client
-      .patch(id)
-      .set(updates)
-      .commit();
+    const { data: updatedUser, error } = await supabaseAdmin
+      .from('users')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
 
-    return NextResponse.json(updatedUser);
+    if (error) {
+      console.error('Failed to update user:', error);
+      return NextResponse.json(
+        { error: 'Failed to update user' },
+        { status: 500 }
+      );
+    }
+
+    // Transform to match existing format
+    const transformedUser = {
+      _id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      role: updatedUser.role,
+      active: updatedUser.active
+    };
+
+    return NextResponse.json(transformedUser);
   } catch (error) {
     console.error('Failed to update user:', error);
     return NextResponse.json(
@@ -119,26 +128,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Build update object - users can only update limited fields
     const updates: any = {};
     if (name !== undefined) updates.name = name;
-    if (image !== undefined) updates.image = image;
-    
-    if (location !== undefined) {
-      if (location) {
-        updates.location = {
-          _type: 'reference',
-          _ref: location
-        };
-      } else {
-        updates.location = null;
-      }
+    if (image !== undefined) updates.image_url = image;
+    if (location !== undefined) updates.location_id = location || null;
+
+    const { data: updatedUser, error } = await supabaseAdmin
+      .from('users')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to update user profile:', error);
+      return NextResponse.json(
+        { error: 'Failed to update profile' },
+        { status: 500 }
+      );
     }
 
-    const updatedUser = await client
-      .patch(id)
-      .set(updates)
-      .commit();
-
     // Fetch the updated user with references populated
-    const populatedUser = await client.fetch(userByIdQuery, { userId: id });
+    const populatedUser = await getUserById(id);
 
     return NextResponse.json(populatedUser);
   } catch (error) {
@@ -170,12 +179,31 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Instead of deleting, deactivate the user
-    const deactivatedUser = await client
-      .patch(id)
-      .set({ active: false })
-      .commit();
+    const { data: deactivatedUser, error } = await supabaseAdmin
+      .from('users')
+      .update({ active: false })
+      .eq('id', id)
+      .select()
+      .single();
 
-    return NextResponse.json(deactivatedUser);
+    if (error) {
+      console.error('Failed to deactivate user:', error);
+      return NextResponse.json(
+        { error: 'Failed to deactivate user' },
+        { status: 500 }
+      );
+    }
+
+    // Transform to match existing format
+    const transformedUser = {
+      _id: deactivatedUser.id,
+      email: deactivatedUser.email,
+      name: deactivatedUser.name,
+      role: deactivatedUser.role,
+      active: deactivatedUser.active
+    };
+
+    return NextResponse.json(transformedUser);
   } catch (error) {
     console.error('Failed to deactivate user:', error);
     return NextResponse.json(

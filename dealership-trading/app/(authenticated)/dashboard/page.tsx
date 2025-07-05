@@ -1,10 +1,9 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { client } from "@/lib/sanity";
-import { dashboardStatsQuery } from "@/lib/queries";
+import { getDashboardStats } from "@/lib/queries-supabase";
 import { redirect } from "next/navigation";
 import DashboardStats from "@/components/dashboard/DashboardStats";
-import RecentActivity from "@/components/dashboard/RecentActivity";
+import RecentActivity from "@/components/dashboard/RecentActivitySupabase";
 import QuickActions from "@/components/dashboard/QuickActions";
 
 export default async function DashboardPage() {
@@ -14,8 +13,8 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // Fetch dashboard statistics
-  const stats = await client.fetch(dashboardStatsQuery);
+  // Fetch dashboard statistics from Supabase
+  const stats = await getDashboardStats();
 
   return (
     <div className="space-y-8">
@@ -37,8 +36,16 @@ export default async function DashboardPage() {
       <RecentActivity 
         initialActivity={stats.recentActivity} 
         userLocation={session.user.location ? {
-          ...session.user.location,
+          _id: session.user.location.id,
           _type: 'dealershipLocation' as const,
+          name: session.user.location.name,
+          code: session.user.location.code,
+          address: undefined,
+          city: undefined,
+          state: undefined,
+          zip: undefined,
+          phone: undefined,
+          csvFileName: undefined,
           active: true
         } : undefined}
       />

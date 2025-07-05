@@ -1,6 +1,8 @@
 "use client"
 
+import { useEffect, useState } from "react";
 import { Car, TruckIcon, Package, Clock } from "lucide-react";
+import { supabase } from "@/lib/supabase-client";
 
 interface DashboardStatsProps {
   stats: {
@@ -10,9 +12,77 @@ interface DashboardStatsProps {
     inTransitVehicles?: number;
   };
   userRole: string;
+  enableRealtime?: boolean;
 }
 
-export default function DashboardStats({ stats, userRole }: DashboardStatsProps) {
+export default function DashboardStatsRealtime({ 
+  stats: initialStats, 
+  userRole, 
+  enableRealtime = false 
+}: DashboardStatsProps) {
+  const [stats, setStats] = useState(initialStats);
+
+  useEffect(() => {
+    if (!enableRealtime) return;
+
+    const fetchStats = async () => {
+      const [
+        totalVehiclesResult,
+        availableVehiclesResult,
+        activeTransfersResult,
+        inTransitResult
+      ] = await Promise.all([
+        supabase.from('vehicles').select('*', { count: 'exact', head: true }),
+        supabase.from('vehicles').select('*', { count: 'exact', head: true }).eq('status', 'available'),
+        supabase.from('transfers').select('*', { count: 'exact', head: true }).in('status', ['requested', 'approved', 'in-transit']),
+        supabase.from('transfers').select('*', { count: 'exact', head: true }).eq('status', 'in-transit')
+      ]);
+
+      setStats({
+        totalVehicles: totalVehiclesResult.count || 0,
+        availableVehicles: availableVehiclesResult.count || 0,
+        activeTransfers: activeTransfersResult.count || 0,
+        inTransitVehicles: inTransitResult.count || 0
+      });
+    };
+
+    // Set up real-time subscriptions
+    const vehicleChannel = supabase
+      .channel('vehicle-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'vehicles'
+        },
+        () => {
+          fetchStats();
+        }
+      )
+      .subscribe();
+
+    const transferChannel = supabase
+      .channel('transfer-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transfers'
+        },
+        () => {
+          fetchStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(vehicleChannel);
+      supabase.removeChannel(transferChannel);
+    };
+  }, [enableRealtime]);
+
   const statsCards = [
     {
       name: "Total Vehicles",

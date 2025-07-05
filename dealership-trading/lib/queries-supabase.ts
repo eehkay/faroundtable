@@ -85,12 +85,12 @@ export async function getVehicleByStockNumber(stockNumber: string) {
       state: data.location.state,
       zip: data.location.zip,
       phone: data.location.phone
-    } : null,
+    } : undefined,
     originalLocation: data.original_location ? {
       _id: data.original_location.id,
       name: data.original_location.name,
       code: data.original_location.code
-    } : null,
+    } : undefined,
     activeTransferRequests: transferRequests?.map((transfer: any) => ({
       _id: transfer.id,
       status: transfer.status,
@@ -103,17 +103,17 @@ export async function getVehicleByStockNumber(stockNumber: string) {
         _id: transfer.from_location.id,
         name: transfer.from_location.name,
         code: transfer.from_location.code
-      } : null,
+      } : undefined,
       toLocation: transfer.to_location ? {
         _id: transfer.to_location.id,
         name: transfer.to_location.name,
         code: transfer.to_location.code
-      } : null,
+      } : undefined,
       requestedBy: transfer.requested_by ? {
         _id: transfer.requested_by.id,
         name: transfer.requested_by.name,
         email: transfer.requested_by.email
-      } : null
+      } : undefined
     })) || []
   }
 }
@@ -154,7 +154,7 @@ export async function getVehicleActivity(vehicleId: string) {
       name: activity.user.name,
       email: activity.user.email,
       image: activity.user.image_url
-    } : null
+    } : undefined
   })) || []
 }
 
@@ -195,7 +195,7 @@ export async function getVehicleComments(vehicleId: string) {
       name: comment.author.name,
       email: comment.author.email,
       image: comment.author.image_url
-    } : null,
+    } : undefined,
     mentions: [] // Mentions will be fetched separately if needed
   })) || []
 }
@@ -240,7 +240,7 @@ export async function getAllUsers() {
       _id: user.location.id,
       name: user.location.name,
       code: user.location.code
-    } : null
+    } : undefined
   })) || []
 }
 
@@ -287,8 +287,91 @@ export async function getUserById(userId: string) {
       name: data.location.name,
       code: data.location.code,
       address: data.location.address
-    } : null
+    } : undefined
   }
+}
+
+// Search users
+export async function searchUsers(search: string) {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select(`
+      id,
+      email,
+      name,
+      image_url,
+      role,
+      active,
+      location:location_id(
+        id,
+        name,
+        code
+      )
+    `)
+    .or(`name.ilike.%${search}%,email.ilike.%${search}%`)
+    .order('name', { ascending: true })
+    .limit(50)
+
+  if (error) {
+    console.error('Error searching users:', error)
+    return []
+  }
+
+  // Transform to match existing format
+  return data?.map(user => ({
+    _id: user.id,
+    email: user.email,
+    name: user.name,
+    image: user.image_url,
+    role: user.role,
+    active: user.active,
+    location: user.location ? {
+      _id: user.location.id,
+      name: user.location.name,
+      code: user.location.code
+    } : undefined
+  })) || []
+}
+
+// Get users by role
+export async function getUsersByRole(role: string) {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select(`
+      id,
+      email,
+      name,
+      image_url,
+      role,
+      active,
+      location:location_id(
+        id,
+        name,
+        code
+      )
+    `)
+    .eq('role', role)
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching users by role:', error)
+    return []
+  }
+
+  // Transform to match existing format
+  return data?.map(user => ({
+    _id: user.id,
+    email: user.email,
+    name: user.name,
+    image: user.image_url,
+    role: user.role,
+    active: user.active,
+    location: user.location ? {
+      _id: user.location.id,
+      name: user.location.name,
+      code: user.location.code
+    } : undefined
+  })) || []
 }
 
 // Get dashboard stats
@@ -303,28 +386,64 @@ export async function getDashboardStats() {
     supabaseAdmin.from('vehicles').select('*', { count: 'exact', head: true }).eq('status', 'available'),
     supabaseAdmin.from('transfers').select('*', { count: 'exact', head: true }).in('status', ['requested', 'approved', 'in-transit']),
     supabaseAdmin.from('activities').select(`
+      id,
       action,
+      details,
       created_at,
-      vehicle:vehicles!activities_vehicle_id_fkey(title, stock_number),
-      user:users!activities_user_id_fkey(name)
+      vehicle:vehicle_id(
+        id,
+        title,
+        stock_number,
+        make,
+        model,
+        year
+      ),
+      user:user_id(
+        id,
+        name,
+        email,
+        image_url
+      )
     `).order('created_at', { ascending: false }).limit(10)
   ])
+
+  // Also get in-transit count separately for the stats
+  const inTransitResult = await supabaseAdmin
+    .from('transfers')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'in-transit')
 
   return {
     totalVehicles: totalVehiclesResult.count || 0,
     availableVehicles: availableVehiclesResult.count || 0,
     activeTransfers: activeTransfersResult.count || 0,
-    recentActivity: recentActivityResult.data?.map(activity => ({
-      action: activity.action,
-      createdAt: activity.created_at,
-      vehicle: activity.vehicle ? {
-        title: activity.vehicle.title,
-        stockNumber: activity.vehicle.stock_number
-      } : null,
-      user: activity.user ? {
-        name: activity.user.name
-      } : null
-    })) || []
+    inTransitVehicles: inTransitResult.count || 0,
+    recentActivity: recentActivityResult.data?.map(activity => {
+      // Handle both single object and array returns from Supabase
+      const vehicle = Array.isArray(activity.vehicle) ? activity.vehicle[0] : activity.vehicle;
+      const user = Array.isArray(activity.user) ? activity.user[0] : activity.user;
+      
+      return {
+        _id: activity.id,
+        action: activity.action,
+        details: activity.details,
+        createdAt: activity.created_at,
+        vehicle: vehicle ? {
+          _id: vehicle.id,
+          title: vehicle.title || 
+                 (vehicle.year && vehicle.make && vehicle.model 
+                   ? `${vehicle.year} ${vehicle.make} ${vehicle.model}`.trim()
+                   : `Stock #${vehicle.stock_number || 'Unknown'}`),
+          stockNumber: vehicle.stock_number
+        } : null,
+        user: user ? {
+          _id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image_url
+        } : null
+      };
+    }) || []
   }
 }
 
@@ -353,12 +472,14 @@ export async function getDealershipLocations() {
   // Transform to match existing format
   return data?.map(location => ({
     _id: location.id,
+    _type: 'dealershipLocation' as const,
     name: location.name,
     code: location.code,
     address: location.address,
     city: location.city,
     state: location.state,
     zip: location.zip,
-    phone: location.phone
+    phone: location.phone,
+    active: true // We already filter by active in the query
   })) || []
 }

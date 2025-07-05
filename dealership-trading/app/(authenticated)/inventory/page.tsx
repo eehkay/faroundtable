@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import VehicleGrid from "@/components/inventory/VehicleGrid";
 import VehicleFilters from "@/components/inventory/VehicleFilters";
 import VehicleSearch from "@/components/inventory/VehicleSearch";
-import { client } from "@/lib/sanity";
+import { supabase } from "@/lib/supabase-client";
 import { LoadingCard } from "@/components/Loading";
 
 export default function InventoryPage() {
@@ -25,14 +25,14 @@ export default function InventoryPage() {
     // Fetch locations for filters
     const fetchLocations = async () => {
       try {
-        const data = await client.fetch(`
-          *[_type == "dealershipLocation" && active == true] {
-            _id,
-            name,
-            code
-          } | order(name asc)
-        `);
-        setLocations(data);
+        const { data, error } = await supabase
+          .from('dealership_locations')
+          .select('id, name, code')
+          .eq('active', true)
+          .order('name', { ascending: true });
+        
+        if (error) throw error;
+        setLocations(data || []);
       } catch (error) {
         console.error('Failed to fetch locations:', error);
       } finally {
@@ -83,7 +83,6 @@ export default function InventoryPage() {
       <VehicleGrid 
         userLocation={session.user.location ? {
           ...session.user.location,
-          _type: 'dealershipLocation' as const,
           active: true
         } : undefined} 
         userRole={session.user.role}

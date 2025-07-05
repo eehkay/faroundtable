@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { isAdmin } from '@/lib/permissions';
 import { Resend } from 'resend';
+import { supabaseAdmin } from '@/lib/supabase-server';
 
 // Initialize Resend only if API key is available
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -172,8 +173,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email service not configured' }, { status: 500 });
     }
 
+    // Get email settings to check if we have custom from email
+    const { data: settings } = await supabaseAdmin
+      .from('email_settings')
+      .select('metadata')
+      .eq('setting_key', 'general')
+      .single();
+
+    const fromEmail = settings?.metadata?.fromEmail || process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>';
+
     const result = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Round Table <notifications@roundtable.app>',
+      from: fromEmail,
       to: email,
       subject,
       html

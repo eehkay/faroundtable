@@ -1,12 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { client, writeClient } from '@/lib/sanity';
-import { groq } from 'next-sanity';
 import { Save, RotateCcw, Check, X } from 'lucide-react';
 
 interface EmailTemplate {
-  _id?: string;
+  id?: string;
   settingType: string;
   enabled: boolean;
   subjectTemplate: string;
@@ -92,23 +90,30 @@ export default function EmailTemplateEditor() {
 
   const fetchTemplates = async () => {
     try {
-      const data = await client.fetch(groq`
-        *[_type == "emailSettings" && settingType != "general"] {
-          _id,
-          settingType,
-          enabled,
-          subjectTemplate,
-          recipientRoles,
-          notifyOriginStore,
-          notifyDestinationStore,
-          notifyRequester,
-          customTemplate
-        }
-      `);
+      const response = await fetch('/api/email-settings');
       
+      if (!response.ok) {
+        throw new Error('Failed to fetch templates');
+      }
+      
+      const data = await response.json();
       const templateMap: Record<string, EmailTemplate> = {};
-      data.forEach((template: EmailTemplate) => {
-        templateMap[template.settingType] = template;
+      
+      // Convert Supabase format to our component format
+      data.forEach((setting: any) => {
+        if (setting.setting_key !== 'general') {
+          templateMap[setting.setting_key] = {
+            id: setting.id,
+            settingType: setting.setting_key,
+            enabled: setting.enabled,
+            subjectTemplate: setting.subject || templateTypes.find(t => t.value === setting.setting_key)?.defaultSubject || '',
+            recipientRoles: setting.metadata?.recipientRoles || defaultTemplates[setting.setting_key]?.recipientRoles || ['admin'],
+            notifyOriginStore: setting.metadata?.notifyOriginStore ?? defaultTemplates[setting.setting_key]?.notifyOriginStore ?? true,
+            notifyDestinationStore: setting.metadata?.notifyDestinationStore ?? defaultTemplates[setting.setting_key]?.notifyDestinationStore ?? true,
+            notifyRequester: setting.metadata?.notifyRequester ?? defaultTemplates[setting.setting_key]?.notifyRequester ?? false,
+            customTemplate: setting.template
+          };
+        }
       });
       
       setTemplates(templateMap);
@@ -127,30 +132,33 @@ export default function EmailTemplateEditor() {
     setMessage(null);
 
     try {
-      if (currentTemplate._id) {
-        // Update existing template
-        await writeClient
-          .patch(currentTemplate._id)
-          .set({
-            enabled: currentTemplate.enabled,
-            subjectTemplate: currentTemplate.subjectTemplate,
+      const response = await fetch('/api/email-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          setting_key: currentTemplate.settingType,
+          enabled: currentTemplate.enabled,
+          subject: currentTemplate.subjectTemplate,
+          template: currentTemplate.customTemplate,
+          metadata: {
             recipientRoles: currentTemplate.recipientRoles,
             notifyOriginStore: currentTemplate.notifyOriginStore,
             notifyDestinationStore: currentTemplate.notifyDestinationStore,
-            notifyRequester: currentTemplate.notifyRequester,
-            customTemplate: currentTemplate.customTemplate
-          })
-          .commit();
-      } else {
-        // Create new template
-        const result = await writeClient.create({
-          _type: 'emailSettings',
-          ...currentTemplate
-        });
-        setCurrentTemplate({ ...currentTemplate, _id: result._id });
-        setTemplates({ ...templates, [selectedType]: { ...currentTemplate, _id: result._id } });
+            notifyRequester: currentTemplate.notifyRequester
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save template');
       }
 
+      const data = await response.json();
+      setCurrentTemplate({ ...currentTemplate, id: data.id });
+      setTemplates({ ...templates, [selectedType]: { ...currentTemplate, id: data.id } });
+      
       setMessage({ type: 'success', text: 'Template saved successfully!' });
       await fetchTemplates();
     } catch (error) {

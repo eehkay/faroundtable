@@ -1,12 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { client, writeClient } from '@/lib/sanity';
-import { groq } from 'next-sanity';
 import { Save, AlertCircle } from 'lucide-react';
 
 interface EmailSettings {
-  _id?: string;
+  id?: string;
   fromName: string;
   fromEmail: string;
   replyToEmail: string;
@@ -28,17 +26,21 @@ export default function EmailSettingsForm() {
 
   const fetchSettings = async () => {
     try {
-      const data = await client.fetch(groq`
-        *[_type == "emailSettings" && settingType == "general"][0] {
-          _id,
-          fromName,
-          fromEmail,
-          replyToEmail
-        }
-      `);
+      const response = await fetch('/api/email-settings/general');
       
-      if (data) {
-        setSettings(data);
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.metadata) {
+          setSettings({
+            id: data.id,
+            fromName: data.metadata.fromName || 'Round Table',
+            fromEmail: data.metadata.fromEmail || 'notifications@roundtable.app',
+            replyToEmail: data.metadata.replyToEmail || ''
+          });
+        }
+      } else if (response.status === 404) {
+        // Settings don't exist yet, use defaults
+        console.log('No general email settings found, using defaults');
       }
     } catch (error) {
       console.error('Failed to fetch email settings:', error);
@@ -53,29 +55,28 @@ export default function EmailSettingsForm() {
     setMessage(null);
 
     try {
-      if (settings._id) {
-        // Update existing settings
-        await writeClient
-          .patch(settings._id)
-          .set({
+      const response = await fetch('/api/email-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          setting_key: 'general',
+          enabled: true,
+          metadata: {
             fromName: settings.fromName,
             fromEmail: settings.fromEmail,
             replyToEmail: settings.replyToEmail
-          })
-          .commit();
-      } else {
-        // Create new settings
-        const result = await writeClient.create({
-          _type: 'emailSettings',
-          settingType: 'general',
-          enabled: true,
-          fromName: settings.fromName,
-          fromEmail: settings.fromEmail,
-          replyToEmail: settings.replyToEmail
-        });
-        setSettings({ ...settings, _id: result._id });
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save settings');
       }
 
+      const data = await response.json();
+      setSettings({ ...settings, id: data.id });
       setMessage({ type: 'success', text: 'Settings saved successfully!' });
     } catch (error) {
       console.error('Failed to save settings:', error);

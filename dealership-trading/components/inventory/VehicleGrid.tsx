@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from 'react';
 import VehicleCard from './VehicleCard';
-import { client } from '@/lib/sanity';
+import { supabase } from '@/lib/supabase-client';
 import { useVehicles } from '@/hooks/useVehicles';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import type { DealershipLocation } from '@/types/vehicle';
@@ -23,16 +23,26 @@ export default function VehicleGrid({ userLocation, userRole }: VehicleGridProps
 
   // Subscribe to real-time updates
   useEffect(() => {
-    const subscription = client
-      .listen(`*[_type == "vehicle"]`)
-      .subscribe((update) => {
-        if (update.transition === 'appear' || update.transition === 'disappear' || update.transition === 'update') {
+    const channel = supabase
+      .channel('vehicle-grid-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'vehicles'
+        },
+        (payload) => {
+          console.log('Vehicle real-time update:', payload);
           // Refresh the current page when changes occur
           refreshVehicles();
         }
-      });
+      )
+      .subscribe();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [refreshVehicles]);
 
   const handleVehicleUpdate = useCallback(() => {

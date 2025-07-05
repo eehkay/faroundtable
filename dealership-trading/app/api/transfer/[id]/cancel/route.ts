@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { writeClient } from '@/lib/sanity';
-import { groq } from 'next-sanity';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { sendTransferCancelledNotification } from '@/lib/email/service';
 
 type RouteParams = {
@@ -21,39 +20,51 @@ export async function PUT(request: NextRequest, props: RouteParams) {
     const { reason } = await request.json();
 
     // Get the current transfer details
-    const transfer = await writeClient.fetch(groq`
-      *[_type == "transfer" && _id == $transferId][0] {
-        _id,
-        status,
-        fromLocation->{_id, name, code, email},
-        toLocation->{_id, name, code, email},
-        vehicle->{
-          _id,
+    const { data: transfer, error: transferError } = await supabaseAdmin
+      .from('transfers')
+      .select(`
+        *,
+        from_location:from_location_id(
+          id,
+          name,
+          code,
+          email
+        ),
+        to_location:to_location_id(
+          id,
+          name,
+          code,
+          email
+        ),
+        vehicle:vehicle_id(
+          id,
           vin,
           year,
           make,
           model,
-          stockNumber,
+          stock_number,
           price,
           status,
-          images
-        },
-        requestedBy->{
-          _id,
+          image_urls
+        ),
+        requested_by:requested_by_id(
+          id,
           name,
           email
-        }
-      }
-    `, { transferId });
+        )
+      `)
+      .eq('id', transferId)
+      .single();
 
-    if (!transfer) {
+    if (transferError || !transfer) {
+      console.error('Transfer fetch error:', transferError);
       return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
     }
 
     // Check if user can cancel this transfer
     // Users can cancel their own requests or managers/admins can cancel any
     const canCancel = 
-      session.user.id === transfer.requestedBy._id ||
+      session.user.id === transfer.requested_by_id ||
       session.user.role === 'admin' ||
       session.user.role === 'manager';
 
@@ -73,68 +84,83 @@ export async function PUT(request: NextRequest, props: RouteParams) {
     }
 
     // Cancel the transfer
-    const updatedTransfer = await writeClient
-      .patch(transferId)
-      .set({
+    const { data: updatedTransfer, error: updateError } = await supabaseAdmin
+      .from('transfers')
+      .update({
         status: 'cancelled',
-        cancelledBy: {
-          _type: 'reference',
-          _ref: session.user.id
-        },
-        cancelledAt: new Date().toISOString(),
-        cancellationReason: reason
+        cancelled_by_id: session.user.id,
+        cancelled_at: new Date().toISOString()
       })
-      .commit();
+      .eq('id', transferId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Transfer update error:', updateError);
+      return NextResponse.json({ error: 'Failed to cancel transfer' }, { status: 500 });
+    }
 
     // Update vehicle status back to available if it was in-transfer
-    if (transfer.vehicle.status === 'in-transfer') {
-      await writeClient
-        .patch(transfer.vehicle._id)
-        .set({ status: 'available' })
-        .commit();
+    if (transfer.vehicle.status === 'in-transfer' || transfer.vehicle.status === 'claimed') {
+      await supabaseAdmin
+        .from('vehicles')
+        .update({ 
+          status: 'available',
+          current_transfer_id: null
+        })
+        .eq('id', transfer.vehicle_id);
     }
 
     // Create activity log
-    await writeClient.create({
-      _type: 'activity',
-      action: 'transfer_cancelled',
-      vehicle: {
-        _type: 'reference',
-        _ref: transfer.vehicle._id
-      },
-      transfer: {
-        _type: 'reference',
-        _ref: transferId
-      },
-      fromLocation: {
-        _type: 'reference',
-        _ref: transfer.fromLocation._id
-      },
-      toLocation: {
-        _type: 'reference',
-        _ref: transfer.toLocation._id
-      },
-      user: {
-        _type: 'reference',
-        _ref: session.user.id
-      },
-      metadata: {
-        vehicleDetails: `${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}`,
-        fromStore: transfer.fromLocation.name,
-        toStore: transfer.toLocation.name,
-        reason
-      },
-      timestamp: new Date().toISOString()
-    });
+    await supabaseAdmin
+      .from('activities')
+      .insert({
+        vehicle_id: transfer.vehicle_id,
+        user_id: session.user.id,
+        action: 'transfer-cancelled',
+        details: `Transfer cancelled from ${transfer.from_location.name} to ${transfer.to_location.name}${reason ? `: ${reason}` : ''}`,
+        metadata: {
+          vehicleDetails: `${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}`,
+          fromStore: transfer.from_location.name,
+          toStore: transfer.to_location.name,
+          reason
+        }
+      });
 
     // Send email notification
     try {
       await sendTransferCancelledNotification({
         transfer: {
           ...transfer,
-          status: 'cancelled'
+          _id: transfer.id,
+          status: 'cancelled',
+          fromStore: {
+            _id: transfer.from_location.id,
+            _type: 'dealershipLocation' as const,
+            name: transfer.from_location.name,
+            code: transfer.from_location.code,
+            email: transfer.from_location.email,
+            active: true
+          },
+          toStore: {
+            _id: transfer.to_location.id,
+            _type: 'dealershipLocation' as const,
+            name: transfer.to_location.name,
+            code: transfer.to_location.code,
+            email: transfer.to_location.email,
+            active: true
+          }
         },
-        vehicle: transfer.vehicle,
+        vehicle: {
+          _id: transfer.vehicle.id,
+          vin: transfer.vehicle.vin,
+          year: transfer.vehicle.year,
+          make: transfer.vehicle.make,
+          model: transfer.vehicle.model,
+          stockNumber: transfer.vehicle.stock_number,
+          price: transfer.vehicle.price,
+          images: transfer.vehicle.image_urls || []
+        },
         canceller: {
           name: session.user.name || session.user.email || 'Unknown',
           email: session.user.email || ''

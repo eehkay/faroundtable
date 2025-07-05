@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { writeClient } from "@/lib/sanity";
-import { allUsersQuery, dealershipLocationsQuery } from "@/lib/queries";
+import { getAllUsers, getDealershipLocations } from "@/lib/queries-supabase";
 import { canManageUsers } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import UserList from "@/components/admin/UserList";
@@ -20,8 +19,8 @@ export default async function UsersPage() {
 
   // Fetch users and locations
   const [users, locations] = await Promise.all([
-    writeClient.fetch(allUsersQuery),
-    writeClient.fetch(dealershipLocationsQuery)
+    getAllUsers(),
+    getDealershipLocations()
   ]);
 
   console.log('Admin Users Page - Fetched users:', users.length);

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { writeClient } from '@/lib/sanity';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { canApproveTransfer } from '@/lib/permissions';
-import { groq } from 'next-sanity';
 
 export async function PUT(
   request: NextRequest,
@@ -26,24 +25,35 @@ export async function PUT(
     }
     
     // Get transfer details
-    const transfer = await writeClient.fetch(groq`
-      *[_type == "transfer" && _id == $id][0]{
-        _id,
-        status,
-        vehicle->{
-          _id,
+    const { data: transfer, error: transferError } = await supabaseAdmin
+      .from('transfers')
+      .select(`
+        *,
+        vehicle:vehicle_id(
+          id,
           year,
           make,
           model,
-          location->{_id, name},
-          activeTransferRequests[]->{ _id }
-        },
-        toLocation->{_id, name},
-        requestedBy->{_id, name, email}
-      }
-    `, { id });
+          location:location_id(
+            id,
+            name
+          )
+        ),
+        to_location:to_location_id(
+          id,
+          name
+        ),
+        requested_by:requested_by_id(
+          id,
+          name,
+          email
+        )
+      `)
+      .eq('id', id)
+      .single();
     
-    if (!transfer) {
+    if (transferError || !transfer) {
+      console.error('Transfer fetch error:', transferError);
       return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
     }
     
@@ -52,42 +62,35 @@ export async function PUT(
     }
     
     // Update transfer status to rejected
-    await writeClient
-      .patch(id)
-      .set({ 
+    const { error: updateError } = await supabaseAdmin
+      .from('transfers')
+      .update({ 
         status: 'rejected',
-        rejectedAt: new Date().toISOString(),
-        rejectedBy: { _type: 'reference', _ref: session.user.id },
-        rejectionReason
+        rejected_at: new Date().toISOString(),
+        rejected_by_id: session.user.id,
+        rejection_reason: rejectionReason
       })
-      .commit();
+      .eq('id', id);
     
-    // Remove this transfer from vehicle's activeTransferRequests
-    const updatedActiveRequests = transfer.vehicle.activeTransferRequests
-      ?.filter((req: any) => req._id !== id)
-      .map((req: any) => ({ _type: 'reference', _ref: req._id })) || [];
-    
-    await writeClient
-      .patch(transfer.vehicle._id)
-      .set({ 
-        activeTransferRequests: updatedActiveRequests
-      })
-      .commit();
+    if (updateError) {
+      console.error('Transfer update error:', updateError);
+      return NextResponse.json({ error: 'Failed to update transfer' }, { status: 500 });
+    }
     
     // Create activity log
-    await writeClient.create({
-      _type: 'activity',
-      vehicle: { _type: 'reference', _ref: transfer.vehicle._id },
-      user: { _type: 'reference', _ref: session.user.id },
-      action: 'transfer_rejected',
-      details: `Transfer request from ${transfer.toLocation.name} rejected: ${rejectionReason}`,
-      metadata: {
-        transferId: id,
-        rejectionReason,
-        rejectedBy: session.user.name || session.user.email
-      },
-      createdAt: new Date().toISOString()
-    });
+    await supabaseAdmin
+      .from('activities')
+      .insert({
+        vehicle_id: transfer.vehicle.id,
+        user_id: session.user.id,
+        action: 'transfer-rejected',
+        details: `Transfer request from ${transfer.to_location.name} rejected: ${rejectionReason}`,
+        metadata: {
+          transferId: id,
+          rejectionReason,
+          rejectedBy: session.user.name || session.user.email
+        }
+      });
     
     // TODO: Send rejection notification email
     

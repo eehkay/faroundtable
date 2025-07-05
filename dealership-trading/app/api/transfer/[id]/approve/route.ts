@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { writeClient } from '@/lib/sanity';
-import { groq } from 'next-sanity';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { canApproveTransfers } from '@/lib/permissions';
 import { sendTransferApprovedNotification } from '@/lib/email/service';
 
@@ -28,38 +27,44 @@ export async function PUT(request: NextRequest, props: RouteParams) {
 
     const transferId = params.id;
 
-    // Get the current transfer details
-    const transfer = await writeClient.fetch(groq`
-      *[_type == "transfer" && _id == $transferId][0] {
-        _id,
-        status,
-        fromLocation->{_id, name, code, email},
-        toLocation->{_id, name, code, email},
-        vehicle->{
-          _id,
+    // Get the current transfer details with vehicle and location info
+    const { data: transfer, error: transferError } = await supabaseAdmin
+      .from('transfers')
+      .select(`
+        *,
+        from_location:from_location_id(
+          id,
+          name,
+          code,
+          email
+        ),
+        to_location:to_location_id(
+          id,
+          name,
+          code,
+          email
+        ),
+        vehicle:vehicle_id(
+          id,
           vin,
           year,
           make,
           model,
-          stockNumber,
+          stock_number,
           price,
-          images,
-          activeTransferRequests[]->{
-            _id,
-            status,
-            toLocation->{_id, name}
-          }
-        },
-        requestedBy->{
-          _id,
+          image_urls
+        ),
+        requested_by:requested_by_id(
+          id,
           name,
           email
-        },
-        requestedAt
-      }
-    `, { transferId });
+        )
+      `)
+      .eq('id', transferId)
+      .single();
 
-    if (!transfer) {
+    if (transferError || !transfer) {
+      console.error('Transfer fetch error:', transferError);
       return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
     }
 
@@ -71,108 +76,119 @@ export async function PUT(request: NextRequest, props: RouteParams) {
     }
 
     // Get all other pending transfers for this vehicle
-    const otherPendingTransfers = transfer.vehicle.activeTransferRequests?.filter(
-      (req: any) => req._id !== transferId && req.status === 'requested'
-    ) || [];
+    const { data: otherPendingTransfers } = await supabaseAdmin
+      .from('transfers')
+      .select('id, to_location:to_location_id(name)')
+      .eq('vehicle_id', transfer.vehicle_id)
+      .eq('status', 'requested')
+      .neq('id', transferId);
     
     // Approve the transfer
-    const updatedTransfer = await writeClient
-      .patch(transferId)
-      .set({
+    const { data: updatedTransfer, error: updateError } = await supabaseAdmin
+      .from('transfers')
+      .update({
         status: 'approved',
-        approvedBy: {
-          _type: 'reference',
-          _ref: session.user.id
-        },
-        approvedAt: new Date().toISOString(),
-        approvedOver: otherPendingTransfers.map((req: any) => ({
-          _type: 'reference',
-          _ref: req._id
-        }))
+        approved_by_id: session.user.id,
+        approved_at: new Date().toISOString()
       })
-      .commit();
+      .eq('id', transferId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Transfer update error:', updateError);
+      return NextResponse.json({ error: 'Failed to approve transfer' }, { status: 500 });
+    }
 
     // Auto-reject all other pending transfers
     const rejectionTime = new Date().toISOString();
-    for (const pendingTransfer of otherPendingTransfers) {
-      await writeClient
-        .patch(pendingTransfer._id)
-        .set({
+    if (otherPendingTransfers && otherPendingTransfers.length > 0) {
+      await supabaseAdmin
+        .from('transfers')
+        .update({
           status: 'rejected',
-          rejectedAt: rejectionTime,
-          rejectedBy: { _type: 'reference', _ref: session.user.id },
-          rejectionReason: 'Another transfer request was approved for this vehicle'
+          rejected_at: rejectionTime,
+          rejected_by_id: session.user.id,
+          rejection_reason: 'Another transfer request was approved for this vehicle'
         })
-        .commit();
+        .in('id', otherPendingTransfers.map(t => t.id));
         
-      // Create activity log for rejection
-      await writeClient.create({
-        _type: 'activity',
-        vehicle: { _type: 'reference', _ref: transfer.vehicle._id },
-        user: { _type: 'reference', _ref: session.user.id },
-        action: 'transfer_auto_rejected',
-        details: `Transfer request from ${pendingTransfer.toLocation.name} auto-rejected - another request was approved`,
+      // Create activity logs for rejections
+      const rejectionActivities = otherPendingTransfers.map(pendingTransfer => ({
+        vehicle_id: transfer.vehicle_id,
+        user_id: session.user.id,
+        action: 'transfer_auto_rejected' as const,
+        details: `Transfer request from ${pendingTransfer.to_location?.name} auto-rejected - another request was approved`,
         metadata: {
-          transferId: pendingTransfer._id,
+          transferId: pendingTransfer.id,
           approvedTransferId: transferId
-        },
-        createdAt: rejectionTime
-      });
+        }
+      }));
+      
+      await supabaseAdmin
+        .from('activities')
+        .insert(rejectionActivities);
     }
 
-    // Update vehicle status to claimed and set only the approved transfer
-    await writeClient
-      .patch(transfer.vehicle._id)
-      .set({ 
+    // Update vehicle status to claimed and set current transfer
+    await supabaseAdmin
+      .from('vehicles')
+      .update({ 
         status: 'claimed',
-        activeTransferRequests: [{
-          _type: 'reference',
-          _ref: transferId
-        }]
+        current_transfer_id: transferId
       })
-      .commit();
+      .eq('id', transfer.vehicle_id);
 
     // Create activity log
-    await writeClient.create({
-      _type: 'activity',
-      action: 'transfer_approved',
-      vehicle: {
-        _type: 'reference',
-        _ref: transfer.vehicle._id
-      },
-      transfer: {
-        _type: 'reference',
-        _ref: transferId
-      },
-      fromLocation: {
-        _type: 'reference',
-        _ref: transfer.fromLocation._id
-      },
-      toLocation: {
-        _type: 'reference',
-        _ref: transfer.toLocation._id
-      },
-      user: {
-        _type: 'reference',
-        _ref: session.user.id
-      },
-      metadata: {
-        vehicleDetails: `${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}`,
-        fromStore: transfer.fromLocation.name,
-        toStore: transfer.toLocation.name,
-        autoRejectedCount: otherPendingTransfers.length
-      },
-      timestamp: new Date().toISOString()
-    });
+    await supabaseAdmin
+      .from('activities')
+      .insert({
+        vehicle_id: transfer.vehicle_id,
+        user_id: session.user.id,
+        action: 'transfer-approved',
+        details: `Transfer approved from ${transfer.from_location.name} to ${transfer.to_location.name}`,
+        metadata: {
+          vehicleDetails: `${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}`,
+          fromStore: transfer.from_location.name,
+          toStore: transfer.to_location.name,
+          autoRejectedCount: otherPendingTransfers?.length || 0
+        }
+      });
 
     // Send email notification
     try {
       await sendTransferApprovedNotification({
         transfer: {
           ...transfer,
-          status: 'approved'
+          _id: transfer.id,
+          status: 'approved',
+          fromStore: {
+            _id: transfer.from_location.id,
+            _type: 'dealershipLocation' as const,
+            name: transfer.from_location.name,
+            code: transfer.from_location.code,
+            email: transfer.from_location.email,
+            active: true
+          },
+          toStore: {
+            _id: transfer.to_location.id,
+            _type: 'dealershipLocation' as const,
+            name: transfer.to_location.name,
+            code: transfer.to_location.code,
+            email: transfer.to_location.email,
+            active: true
+          }
         },
-        vehicle: transfer.vehicle,
+        vehicle: {
+          _id: transfer.vehicle.id,
+          vin: transfer.vehicle.vin,
+          year: transfer.vehicle.year,
+          make: transfer.vehicle.make,
+          model: transfer.vehicle.model,
+          stockNumber: transfer.vehicle.stock_number,
+          price: transfer.vehicle.price,
+          images: transfer.vehicle.image_urls || []
+        },
         approver: {
           name: session.user.name || session.user.email || 'Unknown',
           email: session.user.email || ''

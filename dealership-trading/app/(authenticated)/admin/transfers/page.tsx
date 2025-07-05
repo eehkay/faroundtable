@@ -3,8 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { client } from "@/lib/sanity";
-import { groq } from "next-sanity";
+import { supabase } from "@/lib/supabase-client";
 import TransferList from "@/components/admin/transfers/TransferList";
 import TransferFilters from "@/components/admin/transfers/TransferFilters";
 import { isAdmin, isManager } from "@/lib/permissions";
@@ -35,112 +34,150 @@ export default function TransfersPage() {
       try {
         setLoading(true);
         
-        // Build query based on filters
-        let query = groq`*[_type == "transfer"`;
-        const queryFilters = [];
+        // Start building the query
+        let query = supabase
+          .from('transfers')
+          .select(`
+            *,
+            vehicle:vehicle_id(
+              id,
+              vin,
+              year,
+              make,
+              model,
+              trim,
+              stock_number,
+              price,
+              mileage,
+              image_urls
+            ),
+            from_location:from_location_id(
+              id,
+              name,
+              code
+            ),
+            to_location:to_location_id(
+              id,
+              name,
+              code
+            ),
+            requested_by:requested_by_id(
+              id,
+              name,
+              email,
+              image
+            ),
+            approved_by:approved_by_id(
+              id,
+              name,
+              email
+            ),
+            cancelled_by:cancelled_by_id(
+              id,
+              name,
+              email
+            )
+          `)
+          .order('created_at', { ascending: false });
         
+        // Apply filters
         if (filters.status !== 'all') {
-          queryFilters.push(`status == "${filters.status}"`);
+          query = query.eq('status', filters.status);
         }
         
         if (filters.location !== 'all') {
-          queryFilters.push(`(fromLocation._ref == "${filters.location}" || toLocation._ref == "${filters.location}")`);
+          query = query.or(`from_location_id.eq.${filters.location},to_location_id.eq.${filters.location}`);
         }
         
         if (filters.dateRange !== 'all') {
           const now = new Date();
-          let dateFilter = '';
+          let dateFilter;
           
           switch (filters.dateRange) {
             case 'today':
               const today = new Date();
               today.setHours(0, 0, 0, 0);
-              dateFilter = `requestedAt >= "${today.toISOString()}"`;
+              dateFilter = today.toISOString();
               break;
             case 'week':
               const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-              dateFilter = `requestedAt >= "${weekAgo.toISOString()}"`;
+              dateFilter = weekAgo.toISOString();
               break;
             case 'month':
               const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-              dateFilter = `requestedAt >= "${monthAgo.toISOString()}"`;
+              dateFilter = monthAgo.toISOString();
               break;
           }
           
           if (dateFilter) {
-            queryFilters.push(dateFilter);
+            query = query.gte('created_at', dateFilter);
           }
         }
         
-        if (queryFilters.length > 0) {
-          query += ` && ${queryFilters.join(' && ')}`;
+        const { data, error } = await query;
+
+        if (error) {
+          console.error('Failed to fetch transfers:', error);
+          return;
         }
+
+        // Transform data to match existing format
+        const transformedData = data?.map(transfer => ({
+          _id: transfer.id,
+          status: transfer.status,
+          reason: transfer.reason,
+          customerWaiting: transfer.customer_waiting,
+          priority: transfer.priority,
+          expectedPickupDate: transfer.expected_pickup_date,
+          requestedAt: transfer.created_at,
+          approvedAt: transfer.approved_at,
+          intransitAt: transfer.actual_pickup_date,
+          deliveredAt: transfer.delivered_date,
+          cancelledAt: transfer.cancelled_at,
+          cancellationReason: transfer.cancellation_reason,
+          vehicle: transfer.vehicle ? {
+            _id: transfer.vehicle.id,
+            vin: transfer.vehicle.vin,
+            year: transfer.vehicle.year,
+            make: transfer.vehicle.make,
+            model: transfer.vehicle.model,
+            trim: transfer.vehicle.trim,
+            stockNumber: transfer.vehicle.stock_number,
+            price: transfer.vehicle.price,
+            mileage: transfer.vehicle.mileage,
+            images: transfer.vehicle.image_urls || []
+          } : null,
+          fromLocation: transfer.from_location ? {
+            _id: transfer.from_location.id,
+            name: transfer.from_location.name,
+            code: transfer.from_location.code
+          } : null,
+          toLocation: transfer.to_location ? {
+            _id: transfer.to_location.id,
+            name: transfer.to_location.name,
+            code: transfer.to_location.code
+          } : null,
+          requestedBy: transfer.requested_by ? {
+            _id: transfer.requested_by.id,
+            name: transfer.requested_by.name,
+            email: transfer.requested_by.email,
+            image: transfer.requested_by.image
+          } : null,
+          approvedBy: transfer.approved_by ? {
+            _id: transfer.approved_by.id,
+            name: transfer.approved_by.name,
+            email: transfer.approved_by.email
+          } : null,
+          intransitBy: null, // Not tracked in Supabase schema
+          deliveredBy: null, // Not tracked in Supabase schema
+          cancelledBy: transfer.cancelled_by ? {
+            _id: transfer.cancelled_by.id,
+            name: transfer.cancelled_by.name,
+            email: transfer.cancelled_by.email
+          } : null
+        })) || [];
         
-        query += `] | order(requestedAt desc) {
-          _id,
-          status,
-          reason,
-          customerWaiting,
-          priority,
-          expectedPickupDate,
-          requestedAt,
-          approvedAt,
-          intransitAt,
-          deliveredAt,
-          cancelledAt,
-          cancellationReason,
-          vehicle->{
-            _id,
-            vin,
-            year,
-            make,
-            model,
-            trim,
-            stockNumber,
-            price,
-            mileage,
-            images
-          },
-          fromLocation->{
-            _id,
-            name,
-            code
-          },
-          toLocation->{
-            _id,
-            name,
-            code
-          },
-          requestedBy->{
-            _id,
-            name,
-            email,
-            image
-          },
-          approvedBy->{
-            _id,
-            name,
-            email
-          },
-          intransitBy->{
-            _id,
-            name,
-            email
-          },
-          deliveredBy->{
-            _id,
-            name,
-            email
-          },
-          cancelledBy->{
-            _id,
-            name,
-            email
-          }
-        }`;
-        
-        const data = await client.fetch(query);
-        setTransfers(data);
+        setTransfers(transformedData);
       } catch (error) {
         console.error('Failed to fetch transfers:', error);
       } finally {
@@ -151,13 +188,24 @@ export default function TransfersPage() {
     fetchTransfers();
 
     // Set up real-time listener
-    const subscription = client
-      .listen(`*[_type == "transfer"]`)
-      .subscribe(() => {
-        fetchTransfers();
-      });
+    const channel = supabase
+      .channel('transfers-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transfers'
+        },
+        () => {
+          fetchTransfers();
+        }
+      )
+      .subscribe();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [session, filters]);
 
   if (status === "loading" || loading) {

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { writeClient } from '@/lib/sanity';
-import { groq } from 'next-sanity';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { canUpdateTransferStatus } from '@/lib/permissions';
 import { sendTransferStatusUpdateNotification } from '@/lib/email/service';
 
@@ -38,36 +37,48 @@ export async function PUT(request: NextRequest, props: RouteParams) {
     }
 
     // Get the current transfer details
-    const transfer = await writeClient.fetch(groq`
-      *[_type == "transfer" && _id == $transferId][0] {
-        _id,
-        status,
-        fromLocation->{_id, name, code, email},
-        toLocation->{_id, name, code, email},
-        vehicle->{
-          _id,
+    const { data: transfer, error: transferError } = await supabaseAdmin
+      .from('transfers')
+      .select(`
+        *,
+        from_location:from_location_id(
+          id,
+          name,
+          code,
+          email
+        ),
+        to_location:to_location_id(
+          id,
+          name,
+          code,
+          email
+        ),
+        vehicle:vehicle_id(
+          id,
           vin,
           year,
           make,
           model,
-          stockNumber,
+          stock_number,
           price,
-          images
-        },
-        requestedBy->{
-          _id,
+          image_urls
+        ),
+        requested_by:requested_by_id(
+          id,
           name,
           email
-        },
-        approvedBy->{
-          _id,
+        ),
+        approved_by:approved_by_id(
+          id,
           name,
           email
-        }
-      }
-    `, { transferId });
+        )
+      `)
+      .eq('id', transferId)
+      .single();
 
-    if (!transfer) {
+    if (transferError || !transfer) {
+      console.error('Transfer fetch error:', transferError);
       return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
     }
 
@@ -84,76 +95,100 @@ export async function PUT(request: NextRequest, props: RouteParams) {
       );
     }
 
-    // Update the transfer status
+    // Prepare update data based on status
     const updateData: any = {
-      status,
-      [`${status.replace('-', '')}At`]: new Date().toISOString(),
-      [`${status.replace('-', '')}By`]: {
-        _type: 'reference',
-        _ref: session.user.id
-      }
+      status
     };
 
-    const updatedTransfer = await writeClient
-      .patch(transferId)
-      .set(updateData)
-      .commit();
+    if (status === 'in-transit') {
+      updateData.actual_pickup_date = new Date().toISOString();
+    } else if (status === 'delivered') {
+      updateData.delivered_date = new Date().toISOString();
+    }
 
-    // Update vehicle status when delivered
+    // Update the transfer status
+    const { data: updatedTransfer, error: updateError } = await supabaseAdmin
+      .from('transfers')
+      .update(updateData)
+      .eq('id', transferId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Transfer update error:', updateError);
+      return NextResponse.json({ error: 'Failed to update transfer' }, { status: 500 });
+    }
+
+    // Update vehicle when delivered
     if (status === 'delivered') {
-      await writeClient
-        .patch(transfer.vehicle._id)
-        .set({ 
+      await supabaseAdmin
+        .from('vehicles')
+        .update({ 
           status: 'available',
-          location: {
-            _type: 'reference',
-            _ref: transfer.toLocation._id
-          }
+          location_id: transfer.to_location_id,
+          current_transfer_id: null
         })
-        .commit();
+        .eq('id', transfer.vehicle_id);
+    } else if (status === 'in-transit') {
+      // Update vehicle status to in-transfer when transfer starts
+      await supabaseAdmin
+        .from('vehicles')
+        .update({ 
+          status: 'in-transfer'
+        })
+        .eq('id', transfer.vehicle_id);
     }
 
     // Create activity log
-    await writeClient.create({
-      _type: 'activity',
-      action: `transfer_${status.replace('-', '_')}`,
-      vehicle: {
-        _type: 'reference',
-        _ref: transfer.vehicle._id
-      },
-      transfer: {
-        _type: 'reference',
-        _ref: transferId
-      },
-      fromLocation: {
-        _type: 'reference',
-        _ref: transfer.fromLocation._id
-      },
-      toLocation: {
-        _type: 'reference',
-        _ref: transfer.toLocation._id
-      },
-      user: {
-        _type: 'reference',
-        _ref: session.user.id
-      },
-      metadata: {
-        vehicleDetails: `${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}`,
-        fromStore: transfer.fromLocation.name,
-        toStore: transfer.toLocation.name,
-        status
-      },
-      timestamp: new Date().toISOString()
-    });
+    await supabaseAdmin
+      .from('activities')
+      .insert({
+        vehicle_id: transfer.vehicle_id,
+        user_id: session.user.id,
+        action: `transfer-${status === 'in-transit' ? 'started' : 'completed'}`,
+        details: `Transfer ${status === 'in-transit' ? 'started' : 'completed'} from ${transfer.from_location.name} to ${transfer.to_location.name}`,
+        metadata: {
+          vehicleDetails: `${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}`,
+          fromStore: transfer.from_location.name,
+          toStore: transfer.to_location.name,
+          status
+        }
+      });
 
     // Send email notification
     try {
       await sendTransferStatusUpdateNotification({
         transfer: {
           ...transfer,
-          status: status as 'in-transit' | 'delivered'
+          _id: transfer.id,
+          status: status as 'in-transit' | 'delivered',
+          fromStore: {
+            _id: transfer.from_location.id,
+            _type: 'dealershipLocation' as const,
+            name: transfer.from_location.name,
+            code: transfer.from_location.code,
+            email: transfer.from_location.email,
+            active: true
+          },
+          toStore: {
+            _id: transfer.to_location.id,
+            _type: 'dealershipLocation' as const,
+            name: transfer.to_location.name,
+            code: transfer.to_location.code,
+            email: transfer.to_location.email,
+            active: true
+          }
         },
-        vehicle: transfer.vehicle,
+        vehicle: {
+          _id: transfer.vehicle.id,
+          vin: transfer.vehicle.vin,
+          year: transfer.vehicle.year,
+          make: transfer.vehicle.make,
+          model: transfer.vehicle.model,
+          stockNumber: transfer.vehicle.stock_number,
+          price: transfer.vehicle.price,
+          images: transfer.vehicle.image_urls || []
+        },
         status: status as 'in-transit' | 'delivered',
         updater: {
           name: session.user.name || session.user.email || 'Unknown',
