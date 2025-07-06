@@ -117,7 +117,7 @@ export default function TestMarketInsightsPage() {
         data = { rawResponse: responseText };
       }
 
-      setIndividualResults(prev => ({
+      setIndividualResults((prev: any) => ({
         ...prev,
         [endpoint]: {
           status: response.status,
