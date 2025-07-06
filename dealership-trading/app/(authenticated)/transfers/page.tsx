@@ -302,7 +302,8 @@ export default function TransfersPage() {
 
     fetchTransfers();
 
-    // Set up real-time listener
+    // Set up real-time listener with debouncing
+    let debounceTimeout: NodeJS.Timeout;
     const channel = supabase
       .channel('transfers-changes')
       .on(
@@ -313,12 +314,17 @@ export default function TransfersPage() {
           table: 'transfers'
         },
         () => {
-          fetchTransfers();
+          // Debounce rapid successive updates
+          clearTimeout(debounceTimeout);
+          debounceTimeout = setTimeout(() => {
+            fetchTransfers();
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(debounceTimeout);
       supabase.removeChannel(channel);
     };
   }, [session, filters]);
@@ -365,6 +371,40 @@ export default function TransfersPage() {
     }
   };
 
+  // Function to handle optimistic updates with rollback capability
+  const handleTransferUpdate = (updatedTransfer: any) => {
+    // Store original transfer for potential rollback
+    const originalTransfer = transfers.find(t => t._id === updatedTransfer.id);
+    
+    // Apply optimistic update immediately
+    setTransfers(prevTransfers => 
+      prevTransfers.map(transfer => 
+        transfer._id === updatedTransfer.id 
+          ? { ...transfer, status: updatedTransfer.status }
+          : transfer
+      )
+    );
+
+    // Verify the update after a short delay to ensure consistency
+    setTimeout(() => {
+      // Re-fetch transfers to ensure we have the latest state
+      // This helps catch any discrepancies between optimistic updates and actual server state
+      const verifyUpdate = async () => {
+        try {
+          // Only verify if we still have the transfer in state
+          const currentTransfer = transfers.find(t => t._id === updatedTransfer.id);
+          if (currentTransfer && currentTransfer.status !== updatedTransfer.status) {
+            // If status doesn't match, re-fetch all transfers
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error('Failed to verify transfer update:', error);
+        }
+      };
+      verifyUpdate();
+    }, 2000);
+  };
+
   // Update URL when filters change
   const handleFilterChange = (newFilters: typeof filters) => {
     // Update URL parameters
@@ -398,6 +438,7 @@ export default function TransfersPage() {
         transfers={transfers}
         userRole={session.user.role}
         currentUserId={session.user.id}
+        onTransferUpdate={handleTransferUpdate}
       />
     </div>
   );

@@ -151,10 +151,18 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
+    <div 
+      className="flex h-[calc(100vh-4rem)]"
+      style={{
+        marginLeft: 'calc(-50vw + 50%)',
+        marginRight: 'calc(-50vw + 50%)',
+        width: '100vw',
+        position: 'relative'
+      }}
+    >
       {/* Sidebar */}
       <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-[#1f1f1f] border-r border-[#2a2a2a] transition-all duration-200 ease-in-out`}>
-        <div className="p-4">
+        <div className={`${isCollapsed ? 'px-2 py-4' : 'px-4 py-4'}`}>
           {/* Toggle Button */}
           {!isCollapsed ? (
             <button
@@ -251,7 +259,7 @@ export default function AdminLayout({
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-8">
+        <div className="px-4 py-4 pr-6">
           <AdminBreadcrumb />
           {children}
         </div>
