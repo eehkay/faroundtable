@@ -14,7 +14,8 @@ import {
   Settings, 
   FileText, 
   Activity,
-  ChevronLeft
+  ChevronLeft,
+  Car
 } from "lucide-react";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 
@@ -58,6 +59,12 @@ export default function AdminLayout({
       name: "Dashboard",
       href: "/admin",
       icon: LayoutDashboard,
+      show: true
+    },
+    {
+      name: "Vehicles",
+      href: "/admin/vehicles",
+      icon: Car,
       show: true
     },
     {
