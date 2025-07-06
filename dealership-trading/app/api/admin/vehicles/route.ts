@@ -21,8 +21,8 @@ export async function DELETE(request: NextRequest) {
     // Check if any vehicles have active transfers
     const { data: transfers, error: transferError } = await supabaseAdmin
       .from('transfers')
-      .select('vehicleId')
-      .in('vehicleId', ids)
+      .select('vehicle_id')
+      .in('vehicle_id', ids)
       .in('status', ['requested', 'approved', 'in-transit'])
 
     if (transferError) {
@@ -31,7 +31,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (transfers && transfers.length > 0) {
-      const vehiclesWithTransfers = transfers.map(t => t.vehicleId)
+      const vehiclesWithTransfers = transfers.map(t => t.vehicle_id)
       return NextResponse.json(
         { 
           error: 'Cannot delete vehicles with active transfers',
@@ -44,7 +44,7 @@ export async function DELETE(request: NextRequest) {
     // Get vehicle details before deletion for logging
     const { data: vehicles } = await supabaseAdmin
       .from('vehicles')
-      .select('id, stockNumber, vin, make, model, year')
+      .select('id, stock_number, vin, make, model, year')
       .in('id', ids)
 
     // Delete the vehicles
@@ -63,13 +63,13 @@ export async function DELETE(request: NextRequest) {
       await supabaseAdmin
         .from('activities')
         .insert({
-          vehicleId: null,
-          userId: session.user.id,
+          vehicle_id: null,
+          user_id: session.user.id,
           action: 'bulk_deleted',
           description: `Deleted ${vehicles.length} vehicles`,
           metadata: { 
             deletedVehicles: vehicles.map(v => ({
-              stockNumber: v.stockNumber,
+              stockNumber: v.stock_number,
               vehicle: `${v.year} ${v.make} ${v.model}`
             }))
           },

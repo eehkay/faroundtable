@@ -44,14 +44,22 @@ export default function VehicleManagementClient() {
         .from('vehicles')
         .select(`
           *,
-          dealership_location:dealership_locations(*)
+          location:location_id(
+            id,
+            name,
+            code,
+            address,
+            city,
+            state,
+            zip
+          )
         `, { count: 'exact' })
-        .order('importedAt', { ascending: false })
+        .order('imported_at', { ascending: false })
         .range((page - 1) * 50, page * 50 - 1)
 
       // Apply search filter
       if (searchTerm) {
-        query = query.or(`stockNumber.ilike.%${searchTerm}%,vin.ilike.%${searchTerm}%,make.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`)
+        query = query.or(`stock_number.ilike.%${searchTerm}%,vin.ilike.%${searchTerm}%,make.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`)
       }
 
       // Apply status filter
@@ -66,7 +74,7 @@ export default function VehicleManagementClient() {
 
       // Apply location filter
       if (filters.location !== 'all') {
-        query = query.eq('storeCode', filters.location)
+        query = query.eq('store_code', filters.location)
       }
 
       // Apply price range filter
@@ -83,7 +91,40 @@ export default function VehicleManagementClient() {
 
       if (error) throw error
 
-      setVehicles(data || [])
+      // Transform snake_case to camelCase
+      const transformedVehicles = (data || []).map((vehicle: any) => ({
+        _id: vehicle.id,
+        stockNumber: vehicle.stock_number,
+        vin: vehicle.vin,
+        year: vehicle.year,
+        make: vehicle.make,
+        model: vehicle.model,
+        trim: vehicle.trim,
+        title: vehicle.title,
+        price: vehicle.price,
+        salePrice: vehicle.sale_price,
+        msrp: vehicle.msrp,
+        mileage: vehicle.mileage,
+        condition: vehicle.condition,
+        exteriorColor: vehicle.exterior_color,
+        bodyStyle: vehicle.body_style,
+        fuelType: vehicle.fuel_type,
+        description: vehicle.description,
+        features: vehicle.features || [],
+        status: vehicle.status,
+        storeCode: vehicle.store_code,
+        address: vehicle.address,
+        location: vehicle.location,
+        dealership_location: vehicle.location,
+        originalLocation: vehicle.original_location,
+        currentTransfer: vehicle.current_transfer,
+        imageUrls: vehicle.image_urls || [],
+        importedAt: vehicle.imported_at,
+        lastSeenInFeed: vehicle.last_seen_in_feed,
+        daysOnLot: vehicle.days_on_lot
+      }))
+
+      setVehicles(transformedVehicles)
       setTotalCount(count || 0)
     } catch (error) {
       console.error('Error fetching vehicles:', error)
@@ -108,8 +149,36 @@ export default function VehicleManagementClient() {
           if (payload.eventType === 'INSERT') {
             fetchVehicles()
           } else if (payload.eventType === 'UPDATE') {
+            // Transform the updated data
+            const transformed = {
+              _id: payload.new.id,
+              stockNumber: payload.new.stock_number,
+              vin: payload.new.vin,
+              year: payload.new.year,
+              make: payload.new.make,
+              model: payload.new.model,
+              trim: payload.new.trim,
+              title: payload.new.title,
+              price: payload.new.price,
+              salePrice: payload.new.sale_price,
+              msrp: payload.new.msrp,
+              mileage: payload.new.mileage,
+              condition: payload.new.condition,
+              exteriorColor: payload.new.exterior_color,
+              bodyStyle: payload.new.body_style,
+              fuelType: payload.new.fuel_type,
+              description: payload.new.description,
+              features: payload.new.features || [],
+              status: payload.new.status,
+              storeCode: payload.new.store_code,
+              address: payload.new.address,
+              imageUrls: payload.new.image_urls || [],
+              importedAt: payload.new.imported_at,
+              lastSeenInFeed: payload.new.last_seen_in_feed,
+              daysOnLot: payload.new.days_on_lot
+            }
             setVehicles(prev => 
-              prev.map(v => v._id === payload.new.id ? { ...v, ...payload.new } : v)
+              prev.map(v => v._id === payload.new.id ? { ...v, ...transformed } : v)
             )
           } else if (payload.eventType === 'DELETE') {
             setVehicles(prev => prev.filter(v => v._id !== payload.old.id))

@@ -24,13 +24,17 @@ export async function GET(request: NextRequest) {
       .from('vehicles')
       .select(`
         *,
-        dealership_location:dealership_locations(*)
+        location:location_id(
+          id,
+          name,
+          code
+        )
       `)
-      .order('importedAt', { ascending: false })
+      .order('imported_at', { ascending: false })
 
     // Apply search filter
     if (search) {
-      query = query.or(`stockNumber.ilike.%${search}%,vin.ilike.%${search}%,make.ilike.%${search}%,model.ilike.%${search}%`)
+      query = query.or(`stock_number.ilike.%${search}%,vin.ilike.%${search}%,make.ilike.%${search}%,model.ilike.%${search}%`)
     }
 
     // Apply status filter
@@ -45,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     // Apply location filter
     if (location !== 'all') {
-      query = query.eq('storeCode', location)
+      query = query.eq('store_code', location)
     }
 
     // Apply price range filter
@@ -88,7 +92,7 @@ export async function GET(request: NextRequest) {
     ]
 
     const rows = vehicles?.map(vehicle => [
-      vehicle.stockNumber,
+      vehicle.stock_number,
       vehicle.vin,
       vehicle.year,
       vehicle.make,
@@ -96,16 +100,16 @@ export async function GET(request: NextRequest) {
       vehicle.trim || '',
       vehicle.condition,
       vehicle.status,
-      vehicle.dealership_location?.name || vehicle.storeCode,
+      vehicle.location?.name || vehicle.store_code,
       vehicle.price,
-      vehicle.salePrice || '',
+      vehicle.sale_price || '',
       vehicle.mileage || '',
-      vehicle.exteriorColor || '',
-      vehicle.bodyStyle || '',
-      vehicle.fuelType || '',
-      vehicle.daysOnLot || 0,
-      vehicle.importedAt ? new Date(vehicle.importedAt).toLocaleDateString() : '',
-      vehicle.lastSeenInFeed ? new Date(vehicle.lastSeenInFeed).toLocaleDateString() : ''
+      vehicle.exterior_color || '',
+      vehicle.body_style || '',
+      vehicle.fuel_type || '',
+      vehicle.days_on_lot || 0,
+      vehicle.imported_at ? new Date(vehicle.imported_at).toLocaleDateString() : '',
+      vehicle.last_seen_in_feed ? new Date(vehicle.last_seen_in_feed).toLocaleDateString() : ''
     ])
 
     const csv = [

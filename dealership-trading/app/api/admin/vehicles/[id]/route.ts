@@ -18,21 +18,22 @@ export async function PATCH(
     const updates = await request.json()
     const vehicleId = params.id
 
-    // Validate that we're not updating protected fields
-    const allowedFields = [
-      'price',
-      'salePrice',
-      'status',
-      'condition',
-      'mileage',
-      'description',
-      'features'
-    ]
+    // Map camelCase to snake_case for database
+    const fieldMapping: Record<string, string> = {
+      price: 'price',
+      salePrice: 'sale_price',
+      status: 'status',
+      condition: 'condition',
+      mileage: 'mileage',
+      description: 'description',
+      features: 'features'
+    }
 
     const filteredUpdates = Object.keys(updates)
-      .filter(key => allowedFields.includes(key))
+      .filter(key => key in fieldMapping)
       .reduce((obj, key) => {
-        obj[key] = updates[key]
+        const dbField = fieldMapping[key]
+        obj[dbField] = updates[key]
         return obj
       }, {} as any)
 
@@ -56,8 +57,8 @@ export async function PATCH(
     await supabaseAdmin
       .from('activities')
       .insert({
-        vehicleId,
-        userId: session.user.id,
+        vehicle_id: vehicleId,
+        user_id: session.user.id,
         action: 'updated',
         description: `Updated vehicle details`,
         metadata: { updates: filteredUpdates },
@@ -87,7 +88,7 @@ export async function DELETE(
     const { data: transfers, error: transferError } = await supabaseAdmin
       .from('transfers')
       .select('id')
-      .eq('vehicleId', vehicleId)
+      .eq('vehicle_id', vehicleId)
       .in('status', ['requested', 'approved', 'in-transit'])
 
     if (transferError) {
@@ -105,7 +106,7 @@ export async function DELETE(
     // Log the deletion before deleting
     const { data: vehicle } = await supabaseAdmin
       .from('vehicles')
-      .select('stockNumber, vin, make, model, year')
+      .select('stock_number, vin, make, model, year')
       .eq('id', vehicleId)
       .single()
 
@@ -125,10 +126,10 @@ export async function DELETE(
       await supabaseAdmin
         .from('activities')
         .insert({
-          vehicleId: null, // Vehicle is deleted, so no reference
-          userId: session.user.id,
+          vehicle_id: null, // Vehicle is deleted, so no reference
+          user_id: session.user.id,
           action: 'deleted',
-          description: `Deleted vehicle: ${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.stockNumber})`,
+          description: `Deleted vehicle: ${vehicle.year} ${vehicle.make} ${vehicle.model} (${vehicle.stock_number})`,
           metadata: { deletedVehicle: vehicle },
         })
     }
