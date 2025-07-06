@@ -22,6 +22,15 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || ''
     const minPrice = searchParams.get('minPrice') || ''
     const maxPrice = searchParams.get('maxPrice') || ''
+    const minAge = searchParams.get('minAge') || ''
+    const maxAge = searchParams.get('maxAge') || ''
+    const minYear = searchParams.get('minYear') || ''
+    const maxYear = searchParams.get('maxYear') || ''
+    const minMileage = searchParams.get('minMileage') || ''
+    const maxMileage = searchParams.get('maxMileage') || ''
+    const make = searchParams.get('make') || ''
+    const model = searchParams.get('model') || ''
+    const condition = searchParams.get('condition') || ''
 
     const offset = (page - 1) * limit
 
@@ -75,6 +84,48 @@ export async function GET(request: NextRequest) {
 
     if (maxPrice) {
       query = query.lte('price', parseInt(maxPrice))
+    }
+
+    // Age filter (based on vehicle year)
+    if (minAge || maxAge) {
+      const currentYear = new Date().getFullYear()
+      if (maxAge) {
+        query = query.gte('year', currentYear - parseInt(maxAge))
+      }
+      if (minAge) {
+        query = query.lte('year', currentYear - parseInt(minAge))
+      }
+    }
+
+    // Year filter
+    if (minYear) {
+      query = query.gte('year', parseInt(minYear))
+    }
+    if (maxYear) {
+      query = query.lte('year', parseInt(maxYear))
+    }
+
+    // Mileage filter
+    if (minMileage) {
+      query = query.gte('mileage', parseInt(minMileage))
+    }
+    if (maxMileage) {
+      query = query.lte('mileage', parseInt(maxMileage))
+    }
+
+    // Make filter
+    if (make && make !== 'all') {
+      query = query.ilike('make', make)
+    }
+
+    // Model filter
+    if (model && model !== 'all') {
+      query = query.ilike('model', model)
+    }
+
+    // Condition filter
+    if (condition && condition !== 'all') {
+      query = query.eq('condition', condition)
     }
 
     // Apply pagination and ordering

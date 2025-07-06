@@ -1,9 +1,10 @@
 "use client"
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { ChevronDown, X } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { ChevronDown, X, Calendar, Gauge, Car, Fuel } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import type { DealershipLocation } from '@/types/vehicle';
+import { RangeSlider } from '@/components/ui/range-slider';
 
 interface VehicleFiltersProps {
   locations: DealershipLocation[];
@@ -16,15 +17,58 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showPriceDropdown, setShowPriceDropdown] = useState(false);
+  const [showAgeDropdown, setShowAgeDropdown] = useState(false);
+  const [showYearDropdown, setShowYearDropdown] = useState(false);
+  const [showMileageDropdown, setShowMileageDropdown] = useState(false);
+  const [showMakeDropdown, setShowMakeDropdown] = useState(false);
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [showConditionDropdown, setShowConditionDropdown] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   const priceRef = useRef<HTMLDivElement>(null);
+  const ageRef = useRef<HTMLDivElement>(null);
+  const yearRef = useRef<HTMLDivElement>(null);
+  const mileageRef = useRef<HTMLDivElement>(null);
+  const makeRef = useRef<HTMLDivElement>(null);
+  const modelRef = useRef<HTMLDivElement>(null);
+  const conditionRef = useRef<HTMLDivElement>(null);
+  
+  // State for slider values
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
+  const [ageRange, setAgeRange] = useState<[number, number]>([0, 10]);
+  const [yearRange, setYearRange] = useState<[number, number]>([2015, new Date().getFullYear()]);
+  const [mileageRange, setMileageRange] = useState<[number, number]>([0, 150000]);
 
   // Get current filter values
   const selectedLocation = searchParams.get('location');
   const selectedStatus = searchParams.get('status');
   const minPrice = searchParams.get('minPrice');
   const maxPrice = searchParams.get('maxPrice');
+  const minAge = searchParams.get('minAge');
+  const maxAge = searchParams.get('maxAge');
+  const minYear = searchParams.get('minYear');
+  const maxYear = searchParams.get('maxYear');
+  const minMileage = searchParams.get('minMileage');
+  const maxMileage = searchParams.get('maxMileage');
+  const selectedMake = searchParams.get('make');
+  const selectedModel = searchParams.get('model');
+  const selectedCondition = searchParams.get('condition');
+  
+  // Update slider values when search params change
+  useEffect(() => {
+    if (minPrice || maxPrice) {
+      setPriceRange([parseInt(minPrice || '0'), parseInt(maxPrice || '100000')]);
+    }
+    if (minAge || maxAge) {
+      setAgeRange([parseInt(minAge || '0'), parseInt(maxAge || '10')]);
+    }
+    if (minYear || maxYear) {
+      setYearRange([parseInt(minYear || '2015'), parseInt(maxYear || String(new Date().getFullYear()))]);
+    }
+    if (minMileage || maxMileage) {
+      setMileageRange([parseInt(minMileage || '0'), parseInt(maxMileage || '150000')]);
+    }
+  }, [minPrice, maxPrice, minAge, maxAge, minYear, maxYear, minMileage, maxMileage]);
 
   const statuses = [
     { value: 'available', label: 'Available' },
@@ -44,6 +88,24 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       }
       if (priceRef.current && !priceRef.current.contains(event.target as Node)) {
         setShowPriceDropdown(false);
+      }
+      if (ageRef.current && !ageRef.current.contains(event.target as Node)) {
+        setShowAgeDropdown(false);
+      }
+      if (yearRef.current && !yearRef.current.contains(event.target as Node)) {
+        setShowYearDropdown(false);
+      }
+      if (mileageRef.current && !mileageRef.current.contains(event.target as Node)) {
+        setShowMileageDropdown(false);
+      }
+      if (makeRef.current && !makeRef.current.contains(event.target as Node)) {
+        setShowMakeDropdown(false);
+      }
+      if (modelRef.current && !modelRef.current.contains(event.target as Node)) {
+        setShowModelDropdown(false);
+      }
+      if (conditionRef.current && !conditionRef.current.contains(event.target as Node)) {
+        setShowConditionDropdown(false);
       }
     }
 
@@ -75,11 +137,47 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
     }
   };
 
-  const activeFilterCount = [selectedLocation, selectedStatus, minPrice, maxPrice].filter(Boolean).length;
+  const activeFilterCount = [
+    selectedLocation,
+    selectedStatus,
+    minPrice,
+    maxPrice,
+    minAge,
+    maxAge,
+    minYear,
+    maxYear,
+    minMileage,
+    maxMileage,
+    selectedMake,
+    selectedModel,
+    selectedCondition
+  ].filter(Boolean).length;
 
+  const updateRangeFilter = (minKey: string, maxKey: string, values: [number, number]) => {
+    try {
+      const params = new URLSearchParams(searchParams.toString());
+      
+      if (values[0] > 0) {
+        params.set(minKey, values[0].toString());
+      } else {
+        params.delete(minKey);
+      }
+      
+      if (values[1] < (maxKey.includes('Price') ? 100000 : maxKey.includes('Age') ? 10 : maxKey.includes('Year') ? new Date().getFullYear() : 150000)) {
+        params.set(maxKey, values[1].toString());
+      } else {
+        params.delete(maxKey);
+      }
+      
+      router.push(`${pathname}?${params.toString()}`);
+    } catch (error) {
+      console.error('Error updating range filter:', error);
+    }
+  };
+  
   return (
     <div className="bg-white dark:bg-[#1f1f1f] p-4 rounded-lg border border-gray-200 dark:border-[#2a2a2a] transition-all duration-200">
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm font-medium text-gray-700 dark:text-gray-100">Filters:</span>
         
         {/* Location Filter */}
@@ -172,6 +270,38 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
           )}
         </div>
 
+        {/* Age Filter */}
+        <div className="relative" ref={ageRef}>
+          <button
+            onClick={() => setShowAgeDropdown(!showAgeDropdown)}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] transition-all duration-200"
+          >
+            <Calendar className="h-4 w-4" />
+            {minAge || maxAge
+              ? `${minAge || '0'}-${maxAge || '10'} years`
+              : 'Vehicle Age'}
+            <ChevronDown className="h-4 w-4" />
+          </button>
+          
+          {showAgeDropdown && (
+            <div className="absolute z-10 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333] p-4">
+              <RangeSlider
+                label="Vehicle Age (Years)"
+                min={0}
+                max={10}
+                step={1}
+                value={ageRange}
+                onValueChange={(value) => setAgeRange(value as [number, number])}
+                onValueCommit={(value) => updateRangeFilter('minAge', 'maxAge', value as [number, number])}
+                formatValue={(v) => `${v} ${v === 1 ? 'year' : 'years'}`}
+              />
+              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                Drag to filter by vehicle age
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Price Range Filter */}
         <div className="relative" ref={priceRef}>
           <button
@@ -185,38 +315,84 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
           </button>
           
           {showPriceDropdown && (
-            <div className="absolute z-10 mt-2 w-64 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333] p-4">
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Min Price
-                  </label>
-                  <input
-                    type="number"
-                    value={minPrice || ''}
-                    onChange={(e) => updateFilter('minPrice', e.target.value || null)}
-                    placeholder="0"
-                    className="w-full px-3 py-1 border border-gray-300 dark:border-[#333333] dark:bg-[#141414] dark:text-white rounded text-sm transition-all duration-200 focus:border-blue-500 dark:focus:border-blue-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Max Price
-                  </label>
-                  <input
-                    type="number"
-                    value={maxPrice || ''}
-                    onChange={(e) => updateFilter('maxPrice', e.target.value || null)}
-                    placeholder="No limit"
-                    className="w-full px-3 py-1 border border-gray-300 dark:border-[#333333] dark:bg-[#141414] dark:text-white rounded text-sm transition-all duration-200 focus:border-blue-500 dark:focus:border-blue-400"
-                  />
-                </div>
-                <button
-                  onClick={() => setShowPriceDropdown(false)}
-                  className="w-full bg-blue-600 text-white py-1 rounded text-sm hover:bg-blue-700 transition-all duration-200"
-                >
-                  Apply
-                </button>
+            <div className="absolute z-10 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333] p-4">
+              <RangeSlider
+                label="Price Range"
+                min={0}
+                max={100000}
+                step={1000}
+                value={priceRange}
+                onValueChange={(value) => setPriceRange(value as [number, number])}
+                onValueCommit={(value) => updateRangeFilter('minPrice', 'maxPrice', value as [number, number])}
+                formatValue={(v) => v.toLocaleString()}
+                prefix="$"
+              />
+              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                Drag to filter by price range
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Year Range Filter */}
+        <div className="relative" ref={yearRef}>
+          <button
+            onClick={() => setShowYearDropdown(!showYearDropdown)}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] transition-all duration-200"
+          >
+            <Calendar className="h-4 w-4" />
+            {minYear || maxYear
+              ? `${minYear || '2015'}-${maxYear || new Date().getFullYear()}`
+              : 'Year'}
+            <ChevronDown className="h-4 w-4" />
+          </button>
+          
+          {showYearDropdown && (
+            <div className="absolute z-10 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333] p-4">
+              <RangeSlider
+                label="Model Year"
+                min={2000}
+                max={new Date().getFullYear() + 1}
+                step={1}
+                value={yearRange}
+                onValueChange={(value) => setYearRange(value as [number, number])}
+                onValueCommit={(value) => updateRangeFilter('minYear', 'maxYear', value as [number, number])}
+              />
+              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                Drag to filter by model year
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Mileage Range Filter */}
+        <div className="relative" ref={mileageRef}>
+          <button
+            onClick={() => setShowMileageDropdown(!showMileageDropdown)}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] transition-all duration-200"
+          >
+            <Gauge className="h-4 w-4" />
+            {minMileage || maxMileage
+              ? `${(parseInt(minMileage || '0') / 1000).toFixed(0)}k-${(parseInt(maxMileage || '150000') / 1000).toFixed(0)}k mi`
+              : 'Mileage'}
+            <ChevronDown className="h-4 w-4" />
+          </button>
+          
+          {showMileageDropdown && (
+            <div className="absolute z-10 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333] p-4">
+              <RangeSlider
+                label="Mileage"
+                min={0}
+                max={200000}
+                step={5000}
+                value={mileageRange}
+                onValueChange={(value) => setMileageRange(value as [number, number])}
+                onValueCommit={(value) => updateRangeFilter('minMileage', 'maxMileage', value as [number, number])}
+                formatValue={(v) => `${(v / 1000).toFixed(0)}k`}
+                suffix=" miles"
+              />
+              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                Drag to filter by mileage
               </div>
             </div>
           )}

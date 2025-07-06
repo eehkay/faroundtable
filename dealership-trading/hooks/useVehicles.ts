@@ -37,6 +37,15 @@ export function useVehicles() {
         ...(searchParams.get('status') && { status: searchParams.get('status')! }),
         ...(searchParams.get('minPrice') && { minPrice: searchParams.get('minPrice')! }),
         ...(searchParams.get('maxPrice') && { maxPrice: searchParams.get('maxPrice')! }),
+        ...(searchParams.get('minAge') && { minAge: searchParams.get('minAge')! }),
+        ...(searchParams.get('maxAge') && { maxAge: searchParams.get('maxAge')! }),
+        ...(searchParams.get('minYear') && { minYear: searchParams.get('minYear')! }),
+        ...(searchParams.get('maxYear') && { maxYear: searchParams.get('maxYear')! }),
+        ...(searchParams.get('minMileage') && { minMileage: searchParams.get('minMileage')! }),
+        ...(searchParams.get('maxMileage') && { maxMileage: searchParams.get('maxMileage')! }),
+        ...(searchParams.get('make') && { make: searchParams.get('make')! }),
+        ...(searchParams.get('model') && { model: searchParams.get('model')! }),
+        ...(searchParams.get('condition') && { condition: searchParams.get('condition')! }),
       })
 
       const response = await fetch(`/api/vehicles?${params}`)
