@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Vehicle, DealershipLocation } from '@/types/vehicle'
 import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -32,6 +32,14 @@ export default function VehicleDataTable({
 }: VehicleDataTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('stockNumber')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const checkboxRef = useRef<HTMLInputElement>(null)
+
+  // Set indeterminate state on checkbox
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = selectedVehicles.size > 0 && selectedVehicles.size < vehicles.length
+    }
+  }, [selectedVehicles.size, vehicles.length])
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -117,9 +125,9 @@ export default function VehicleDataTable({
             <tr className="border-b border-[#2a2a2a]">
               <th className="text-left p-4">
                 <input
+                  ref={checkboxRef}
                   type="checkbox"
                   checked={selectedVehicles.size === vehicles.length && vehicles.length > 0}
-                  indeterminate={selectedVehicles.size > 0 && selectedVehicles.size < vehicles.length}
                   onChange={handleSelectAll}
                   className="rounded border-gray-600 bg-[#141414] text-blue-500 focus:ring-blue-500"
                 />

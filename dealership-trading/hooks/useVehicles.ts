@@ -24,7 +24,7 @@ export function useVehicles() {
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
 
-  const fetchVehicles = useCallback(async (pageNum: number, reset = false) => {
+  const fetchVehicles = useCallback(async (pageNum: number, reset = false, currentSearchParams: URLSearchParams) => {
     setIsLoading(true)
     setError(null)
 
@@ -32,20 +32,20 @@ export function useVehicles() {
       const params = new URLSearchParams({
         page: pageNum.toString(),
         limit: '20',
-        ...(searchParams.get('search') && { search: searchParams.get('search')! }),
-        ...(searchParams.get('location') && { location: searchParams.get('location')! }),
-        ...(searchParams.get('status') && { status: searchParams.get('status')! }),
-        ...(searchParams.get('minPrice') && { minPrice: searchParams.get('minPrice')! }),
-        ...(searchParams.get('maxPrice') && { maxPrice: searchParams.get('maxPrice')! }),
-        ...(searchParams.get('minDaysOnLot') && { minDaysOnLot: searchParams.get('minDaysOnLot')! }),
-        ...(searchParams.get('maxDaysOnLot') && { maxDaysOnLot: searchParams.get('maxDaysOnLot')! }),
-        ...(searchParams.get('minYear') && { minYear: searchParams.get('minYear')! }),
-        ...(searchParams.get('maxYear') && { maxYear: searchParams.get('maxYear')! }),
-        ...(searchParams.get('minMileage') && { minMileage: searchParams.get('minMileage')! }),
-        ...(searchParams.get('maxMileage') && { maxMileage: searchParams.get('maxMileage')! }),
-        ...(searchParams.get('make') && { make: searchParams.get('make')! }),
-        ...(searchParams.get('model') && { model: searchParams.get('model')! }),
-        ...(searchParams.get('condition') && { condition: searchParams.get('condition')! }),
+        ...(currentSearchParams.get('search') && { search: currentSearchParams.get('search')! }),
+        ...(currentSearchParams.get('location') && { location: currentSearchParams.get('location')! }),
+        ...(currentSearchParams.get('status') && { status: currentSearchParams.get('status')! }),
+        ...(currentSearchParams.get('minPrice') && { minPrice: currentSearchParams.get('minPrice')! }),
+        ...(currentSearchParams.get('maxPrice') && { maxPrice: currentSearchParams.get('maxPrice')! }),
+        ...(currentSearchParams.get('minDaysOnLot') && { minDaysOnLot: currentSearchParams.get('minDaysOnLot')! }),
+        ...(currentSearchParams.get('maxDaysOnLot') && { maxDaysOnLot: currentSearchParams.get('maxDaysOnLot')! }),
+        ...(currentSearchParams.get('minYear') && { minYear: currentSearchParams.get('minYear')! }),
+        ...(currentSearchParams.get('maxYear') && { maxYear: currentSearchParams.get('maxYear')! }),
+        ...(currentSearchParams.get('minMileage') && { minMileage: currentSearchParams.get('minMileage')! }),
+        ...(currentSearchParams.get('maxMileage') && { maxMileage: currentSearchParams.get('maxMileage')! }),
+        ...(currentSearchParams.get('make') && { make: currentSearchParams.get('make')! }),
+        ...(currentSearchParams.get('model') && { model: currentSearchParams.get('model')! }),
+        ...(currentSearchParams.get('condition') && { condition: currentSearchParams.get('condition')! }),
       })
 
       const response = await fetch(`/api/vehicles?${params}`)
@@ -64,28 +64,28 @@ export function useVehicles() {
     } finally {
       setIsLoading(false)
     }
-  }, [searchParams])
+  }, [])
 
   // Reset and fetch when search params change
   useEffect(() => {
     setPage(1)
     setVehicles([])
-    fetchVehicles(1, true)
-  }, [searchParams])
+    fetchVehicles(1, true, searchParams)
+  }, [searchParams, fetchVehicles])
 
   const loadMore = useCallback(() => {
     if (!isLoading && hasMore) {
       const nextPage = page + 1
       setPage(nextPage)
-      fetchVehicles(nextPage)
+      fetchVehicles(nextPage, false, searchParams)
     }
-  }, [page, isLoading, hasMore, fetchVehicles])
+  }, [page, isLoading, hasMore, fetchVehicles, searchParams])
 
   const refreshVehicles = useCallback(() => {
     setPage(1)
     setVehicles([])
-    fetchVehicles(1, true)
-  }, [fetchVehicles])
+    fetchVehicles(1, true, searchParams)
+  }, [fetchVehicles, searchParams])
 
   return {
     vehicles,

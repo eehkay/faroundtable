@@ -16,8 +16,7 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
-  Car,
-  Menu
+  Car
 } from "lucide-react";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 
@@ -157,15 +156,31 @@ export default function AdminLayout({
       <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-[#1f1f1f] border-r border-[#2a2a2a] transition-all duration-200 ease-in-out`}>
         <div className="p-4">
           {/* Toggle Button */}
-          <button
-            onClick={toggleSidebar}
-            className="flex items-center justify-center w-full p-2 mb-4 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-lg transition-colors"
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          {!isCollapsed ? (
+            <button
+              onClick={toggleSidebar}
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-6"
+              title="Collapse sidebar"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Collapse
+            </button>
+          ) : (
+            <div className="relative group mb-6">
+              <button
+                onClick={toggleSidebar}
+                className="flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-lg transition-colors"
+                title="Expand sidebar"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#2a2a2a] text-white text-sm rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                Expand sidebar
+              </div>
+            </div>
+          )}
 
-          {!isCollapsed && (
+          {!isCollapsed ? (
             <Link 
               href="/dashboard"
               className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-6"
@@ -173,6 +188,18 @@ export default function AdminLayout({
               <ChevronLeft className="h-4 w-4" />
               Back to Main Dashboard
             </Link>
+          ) : (
+            <div className="relative group mb-6">
+              <Link 
+                href="/dashboard"
+                className="flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-lg transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Link>
+              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#2a2a2a] text-white text-sm rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                Back to Main Dashboard
+              </div>
+            </div>
           )}
           
           {!isCollapsed && <h2 className="text-lg font-semibold text-white mb-4">Admin Panel</h2>}
