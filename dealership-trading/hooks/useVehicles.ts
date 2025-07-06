@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Vehicle } from '@/types/vehicle'
-import { useDebouncedCallback } from 'use-debounce'
 
 interface VehiclesResponse {
   vehicles: Vehicle[]
@@ -24,17 +23,87 @@ export function useVehicles() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
-  const [debouncedSearchParams, setDebouncedSearchParams] = useState(searchParams)
+  
+  // Get search params directly - VehicleSearch already handles debouncing
+  const search = searchParams.get('search') || ''
+  const location = searchParams.get('location') || ''
+  const status = searchParams.get('status') || ''
+  const minPrice = searchParams.get('minPrice') || ''
+  const maxPrice = searchParams.get('maxPrice') || ''
+  const minDaysOnLot = searchParams.get('minDaysOnLot') || ''
+  const maxDaysOnLot = searchParams.get('maxDaysOnLot') || ''
+  const minYear = searchParams.get('minYear') || ''
+  const maxYear = searchParams.get('maxYear') || ''
+  const minMileage = searchParams.get('minMileage') || ''
+  const maxMileage = searchParams.get('maxMileage') || ''
+  const make = searchParams.get('make') || ''
+  const model = searchParams.get('model') || ''
+  const condition = searchParams.get('condition') || ''
 
-  // Debounce search params updates
-  const updateDebouncedSearchParams = useDebouncedCallback(
-    (newSearchParams: URLSearchParams) => {
-      setDebouncedSearchParams(newSearchParams)
-    },
-    300
-  )
+  // Reset and fetch when any filter changes
+  useEffect(() => {
+    let cancelled = false
 
-  const fetchVehicles = useCallback(async (pageNum: number, reset = false, currentSearchParams: URLSearchParams) => {
+    const fetchData = async () => {
+      if (cancelled) return
+      
+      setIsLoading(true)
+      setError(null)
+      setPage(1)
+      setVehicles([])
+
+      try {
+        const params = new URLSearchParams({
+          page: '1',
+          limit: '20',
+          ...(search && { search }),
+          ...(location && { location }),
+          ...(status && { status }),
+          ...(minPrice && { minPrice }),
+          ...(maxPrice && { maxPrice }),
+          ...(minDaysOnLot && { minDaysOnLot }),
+          ...(maxDaysOnLot && { maxDaysOnLot }),
+          ...(minYear && { minYear }),
+          ...(maxYear && { maxYear }),
+          ...(minMileage && { minMileage }),
+          ...(maxMileage && { maxMileage }),
+          ...(make && { make }),
+          ...(model && { model }),
+          ...(condition && { condition }),
+        })
+
+        const response = await fetch(`/api/vehicles?${params}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch vehicles')
+        }
+
+        const data: VehiclesResponse = await response.json()
+        
+        if (!cancelled) {
+          setVehicles(data.vehicles)
+          setTotalPages(data.pagination.totalPages)
+          setTotalCount(data.pagination.totalCount)
+          setHasMore(data.pagination.hasNextPage)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'An error occurred')
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    fetchData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [search, location, status, minPrice, maxPrice, minDaysOnLot, maxDaysOnLot, minYear, maxYear, minMileage, maxMileage, make, model, condition])
+
+  const fetchVehicles = useCallback(async (pageNum: number, reset = false) => {
     setIsLoading(true)
     setError(null)
 
@@ -42,20 +111,20 @@ export function useVehicles() {
       const params = new URLSearchParams({
         page: pageNum.toString(),
         limit: '20',
-        ...(currentSearchParams.get('search') && { search: currentSearchParams.get('search')! }),
-        ...(currentSearchParams.get('location') && { location: currentSearchParams.get('location')! }),
-        ...(currentSearchParams.get('status') && { status: currentSearchParams.get('status')! }),
-        ...(currentSearchParams.get('minPrice') && { minPrice: currentSearchParams.get('minPrice')! }),
-        ...(currentSearchParams.get('maxPrice') && { maxPrice: currentSearchParams.get('maxPrice')! }),
-        ...(currentSearchParams.get('minDaysOnLot') && { minDaysOnLot: currentSearchParams.get('minDaysOnLot')! }),
-        ...(currentSearchParams.get('maxDaysOnLot') && { maxDaysOnLot: currentSearchParams.get('maxDaysOnLot')! }),
-        ...(currentSearchParams.get('minYear') && { minYear: currentSearchParams.get('minYear')! }),
-        ...(currentSearchParams.get('maxYear') && { maxYear: currentSearchParams.get('maxYear')! }),
-        ...(currentSearchParams.get('minMileage') && { minMileage: currentSearchParams.get('minMileage')! }),
-        ...(currentSearchParams.get('maxMileage') && { maxMileage: currentSearchParams.get('maxMileage')! }),
-        ...(currentSearchParams.get('make') && { make: currentSearchParams.get('make')! }),
-        ...(currentSearchParams.get('model') && { model: currentSearchParams.get('model')! }),
-        ...(currentSearchParams.get('condition') && { condition: currentSearchParams.get('condition')! }),
+        ...(search && { search }),
+        ...(location && { location }),
+        ...(status && { status }),
+        ...(minPrice && { minPrice }),
+        ...(maxPrice && { maxPrice }),
+        ...(minDaysOnLot && { minDaysOnLot }),
+        ...(maxDaysOnLot && { maxDaysOnLot }),
+        ...(minYear && { minYear }),
+        ...(maxYear && { maxYear }),
+        ...(minMileage && { minMileage }),
+        ...(maxMileage && { maxMileage }),
+        ...(make && { make }),
+        ...(model && { model }),
+        ...(condition && { condition }),
       })
 
       const response = await fetch(`/api/vehicles?${params}`)
@@ -74,33 +143,21 @@ export function useVehicles() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
-
-  // Update debounced search params when search params change
-  useEffect(() => {
-    updateDebouncedSearchParams(searchParams)
-  }, [searchParams, updateDebouncedSearchParams])
-
-  // Reset and fetch when debounced search params change
-  useEffect(() => {
-    setPage(1)
-    setVehicles([])
-    fetchVehicles(1, true, debouncedSearchParams)
-  }, [debouncedSearchParams, fetchVehicles])
+  }, [search, location, status, minPrice, maxPrice, minDaysOnLot, maxDaysOnLot, minYear, maxYear, minMileage, maxMileage, make, model, condition])
 
   const loadMore = useCallback(() => {
     if (!isLoading && hasMore) {
       const nextPage = page + 1
       setPage(nextPage)
-      fetchVehicles(nextPage, false, debouncedSearchParams)
+      fetchVehicles(nextPage, false)
     }
-  }, [page, isLoading, hasMore, fetchVehicles, debouncedSearchParams])
+  }, [page, isLoading, hasMore, fetchVehicles])
 
   const refreshVehicles = useCallback(() => {
     setPage(1)
     setVehicles([])
-    fetchVehicles(1, true, debouncedSearchParams)
-  }, [fetchVehicles, debouncedSearchParams])
+    fetchVehicles(1, true)
+  }, [fetchVehicles])
 
   return {
     vehicles,
