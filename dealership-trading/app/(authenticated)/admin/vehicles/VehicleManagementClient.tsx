@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase-client'
 import { Vehicle, DealershipLocation } from '@/types/vehicle'
 import { Search, Filter, Download, Plus, Loader2 } from 'lucide-react'
 import VehicleDataTable from '@/components/admin/vehicles/VehicleDataTable'
