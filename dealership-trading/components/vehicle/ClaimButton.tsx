@@ -282,7 +282,7 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
               onClick={(e) => {
                 console.log('Submit button clicked - manual submit');
                 e.preventDefault();
-                handleSubmit(e as any);
+                handleSubmit(e as React.FormEvent);
               }}
             >
               {loading ? 'Submitting...' : 'Submit Request'}
