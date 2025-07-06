@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Vehicle } from '@/types/vehicle'
+import { useDebouncedCallback } from 'use-debounce'
 
 interface VehiclesResponse {
   vehicles: Vehicle[]
@@ -23,6 +24,15 @@ export function useVehicles() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
+  const [debouncedSearchParams, setDebouncedSearchParams] = useState(searchParams)
+
+  // Debounce search params updates
+  const updateDebouncedSearchParams = useDebouncedCallback(
+    (newSearchParams: URLSearchParams) => {
+      setDebouncedSearchParams(newSearchParams)
+    },
+    300
+  )
 
   const fetchVehicles = useCallback(async (pageNum: number, reset = false, currentSearchParams: URLSearchParams) => {
     setIsLoading(true)
@@ -66,26 +76,31 @@ export function useVehicles() {
     }
   }, [])
 
-  // Reset and fetch when search params change
+  // Update debounced search params when search params change
+  useEffect(() => {
+    updateDebouncedSearchParams(searchParams)
+  }, [searchParams, updateDebouncedSearchParams])
+
+  // Reset and fetch when debounced search params change
   useEffect(() => {
     setPage(1)
     setVehicles([])
-    fetchVehicles(1, true, searchParams)
-  }, [searchParams, fetchVehicles])
+    fetchVehicles(1, true, debouncedSearchParams)
+  }, [debouncedSearchParams, fetchVehicles])
 
   const loadMore = useCallback(() => {
     if (!isLoading && hasMore) {
       const nextPage = page + 1
       setPage(nextPage)
-      fetchVehicles(nextPage, false, searchParams)
+      fetchVehicles(nextPage, false, debouncedSearchParams)
     }
-  }, [page, isLoading, hasMore, fetchVehicles, searchParams])
+  }, [page, isLoading, hasMore, fetchVehicles, debouncedSearchParams])
 
   const refreshVehicles = useCallback(() => {
     setPage(1)
     setVehicles([])
-    fetchVehicles(1, true, searchParams)
-  }, [fetchVehicles, searchParams])
+    fetchVehicles(1, true, debouncedSearchParams)
+  }, [fetchVehicles, debouncedSearchParams])
 
   return {
     vehicles,

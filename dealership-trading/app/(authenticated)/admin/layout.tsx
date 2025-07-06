@@ -163,7 +163,7 @@ export default function AdminLayout({
               title="Collapse sidebar"
             >
               <ChevronLeft className="h-4 w-4" />
-              Collapse
+              Collapse Navigation
             </button>
           ) : (
             <div className="relative group mb-6">
