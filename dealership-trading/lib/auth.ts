@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import { supabaseAdmin } from "./supabase-server"
+import { getImpersonationData } from "./impersonation"
 
 // Allowed domains from environment variable
 const ALLOWED_DOMAINS = process.env.ALLOWED_DOMAINS?.split(',').map(d => d.trim()) || ['delmaradv.com', 'formanautomotive.com']
@@ -109,41 +110,82 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session?.user?.email) {
         try {
-          // Fetch user with location data
-          const { data: user, error } = await supabaseAdmin
-            .from('users')
-            .select(`
-              id,
-              role,
-              domain,
-              location:location_id(
+          // Check for impersonation
+          const impersonationData = await getImpersonationData()
+          
+          if (impersonationData?.active) {
+            // Load the impersonated user's data
+            const { data: targetUser, error: targetError } = await supabaseAdmin
+              .from('users')
+              .select(`
                 id,
                 name,
-                code
-              )
-            `)
-            .eq('email', session.user.email)
-            .single()
-          
-          if (error) {
-            console.error('Error fetching user for session:', error)
-            // Provide fallback values
-            session.user.id = crypto.randomUUID()
-            session.user.role = 'sales'
-            session.user.domain = session.user.email.split('@')[1]
-            session.user.location = undefined
-          } else if (user) {
-            session.user.id = user.id
-            session.user.role = user.role || 'sales'
-            session.user.domain = user.domain || session.user.email.split('@')[1]
-            session.user.location = user.location && !Array.isArray(user.location) ? user.location : undefined
+                email,
+                role,
+                domain,
+                image_url,
+                location:location_id(
+                  id,
+                  name,
+                  code
+                )
+              `)
+              .eq('id', impersonationData.targetUserId)
+              .single()
+            
+            if (!targetError && targetUser) {
+              // Override session with impersonated user data
+              session.user = {
+                ...session.user,
+                id: targetUser.id,
+                name: targetUser.name || targetUser.email,
+                email: targetUser.email,
+                role: targetUser.role || 'sales',
+                domain: targetUser.domain || targetUser.email.split('@')[1],
+                location: targetUser.location && !Array.isArray(targetUser.location) ? targetUser.location : undefined,
+                image: targetUser.image_url || session.user.image
+              }
+              
+              // Add impersonation info to session
+              session.impersonating = impersonationData
+            }
+          } else {
+            // Normal session enrichment
+            const { data: user, error } = await supabaseAdmin
+              .from('users')
+              .select(`
+                id,
+                role,
+                domain,
+                location:location_id(
+                  id,
+                  name,
+                  code
+                )
+              `)
+              .eq('email', session.user.email)
+              .single()
+            
+            if (error) {
+              console.error('Error fetching user for session:', error)
+              // Provide fallback values
+              session.user.id = crypto.randomUUID()
+              session.user.role = 'sales'
+              session.user.domain = session.user.email.split('@')[1]
+              session.user.location = undefined
+            } else if (user) {
+              session.user.id = user.id
+              session.user.role = user.role || 'sales'
+              session.user.domain = user.domain || session.user.email.split('@')[1]
+              session.user.location = user.location && !Array.isArray(user.location) ? user.location : undefined
+            }
           }
         } catch (error) {
           console.error('Error enriching session:', error)
           // Provide fallback values
           session.user.id = crypto.randomUUID()
           session.user.role = 'sales'
-          session.user.domain = session.user.email.split('@')[1]
+          session.user.domain = session.user.email?.split('@')[1] || 'unknown'
           session.user.location = undefined
         }
       }

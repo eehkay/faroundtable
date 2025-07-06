@@ -12,8 +12,8 @@ export default async function UsersPage() {
   console.log('Admin Users Page - Session:', session?.user?.role);
   console.log('Admin Users Page - Can Manage Users:', session ? canManageUsers(session.user.role) : false);
   
-  if (!session || !canManageUsers(session.user.role)) {
-    console.log('Redirecting to dashboard - insufficient permissions');
+  if (!session || !canManageUsers(session.user.role) || session.impersonating?.active) {
+    console.log('Redirecting to dashboard - insufficient permissions or impersonating');
     redirect("/dashboard");
   }
 

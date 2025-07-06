@@ -50,3 +50,46 @@ export function canViewTransfers(role: string): boolean {
 export function canManageDealerships(role: string): boolean {
   return role === 'admin'
 }
+
+// Dealer-specific transfer approval permissions
+export function canApproveTransferForLocation(
+  role: string, 
+  userLocationId: string | null, 
+  vehicleFromLocationId: string
+): boolean {
+  // Admins can approve any transfer
+  if (role === 'admin') return true
+  
+  // Managers can only approve transfers for vehicles FROM their own dealership
+  if (role === 'manager' && userLocationId) {
+    return userLocationId === vehicleFromLocationId
+  }
+  
+  return false
+}
+
+export function canRejectTransferForLocation(
+  role: string, 
+  userLocationId: string | null, 
+  vehicleFromLocationId: string
+): boolean {
+  // Same logic as approval - only the owning dealership (or admin) can reject
+  return canApproveTransferForLocation(role, userLocationId, vehicleFromLocationId)
+}
+
+// Check if user can access admin features while impersonating
+export function canAccessAdminWhileImpersonating(): boolean {
+  // Prevent access to sensitive admin features while impersonating
+  return false
+}
+
+// Check if user can impersonate other users
+export function canImpersonate(userRole: string): boolean {
+  return userRole === 'admin'
+}
+
+// Check if user can be impersonated
+export function canBeImpersonated(targetRole: string): boolean {
+  // Cannot impersonate other admins for security
+  return targetRole !== 'admin'
+}

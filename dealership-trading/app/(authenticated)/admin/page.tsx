@@ -7,6 +7,7 @@ import { Users, TruckIcon, Mail, Activity, Package, AlertTriangle, Settings, Fil
 import Link from "next/link";
 import { supabase } from "@/lib/supabase-client";
 import { isAdmin, isManager } from "@/lib/permissions";
+import ImpersonationSelector from "@/components/admin/ImpersonationSelector";
 
 interface DashboardStats {
   totalUsers: number;
@@ -209,6 +210,11 @@ export default function AdminDashboard() {
           Manage your dealership network from one central location
         </p>
       </div>
+
+      {/* Impersonation Selector - Only for admins */}
+      {isAdmin(session.user.role) && !session.impersonating?.active && (
+        <ImpersonationSelector />
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -12,5 +12,18 @@ declare module "next-auth" {
       }
       domain: string
     } & DefaultSession["user"]
+    impersonating?: {
+      active: boolean
+      targetUserId: string
+      targetUserEmail: string
+      originalUser: {
+        id: string
+        email: string
+        name: string
+        role: string
+      }
+      startedAt: string
+      expiresAt: string
+    }
   }
 }
