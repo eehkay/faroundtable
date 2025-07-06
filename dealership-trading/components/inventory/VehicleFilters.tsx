@@ -1,8 +1,8 @@
 "use client"
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { ChevronDown, X, Calendar, Gauge, Car, Fuel } from 'lucide-react';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { ChevronDown, X, Calendar, Gauge, DollarSign, Clock } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { DealershipLocation } from '@/types/vehicle';
 import { RangeSlider } from '@/components/ui/range-slider';
 
@@ -10,32 +10,36 @@ interface VehicleFiltersProps {
   locations: DealershipLocation[];
 }
 
+interface VehicleStats {
+  minPrice: number;
+  maxPrice: number;
+  minYear: number;
+  maxYear: number;  
+  minMileage: number;
+  maxMileage: number;
+  minDaysOnLot: number;
+  maxDaysOnLot: number;
+  makes: string[];
+}
+
 export default function VehicleFilters({ locations }: VehicleFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  
+  // Dropdown states
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const [showPriceDropdown, setShowPriceDropdown] = useState(false);
-  const [showAgeDropdown, setShowAgeDropdown] = useState(false);
-  const [showYearDropdown, setShowYearDropdown] = useState(false);
-  const [showMileageDropdown, setShowMileageDropdown] = useState(false);
-  const [showMakeDropdown, setShowMakeDropdown] = useState(false);
-  const [showModelDropdown, setShowModelDropdown] = useState(false);
-  const [showConditionDropdown, setShowConditionDropdown] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
-  const priceRef = useRef<HTMLDivElement>(null);
-  const ageRef = useRef<HTMLDivElement>(null);
-  const yearRef = useRef<HTMLDivElement>(null);
-  const mileageRef = useRef<HTMLDivElement>(null);
-  const makeRef = useRef<HTMLDivElement>(null);
-  const modelRef = useRef<HTMLDivElement>(null);
-  const conditionRef = useRef<HTMLDivElement>(null);
+  
+  // Fetch dynamic ranges from inventory
+  const [stats, setStats] = useState<VehicleStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
   
   // State for slider values
+  const [daysOnLotRange, setDaysOnLotRange] = useState<[number, number]>([0, 90]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
-  const [ageRange, setAgeRange] = useState<[number, number]>([0, 10]);
   const [yearRange, setYearRange] = useState<[number, number]>([2015, new Date().getFullYear()]);
   const [mileageRange, setMileageRange] = useState<[number, number]>([0, 150000]);
 
@@ -44,31 +48,61 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
   const selectedStatus = searchParams.get('status');
   const minPrice = searchParams.get('minPrice');
   const maxPrice = searchParams.get('maxPrice');
-  const minAge = searchParams.get('minAge');
-  const maxAge = searchParams.get('maxAge');
+  const minDaysOnLot = searchParams.get('minDaysOnLot');
+  const maxDaysOnLot = searchParams.get('maxDaysOnLot');
   const minYear = searchParams.get('minYear');
   const maxYear = searchParams.get('maxYear');
   const minMileage = searchParams.get('minMileage');
   const maxMileage = searchParams.get('maxMileage');
-  const selectedMake = searchParams.get('make');
-  const selectedModel = searchParams.get('model');
-  const selectedCondition = searchParams.get('condition');
+  
+  // Fetch vehicle stats for dynamic ranges
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/vehicles/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+          
+          // Set initial ranges based on inventory
+          if (!minDaysOnLot && !maxDaysOnLot) {
+            setDaysOnLotRange([data.minDaysOnLot, data.maxDaysOnLot]);
+          }
+          if (!minPrice && !maxPrice) {
+            setPriceRange([data.minPrice, data.maxPrice]);
+          }
+          if (!minYear && !maxYear) {
+            setYearRange([data.minYear, data.maxYear]);
+          }
+          if (!minMileage && !maxMileage) {
+            setMileageRange([data.minMileage, data.maxMileage]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch vehicle stats:', error);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+    
+    fetchStats();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Update slider values when search params change
   useEffect(() => {
     if (minPrice || maxPrice) {
-      setPriceRange([parseInt(minPrice || '0'), parseInt(maxPrice || '100000')]);
+      setPriceRange([parseInt(minPrice || '0'), parseInt(maxPrice || stats?.maxPrice.toString() || '100000')]);
     }
-    if (minAge || maxAge) {
-      setAgeRange([parseInt(minAge || '0'), parseInt(maxAge || '10')]);
+    if (minDaysOnLot || maxDaysOnLot) {
+      setDaysOnLotRange([parseInt(minDaysOnLot || '0'), parseInt(maxDaysOnLot || stats?.maxDaysOnLot.toString() || '90')]);
     }
     if (minYear || maxYear) {
-      setYearRange([parseInt(minYear || '2015'), parseInt(maxYear || String(new Date().getFullYear()))]);
+      setYearRange([parseInt(minYear || stats?.minYear.toString() || '2015'), parseInt(maxYear || stats?.maxYear.toString() || String(new Date().getFullYear()))]);
     }
     if (minMileage || maxMileage) {
-      setMileageRange([parseInt(minMileage || '0'), parseInt(maxMileage || '150000')]);
+      setMileageRange([parseInt(minMileage || '0'), parseInt(maxMileage || stats?.maxMileage.toString() || '150000')]);
     }
-  }, [minPrice, maxPrice, minAge, maxAge, minYear, maxYear, minMileage, maxMileage]);
+  }, [minPrice, maxPrice, minDaysOnLot, maxDaysOnLot, minYear, maxYear, minMileage, maxMileage, stats]);
 
   const statuses = [
     { value: 'available', label: 'Available' },
@@ -85,27 +119,6 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       }
       if (statusRef.current && !statusRef.current.contains(event.target as Node)) {
         setShowStatusDropdown(false);
-      }
-      if (priceRef.current && !priceRef.current.contains(event.target as Node)) {
-        setShowPriceDropdown(false);
-      }
-      if (ageRef.current && !ageRef.current.contains(event.target as Node)) {
-        setShowAgeDropdown(false);
-      }
-      if (yearRef.current && !yearRef.current.contains(event.target as Node)) {
-        setShowYearDropdown(false);
-      }
-      if (mileageRef.current && !mileageRef.current.contains(event.target as Node)) {
-        setShowMileageDropdown(false);
-      }
-      if (makeRef.current && !makeRef.current.contains(event.target as Node)) {
-        setShowMakeDropdown(false);
-      }
-      if (modelRef.current && !modelRef.current.contains(event.target as Node)) {
-        setShowModelDropdown(false);
-      }
-      if (conditionRef.current && !conditionRef.current.contains(event.target as Node)) {
-        setShowConditionDropdown(false);
       }
     }
 
@@ -129,6 +142,29 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
     }
   };
 
+  const updateRangeFilter = useCallback((minKey: string, maxKey: string, values: [number, number], defaults: [number, number]) => {
+    try {
+      const params = new URLSearchParams(searchParams.toString());
+      
+      // Only set params if they differ from the full range
+      if (values[0] > defaults[0]) {
+        params.set(minKey, values[0].toString());
+      } else {
+        params.delete(minKey);
+      }
+      
+      if (values[1] < defaults[1]) {
+        params.set(maxKey, values[1].toString());
+      } else {
+        params.delete(maxKey);
+      }
+      
+      router.push(`${pathname}?${params.toString()}`);
+    } catch (error) {
+      console.error('Error updating range filter:', error);
+    }
+  }, [pathname, router, searchParams]);
+
   const clearAllFilters = () => {
     try {
       router.push(pathname);
@@ -142,43 +178,29 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
     selectedStatus,
     minPrice,
     maxPrice,
-    minAge,
-    maxAge,
+    minDaysOnLot,
+    maxDaysOnLot,
     minYear,
     maxYear,
     minMileage,
-    maxMileage,
-    selectedMake,
-    selectedModel,
-    selectedCondition
+    maxMileage
   ].filter(Boolean).length;
-
-  const updateRangeFilter = (minKey: string, maxKey: string, values: [number, number]) => {
-    try {
-      const params = new URLSearchParams(searchParams.toString());
-      
-      if (values[0] > 0) {
-        params.set(minKey, values[0].toString());
-      } else {
-        params.delete(minKey);
-      }
-      
-      if (values[1] < (maxKey.includes('Price') ? 100000 : maxKey.includes('Age') ? 10 : maxKey.includes('Year') ? new Date().getFullYear() : 150000)) {
-        params.set(maxKey, values[1].toString());
-      } else {
-        params.delete(maxKey);
-      }
-      
-      router.push(`${pathname}?${params.toString()}`);
-    } catch (error) {
-      console.error('Error updating range filter:', error);
-    }
-  };
   
+  if (isLoadingStats) {
+    return (
+      <div className="bg-white dark:bg-[#1f1f1f] p-4 rounded-lg border border-gray-200 dark:border-[#2a2a2a] transition-all duration-200">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded w-full"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white dark:bg-[#1f1f1f] p-4 rounded-lg border border-gray-200 dark:border-[#2a2a2a] transition-all duration-200">
+    <div className="bg-white dark:bg-[#1f1f1f] p-6 rounded-lg border border-gray-200 dark:border-[#2a2a2a] transition-all duration-200 space-y-6">
+      {/* Dropdown Filters Row */}
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-100">Filters:</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-100">Quick Filters:</span>
         
         {/* Location Filter */}
         <div className="relative" ref={locationRef}>
@@ -270,134 +292,6 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
           )}
         </div>
 
-        {/* Age Filter */}
-        <div className="relative" ref={ageRef}>
-          <button
-            onClick={() => setShowAgeDropdown(!showAgeDropdown)}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] transition-all duration-200"
-          >
-            <Calendar className="h-4 w-4" />
-            {minAge || maxAge
-              ? `${minAge || '0'}-${maxAge || '10'} years`
-              : 'Vehicle Age'}
-            <ChevronDown className="h-4 w-4" />
-          </button>
-          
-          {showAgeDropdown && (
-            <div className="absolute z-10 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333] p-4">
-              <RangeSlider
-                label="Vehicle Age (Years)"
-                min={0}
-                max={10}
-                step={1}
-                value={ageRange}
-                onValueChange={(value) => setAgeRange(value as [number, number])}
-                onValueCommit={(value) => updateRangeFilter('minAge', 'maxAge', value as [number, number])}
-                formatValue={(v) => `${v} ${v === 1 ? 'year' : 'years'}`}
-              />
-              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                Drag to filter by vehicle age
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Price Range Filter */}
-        <div className="relative" ref={priceRef}>
-          <button
-            onClick={() => setShowPriceDropdown(!showPriceDropdown)}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] transition-all duration-200"
-          >
-            {minPrice || maxPrice
-              ? `$${minPrice || '0'} - $${maxPrice || '∞'}`
-              : 'Price Range'}
-            <ChevronDown className="h-4 w-4" />
-          </button>
-          
-          {showPriceDropdown && (
-            <div className="absolute z-10 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333] p-4">
-              <RangeSlider
-                label="Price Range"
-                min={0}
-                max={100000}
-                step={1000}
-                value={priceRange}
-                onValueChange={(value) => setPriceRange(value as [number, number])}
-                onValueCommit={(value) => updateRangeFilter('minPrice', 'maxPrice', value as [number, number])}
-                formatValue={(v) => v.toLocaleString()}
-                prefix="$"
-              />
-              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                Drag to filter by price range
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Year Range Filter */}
-        <div className="relative" ref={yearRef}>
-          <button
-            onClick={() => setShowYearDropdown(!showYearDropdown)}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] transition-all duration-200"
-          >
-            <Calendar className="h-4 w-4" />
-            {minYear || maxYear
-              ? `${minYear || '2015'}-${maxYear || new Date().getFullYear()}`
-              : 'Year'}
-            <ChevronDown className="h-4 w-4" />
-          </button>
-          
-          {showYearDropdown && (
-            <div className="absolute z-10 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333] p-4">
-              <RangeSlider
-                label="Model Year"
-                min={2000}
-                max={new Date().getFullYear() + 1}
-                step={1}
-                value={yearRange}
-                onValueChange={(value) => setYearRange(value as [number, number])}
-                onValueCommit={(value) => updateRangeFilter('minYear', 'maxYear', value as [number, number])}
-              />
-              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                Drag to filter by model year
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Mileage Range Filter */}
-        <div className="relative" ref={mileageRef}>
-          <button
-            onClick={() => setShowMileageDropdown(!showMileageDropdown)}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] transition-all duration-200"
-          >
-            <Gauge className="h-4 w-4" />
-            {minMileage || maxMileage
-              ? `${(parseInt(minMileage || '0') / 1000).toFixed(0)}k-${(parseInt(maxMileage || '150000') / 1000).toFixed(0)}k mi`
-              : 'Mileage'}
-            <ChevronDown className="h-4 w-4" />
-          </button>
-          
-          {showMileageDropdown && (
-            <div className="absolute z-10 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333] p-4">
-              <RangeSlider
-                label="Mileage"
-                min={0}
-                max={200000}
-                step={5000}
-                value={mileageRange}
-                onValueChange={(value) => setMileageRange(value as [number, number])}
-                onValueCommit={(value) => updateRangeFilter('minMileage', 'maxMileage', value as [number, number])}
-                formatValue={(v) => `${(v / 1000).toFixed(0)}k`}
-                suffix=" miles"
-              />
-              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                Drag to filter by mileage
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Clear Filters */}
         {activeFilterCount > 0 && (
           <button
@@ -408,6 +302,81 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
             Clear all ({activeFilterCount})
           </button>
         )}
+      </div>
+
+      {/* Sliders Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Days on Lot Slider */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-100">
+            <Clock className="h-4 w-4" />
+            Days on Lot
+          </div>
+          <RangeSlider
+            min={stats?.minDaysOnLot || 0}
+            max={stats?.maxDaysOnLot || 90}
+            step={1}
+            value={daysOnLotRange}
+            onValueChange={(value) => setDaysOnLotRange(value as [number, number])}
+            onValueCommit={(value) => updateRangeFilter('minDaysOnLot', 'maxDaysOnLot', value as [number, number], [stats?.minDaysOnLot || 0, stats?.maxDaysOnLot || 90])}
+            formatValue={(v) => `${v}d`}
+            showValues={true}
+          />
+        </div>
+
+        {/* Price Range Slider */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-100">
+            <DollarSign className="h-4 w-4" />
+            Price Range
+          </div>
+          <RangeSlider
+            min={stats?.minPrice || 0}
+            max={stats?.maxPrice || 100000}
+            step={1000}
+            value={priceRange}
+            onValueChange={(value) => setPriceRange(value as [number, number])}
+            onValueCommit={(value) => updateRangeFilter('minPrice', 'maxPrice', value as [number, number], [stats?.minPrice || 0, stats?.maxPrice || 100000])}
+            formatValue={(v) => `${(v / 1000).toFixed(0)}k`}
+            prefix="$"
+            showValues={true}
+          />
+        </div>
+
+        {/* Year Range Slider */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-100">
+            <Calendar className="h-4 w-4" />
+            Model Year
+          </div>
+          <RangeSlider
+            min={stats?.minYear || 2000}
+            max={stats?.maxYear || new Date().getFullYear() + 1}
+            step={1}
+            value={yearRange}
+            onValueChange={(value) => setYearRange(value as [number, number])}
+            onValueCommit={(value) => updateRangeFilter('minYear', 'maxYear', value as [number, number], [stats?.minYear || 2000, stats?.maxYear || new Date().getFullYear() + 1])}
+            showValues={true}
+          />
+        </div>
+
+        {/* Mileage Range Slider */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-100">
+            <Gauge className="h-4 w-4" />
+            Mileage
+          </div>
+          <RangeSlider
+            min={stats?.minMileage || 0}
+            max={stats?.maxMileage || 200000}
+            step={5000}
+            value={mileageRange}
+            onValueChange={(value) => setMileageRange(value as [number, number])}
+            onValueCommit={(value) => updateRangeFilter('minMileage', 'maxMileage', value as [number, number], [stats?.minMileage || 0, stats?.maxMileage || 200000])}
+            formatValue={(v) => `${(v / 1000).toFixed(0)}k`}
+            showValues={true}
+          />
+        </div>
       </div>
     </div>
   );

@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || ''
     const minPrice = searchParams.get('minPrice') || ''
     const maxPrice = searchParams.get('maxPrice') || ''
-    const minAge = searchParams.get('minAge') || ''
-    const maxAge = searchParams.get('maxAge') || ''
+    const minDaysOnLot = searchParams.get('minDaysOnLot') || ''
+    const maxDaysOnLot = searchParams.get('maxDaysOnLot') || ''
     const minYear = searchParams.get('minYear') || ''
     const maxYear = searchParams.get('maxYear') || ''
     const minMileage = searchParams.get('minMileage') || ''
@@ -86,15 +86,12 @@ export async function GET(request: NextRequest) {
       query = query.lte('price', parseInt(maxPrice))
     }
 
-    // Age filter (based on vehicle year)
-    if (minAge || maxAge) {
-      const currentYear = new Date().getFullYear()
-      if (maxAge) {
-        query = query.gte('year', currentYear - parseInt(maxAge))
-      }
-      if (minAge) {
-        query = query.lte('year', currentYear - parseInt(minAge))
-      }
+    // Days on lot filter
+    if (minDaysOnLot) {
+      query = query.gte('days_on_lot', parseInt(minDaysOnLot))
+    }
+    if (maxDaysOnLot) {
+      query = query.lte('days_on_lot', parseInt(maxDaysOnLot))
     }
 
     // Year filter
