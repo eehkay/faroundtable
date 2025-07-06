@@ -78,8 +78,15 @@ export default function TransferActionModal({ transfer, actionType, onClose }: T
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to perform action');
+        let errorMessage = 'Failed to perform action';
+        try {
+          const data = await response.json();
+          errorMessage = data.error || errorMessage;
+        } catch (jsonError) {
+          // If response is not JSON, use the status text or default message
+          errorMessage = response.statusText || `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
       // Refresh the page to show updated data

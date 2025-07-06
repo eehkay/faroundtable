@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Vehicle } from '@/types/vehicle'
 
@@ -23,6 +23,7 @@ export function useVehicles() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
+  const abortControllerRef = useRef<AbortController | null>(null)
   
   // Get search params directly - VehicleSearch already handles debouncing
   const search = searchParams.get('search') || ''
@@ -46,7 +47,16 @@ export function useVehicles() {
 
     const fetchData = async () => {
       if (cancelled) return
-      
+
+      // Cancel any existing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      // Create new abort controller for this request
+      const abortController = new AbortController()
+      abortControllerRef.current = abortController
+
       setIsLoading(true)
       setError(null)
       setPage(1)
@@ -72,38 +82,51 @@ export function useVehicles() {
           ...(condition && { condition }),
         })
 
-        const response = await fetch(`/api/vehicles?${params}`)
+        const response = await fetch(`/api/vehicles?${params}`, {
+          signal: abortController.signal
+        })
+
         if (!response.ok) {
           throw new Error('Failed to fetch vehicles')
         }
 
         const data: VehiclesResponse = await response.json()
         
-        if (!cancelled) {
+        // Only update state if the request wasn't aborted and component wasn't unmounted
+        if (!abortController.signal.aborted && !cancelled) {
           setVehicles(data.vehicles)
           setTotalPages(data.pagination.totalPages)
           setTotalCount(data.pagination.totalCount)
           setHasMore(data.pagination.hasNextPage)
         }
       } catch (err) {
-        if (!cancelled) {
+        // Only set error if the request wasn't aborted and component wasn't unmounted
+        if (!abortController.signal.aborted && !cancelled) {
           setError(err instanceof Error ? err.message : 'An error occurred')
         }
       } finally {
-        if (!cancelled) {
+        // Only set loading to false if the request wasn't aborted and component wasn't unmounted
+        if (!abortController.signal.aborted && !cancelled) {
           setIsLoading(false)
         }
       }
     }
 
     fetchData()
-
+    
     return () => {
       cancelled = true
+      // Cancel any pending requests when component unmounts or dependencies change
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
     }
   }, [search, location, status, minPrice, maxPrice, minDaysOnLot, maxDaysOnLot, minYear, maxYear, minMileage, maxMileage, make, model, condition])
 
   const fetchVehicles = useCallback(async (pageNum: number, reset = false) => {
+    // Create abort controller for this request
+    const abortController = new AbortController()
+    
     setIsLoading(true)
     setError(null)
 
@@ -127,21 +150,30 @@ export function useVehicles() {
         ...(condition && { condition }),
       })
 
-      const response = await fetch(`/api/vehicles?${params}`)
+      const response = await fetch(`/api/vehicles?${params}`, {
+        signal: abortController.signal
+      })
+      
       if (!response.ok) {
         throw new Error('Failed to fetch vehicles')
       }
 
       const data: VehiclesResponse = await response.json()
       
-      setVehicles(prev => reset ? data.vehicles : [...prev, ...data.vehicles])
-      setTotalPages(data.pagination.totalPages)
-      setTotalCount(data.pagination.totalCount)
-      setHasMore(data.pagination.hasNextPage)
+      if (!abortController.signal.aborted) {
+        setVehicles(prev => reset ? data.vehicles : [...prev, ...data.vehicles])
+        setTotalPages(data.pagination.totalPages)
+        setTotalCount(data.pagination.totalCount)
+        setHasMore(data.pagination.hasNextPage)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      if (!abortController.signal.aborted) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+      }
     } finally {
-      setIsLoading(false)
+      if (!abortController.signal.aborted) {
+        setIsLoading(false)
+      }
     }
   }, [search, location, status, minPrice, maxPrice, minDaysOnLot, maxDaysOnLot, minYear, maxYear, minMileage, maxMileage, make, model, condition])
 

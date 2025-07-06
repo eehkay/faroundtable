@@ -158,7 +158,7 @@ export default function IncomingTransferRequests({
                   
                   <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
                     <div>
-                      <span className="text-gray-500">From:</span> {transfer.to_location.name}
+                      <span className="text-gray-500">From:</span> {transfer.from_location.name}
                     </div>
                     <div>
                       <span className="text-gray-500">VIN:</span> {transfer.vehicle.vin}
