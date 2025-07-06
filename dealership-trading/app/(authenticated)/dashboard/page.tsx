@@ -40,6 +40,7 @@ export default async function DashboardPage() {
           _type: 'dealershipLocation' as const,
           name: session.user.location.name,
           code: session.user.location.code,
+          storeId: session.user.location.code, // Alias for code field
           address: undefined,
           city: undefined,
           state: undefined,
