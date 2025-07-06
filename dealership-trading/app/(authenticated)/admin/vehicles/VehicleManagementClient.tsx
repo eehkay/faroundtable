@@ -11,6 +11,7 @@ import VehicleEditModal from '@/components/admin/vehicles/VehicleEditModal'
 import VehicleBulkActions from '@/components/admin/vehicles/VehicleBulkActions'
 import DeleteConfirmDialog from '@/components/admin/vehicles/DeleteConfirmDialog'
 import { toast } from 'sonner'
+import { useDebouncedCallback } from 'use-debounce'
 
 interface VehicleWithLocation extends Vehicle {
   dealership_location?: DealershipLocation
@@ -21,6 +22,7 @@ export default function VehicleManagementClient() {
   const [vehicles, setVehicles] = useState<VehicleWithLocation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [filters, setFilters] = useState({
     status: 'all',
     condition: 'all',
@@ -34,6 +36,16 @@ export default function VehicleManagementClient() {
   const [page, setPage] = useState(1)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [vehiclesToDelete, setVehiclesToDelete] = useState<string[]>([])
+
+  // Debounced search handler
+  const debouncedSearch = useDebouncedCallback((value: string) => {
+    setDebouncedSearchTerm(value)
+  }, 300)
+
+  // Update debounced search term when search term changes
+  useEffect(() => {
+    debouncedSearch(searchTerm)
+  }, [searchTerm, debouncedSearch])
 
   // Fetch vehicles with filters
   const fetchVehicles = useCallback(async () => {
@@ -58,8 +70,8 @@ export default function VehicleManagementClient() {
         .range((page - 1) * 50, page * 50 - 1)
 
       // Apply search filter
-      if (searchTerm) {
-        query = query.or(`stock_number.ilike.%${searchTerm}%,vin.ilike.%${searchTerm}%,make.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`)
+      if (debouncedSearchTerm) {
+        query = query.or(`stock_number.ilike.%${debouncedSearchTerm}%,vin.ilike.%${debouncedSearchTerm}%,make.ilike.%${debouncedSearchTerm}%,model.ilike.%${debouncedSearchTerm}%`)
       }
 
       // Apply status filter
@@ -132,7 +144,7 @@ export default function VehicleManagementClient() {
     } finally {
       setLoading(false)
     }
-  }, [searchTerm, filters, page])
+  }, [debouncedSearchTerm, filters, page])
 
   useEffect(() => {
     fetchVehicles()
@@ -241,7 +253,7 @@ export default function VehicleManagementClient() {
   const handleExport = async () => {
     try {
       const response = await fetch('/api/admin/vehicles/export?' + new URLSearchParams({
-        search: searchTerm,
+        search: debouncedSearchTerm,
         status: filters.status,
         condition: filters.condition,
         location: filters.location,
