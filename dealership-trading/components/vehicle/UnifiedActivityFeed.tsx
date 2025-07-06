@@ -226,48 +226,83 @@ export default function UnifiedActivityFeed({ vehicleId }: UnifiedActivityFeedPr
     const userName = item.user?.name || 'Someone'
     
     let description = item.details || 'Activity recorded'
+    let emoji = '📌'
+    let accentColor = 'border-[#333333]' // default
+    let bgColor = 'bg-[#141414]' // slightly elevated background
+    
     switch (item.action) {
       case 'claimed':
-        description = `${userName} claimed this vehicle for transfer`
+        description = `claimed this vehicle for transfer`
+        emoji = '📦'
+        accentColor = 'border-[#3b82f6]/50' // blue accent
         break
       case 'released':
-        description = `${userName} released the transfer claim`
+        description = `released the transfer claim`
+        emoji = '↩️'
+        accentColor = 'border-[#737373]/50' // gray accent
         break
       case 'commented':
-        description = `${userName} added a comment`
+        description = `added a comment`
+        emoji = '💬'
+        accentColor = 'border-[#3b82f6]/50' // blue accent
         break
       case 'status-updated':
-        description = `${userName} updated the status`
+        description = `updated the status`
+        emoji = '📝'
+        accentColor = 'border-[#f59e0b]/50' // orange accent
         break
       case 'transfer-started':
-        description = `${userName} started the transfer`
+        description = `started the transfer`
+        emoji = '🚗'
+        accentColor = 'border-[#3b82f6]/50' // blue accent
         break
       case 'transfer-completed':
-        description = `${userName} completed the transfer`
+        description = `completed the transfer`
+        emoji = '✅'
+        accentColor = 'border-[#10b981]/50' // green accent
         break
       case 'transfer-approved':
-        description = `${userName} approved the transfer`
+        description = `approved the transfer`
+        emoji = '✅'
+        accentColor = 'border-[#10b981]/50' // green accent
         break
       case 'transfer-rejected':
-        description = `${userName} rejected the transfer`
+        description = `rejected the transfer`
+        emoji = '❌'
+        accentColor = 'border-[#ef4444]/50' // red accent
         break
       case 'transfer-cancelled':
-        description = `${userName} cancelled the transfer`
+        description = `cancelled the transfer`
+        emoji = '🚫'
+        accentColor = 'border-[#ef4444]/50' // red accent
+        break
+      case 'transfer-in-transit':
+        description = `marked transfer as in-transit`
+        emoji = '🚚'
+        accentColor = 'border-[#f59e0b]/50' // orange accent
+        break
+      case 'transfer-delivered':
+        description = `marked transfer as delivered`
+        emoji = '✔️'
+        accentColor = 'border-[#8b5cf6]/50' // purple accent
         break
       default:
         description = item.details || 'Activity recorded'
     }
 
     return (
-      <div className="flex items-start gap-3 py-2">
-        <div className="w-1 h-1 rounded-full bg-gray-500 mt-2 flex-shrink-0"></div>
-        <div className="flex-1">
-          <p className="text-sm text-gray-300 leading-relaxed">
-            <span className="text-gray-400">{userName}</span> {description.replace(userName, '').trim()}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            {formatTimeAgo(new Date(item.timestamp))}
-          </p>
+      <div className={`${bgColor} border ${accentColor} rounded-lg p-3 hover:border-[#404040] transition-all duration-200`}>
+        <div className="flex items-start gap-3">
+          <div className="text-lg flex-shrink-0">{emoji}</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-200">
+              <span className="font-medium text-white">{userName}</span>
+              <span className="text-gray-300"> {description}</span>
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {formatTimeAgo(new Date(item.timestamp))}
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -320,10 +355,10 @@ export default function UnifiedActivityFeed({ vehicleId }: UnifiedActivityFeedPr
       
       switch (item.status) {
         case 'requested':
-          return `${requesterName} requested transfer from ${fromLocation} to ${toLocation}`
+          return `📦 ${requesterName} claimed this vehicle for transfer from ${fromLocation} to ${toLocation}`
         case 'approved':
           const approverName = item.approvedBy?.name || 'Someone'
-          return `${approverName} approved transfer request from ${fromLocation} to ${toLocation}`
+          return `✅ ${approverName} approved transfer request from ${fromLocation} to ${toLocation}`
         case 'rejected':
           const rejecterName = item.rejectedBy?.name || 'Someone'
           return `${rejecterName} rejected transfer request from ${fromLocation} to ${toLocation}`
@@ -331,9 +366,9 @@ export default function UnifiedActivityFeed({ vehicleId }: UnifiedActivityFeedPr
           const cancellerName = item.cancelledBy?.name || 'Someone'
           return `${cancellerName} cancelled transfer from ${fromLocation} to ${toLocation}`
         case 'in-transit':
-          return `Vehicle is in transit from ${fromLocation} to ${toLocation}`
+          return `🚚 Vehicle is in transit from ${fromLocation} to ${toLocation}`
         case 'delivered':
-          return `Vehicle delivered from ${fromLocation} to ${toLocation}`
+          return `✔️ Vehicle delivered from ${fromLocation} to ${toLocation}`
         default:
           return `Transfer ${item.status}: ${fromLocation} → ${toLocation}`
       }
@@ -359,9 +394,6 @@ export default function UnifiedActivityFeed({ vehicleId }: UnifiedActivityFeedPr
               )}
               {item.priority !== 'normal' && (
                 <p className="text-xs text-red-400">🔥 Priority: {item.priority}</p>
-              )}
-              {item.transferNotes && (
-                <p className="text-xs text-gray-400">📝 Notes: {item.transferNotes}</p>
               )}
             </div>
             

@@ -1,10 +1,27 @@
+'use client';
+
+import { useState } from 'react';
+import { TrendingUp, Shield } from 'lucide-react';
+
 interface VehiclePricingProps {
   price?: number;
   salePrice?: number;
   msrp?: number;
+  onGetMarketInsights?: () => void;
+  isLoadingInsights?: boolean;
+  onCheckVinRecalls?: () => void;
+  isLoadingVinDecode?: boolean;
 }
 
-export default function VehiclePricing({ price, salePrice, msrp }: VehiclePricingProps) {
+export default function VehiclePricing({ 
+  price, 
+  salePrice, 
+  msrp, 
+  onGetMarketInsights, 
+  isLoadingInsights,
+  onCheckVinRecalls,
+  isLoadingVinDecode
+}: VehiclePricingProps) {
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -15,8 +32,6 @@ export default function VehiclePricing({ price, salePrice, msrp }: VehiclePricin
   };
 
   const displayPrice = salePrice || price;
-  const savings = msrp && displayPrice ? msrp - displayPrice : null;
-  const savingsPercentage = msrp && savings ? Math.round((savings / msrp) * 100) : null;
 
   if (!displayPrice) {
     return (
@@ -31,46 +46,32 @@ export default function VehiclePricing({ price, salePrice, msrp }: VehiclePricin
     <div className="bg-tertiary-dark rounded-lg shadow-sm p-6 transition-all duration-200">
       <h2 className="text-xl font-semibold text-white mb-4">Pricing</h2>
       
-      <div className="space-y-3">
-        {/* Main Price */}
-        <div className="flex items-baseline gap-3">
-          <span className="text-3xl font-bold text-white">
-            {formatPrice(displayPrice)}
-          </span>
-          {salePrice && price && salePrice < price && (
-            <span className="text-lg text-gray-400 line-through">
-              {formatPrice(price)}
-            </span>
-          )}
-        </div>
-
-        {/* MSRP and Savings */}
+      <div className="space-y-4">
+        {/* Retail Price (MSRP) */}
         {msrp && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-400">MSRP:</span>
-              <span className="text-gray-100">{formatPrice(msrp)}</span>
+          <>
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-400 text-lg">Retail Price:</span>
+              <span className="text-gray-100 text-xl">{formatPrice(msrp)}</span>
             </div>
-            
-            {savings && savings > 0 && (
-              <div className="bg-green-900/20 border border-green-800 rounded-lg p-3 transition-all duration-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-green-300 font-semibold">You Save:</span>
-                  <div className="text-right">
-                    <span className="text-green-300 font-bold text-lg">
-                      {formatPrice(savings)}
-                    </span>
-                    {savingsPercentage && (
-                      <span className="text-green-400 text-sm ml-2">
-                        ({savingsPercentage}% off)
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+            <div className="border-b border-zinc-700"></div>
+          </>
+        )}
+
+        {/* Selling Price */}
+        <div className="flex justify-between items-baseline">
+          <span className="text-gray-400 text-lg">Selling Price:</span>
+          <div className="flex items-baseline gap-3">
+            <span className="text-3xl font-bold text-white">
+              {formatPrice(displayPrice)}
+            </span>
+            {salePrice && price && salePrice < price && (
+              <span className="text-lg text-gray-400 line-through">
+                {formatPrice(price)}
+              </span>
             )}
           </div>
-        )}
+        </div>
 
         {/* Sale Badge */}
         {salePrice && (
@@ -80,6 +81,53 @@ export default function VehiclePricing({ price, salePrice, msrp }: VehiclePricin
               <path d="M9 11H3v5a2 2 0 002 2h4v-7zM11 18h4a2 2 0 002-2v-5h-6v7z" />
             </svg>
             Special Price
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        {(onGetMarketInsights || onCheckVinRecalls) && (
+          <div className="pt-4 border-t border-[#2a2a2a] space-y-3">
+            <div className={`grid gap-3 ${onGetMarketInsights && onCheckVinRecalls ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {onGetMarketInsights && (
+                <button
+                  onClick={onGetMarketInsights}
+                  disabled={isLoadingInsights}
+                  className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold py-3 px-4 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isLoadingInsights ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Loading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <TrendingUp className="h-5 w-5" />
+                      <span>Market Insights</span>
+                    </>
+                  )}
+                </button>
+              )}
+              
+              {onCheckVinRecalls && (
+                <button
+                  onClick={onCheckVinRecalls}
+                  disabled={isLoadingVinDecode}
+                  className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-semibold py-3 px-4 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isLoadingVinDecode ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Loading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-5 w-5" />
+                      <span>Check Recalls</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

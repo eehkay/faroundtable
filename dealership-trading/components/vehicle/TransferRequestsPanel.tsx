@@ -210,10 +210,6 @@ export default function TransferRequestsPanel({ vehicleId, vehicleLocation, onUp
                     )}
                   </div>
                   
-                  <p className="text-sm text-gray-300 mb-2">
-                    {transfer.transferNotes || transfer.reason}
-                  </p>
-
                   <div className="flex flex-wrap gap-4 text-xs text-gray-400">
                     {transfer.moneyOffer && (
                       <div className="flex items-center gap-1">
