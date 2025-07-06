@@ -196,8 +196,89 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
     );
   }
 
+  // Build active filter chips
+  const filterChips: { label: string; onRemove: () => void }[] = [];
+  
+  if (selectedLocation) {
+    filterChips.push({
+      label: `Location: ${locations.find(l => l._id === selectedLocation)?.name || 'Selected'}`,
+      onRemove: () => updateFilter('location', null)
+    });
+  }
+  if (selectedStatus) {
+    filterChips.push({
+      label: `Status: ${statuses.find(s => s.value === selectedStatus)?.label || selectedStatus}`,
+      onRemove: () => updateFilter('status', null)
+    });
+  }
+  if (minDaysOnLot || maxDaysOnLot) {
+    filterChips.push({
+      label: `Days: ${minDaysOnLot || '0'}-${maxDaysOnLot || stats?.maxDaysOnLot || '90'}`,
+      onRemove: () => {
+        updateFilter('minDaysOnLot', null);
+        updateFilter('maxDaysOnLot', null);
+      }
+    });
+  }
+  if (minPrice || maxPrice) {
+    filterChips.push({
+      label: `Price: $${(parseInt(minPrice || '0') / 1000).toFixed(0)}k-$${(parseInt(maxPrice || stats?.maxPrice.toString() || '100000') / 1000).toFixed(0)}k`,
+      onRemove: () => {
+        updateFilter('minPrice', null);
+        updateFilter('maxPrice', null);
+      }
+    });
+  }
+  if (minYear || maxYear) {
+    filterChips.push({
+      label: `Year: ${minYear || stats?.minYear || '2000'}-${maxYear || stats?.maxYear || new Date().getFullYear()}`,
+      onRemove: () => {
+        updateFilter('minYear', null);
+        updateFilter('maxYear', null);
+      }
+    });
+  }
+  if (minMileage || maxMileage) {
+    filterChips.push({
+      label: `Mileage: ${(parseInt(minMileage || '0') / 1000).toFixed(0)}k-${(parseInt(maxMileage || stats?.maxMileage.toString() || '200000') / 1000).toFixed(0)}k`,
+      onRemove: () => {
+        updateFilter('minMileage', null);
+        updateFilter('maxMileage', null);
+      }
+    });
+  }
+  
   return (
     <div className="bg-white dark:bg-[#1f1f1f] p-6 rounded-lg border border-gray-200 dark:border-[#2a2a2a] transition-all duration-200 space-y-6">
+      {/* Active Filter Chips */}
+      {filterChips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-100 mr-2">Active:</span>
+          {filterChips.map((chip, index) => (
+            <span
+              key={index}
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+            >
+              {chip.label}
+              <button
+                onClick={chip.onRemove}
+                className="ml-1 hover:text-blue-900 dark:hover:text-blue-200 transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+          {filterChips.length > 1 && (
+            <button
+              onClick={clearAllFilters}
+              className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      )}
+      
       {/* Dropdown Filters Row */}
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm font-medium text-gray-700 dark:text-gray-100">Quick Filters:</span>
@@ -292,14 +373,14 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
           )}
         </div>
 
-        {/* Clear Filters */}
+        {/* Clear Filters - Always visible when filters active */}
         {activeFilterCount > 0 && (
           <button
             onClick={clearAllFilters}
-            className="inline-flex items-center gap-1 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-all duration-200"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-all duration-200 shadow-sm"
           >
             <X className="h-4 w-4" />
-            Clear all ({activeFilterCount})
+            Clear all filters ({activeFilterCount})
           </button>
         )}
       </div>
