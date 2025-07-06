@@ -209,8 +209,8 @@ export default function TestAPIPage() {
         <div className="bg-[#1f1f1f] rounded-lg p-6">
           <h2 className="text-xl font-semibold text-white mb-4">API Configuration</h2>
           <div className="space-y-2 text-sm text-gray-400">
-            <p>API URL: https://api.autodealerdata.com</p>
-            <p>API Key ID: ID_h-5w8of9sARkyXBpQ_VW9LRIs9NLrBTu1cKj2JOCS4Q</p>
+            <p>API URL: Auto Dealer Data API</p>
+            <p>Authentication: Server-side (secure)</p>
             <p>Test Vehicle: Toyota Camry 2023</p>
           </div>
         </div>

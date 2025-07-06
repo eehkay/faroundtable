@@ -1,0 +1,171 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Testing
+coverage/
+.nyc_output/
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Production
+*.production
+
+# Misc
+.DS_Store
+._*
+Thumbs.db
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Environment variables
+.env
+.env.*
+.env.local
+.env.development
+.env.test
+.env.production
+!.env.example
+!.env.*.example
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE / Editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Logs
+logs/
+*.log
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.cache
+
+# Backup files
+*.backup
+*.bak
+*.old
+~*
+
+# Data files (be selective about what to commit)
+*.csv
+!example*.csv
+!template*.csv
+
+# Image source files (keep only optimized versions)
+*.psd
+*.ai
+*.sketch
+*.fig
+
+# Credentials and secrets
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+secrets.json
+*secret*
+*credential*
+!*secret*.example
+!*credential*.example
+
+# SFTP/FTP config
+sftp.json
+ftpconfig.json
+.ftpconfig
+.deployment
+
+# Local configuration
+local.config.*
+*.local.js
+*.local.ts
+
+# Build artifacts
+dist/
+build/
+*.min.js
+*.min.css
+
+# Package files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+ENV/
+
+# Supabase
+.branches/
+.temp/
+
+# Netlify
+.netlify/
+
+# Custom project specific
+reno_inv_test.csv
+roundtable_logo*.psd
+dealership-trading/.claude/
+dealership-trading/.mcp.json
+.claude/
+.mcp.json
