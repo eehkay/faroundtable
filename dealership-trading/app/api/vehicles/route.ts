@@ -61,13 +61,7 @@ export async function GET(request: NextRequest) {
     // Apply filters
     if (search) {
       // Use ilike for case-insensitive search
-      query = query.or(`
-        make.ilike.%${search}%,
-        model.ilike.%${search}%,
-        vin.ilike.%${search}%,
-        title.ilike.%${search}%,
-        stock_number.ilike.%${search}%
-      `)
+      query = query.or(`make.ilike.%${search}%,model.ilike.%${search}%,vin.ilike.%${search}%,title.ilike.%${search}%,stock_number.ilike.%${search}%`)
     }
 
     if (location && location !== 'all') {
