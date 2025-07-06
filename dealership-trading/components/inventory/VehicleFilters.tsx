@@ -90,18 +90,28 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
   
   // Update slider values when search params change
   useEffect(() => {
-    if (minPrice || maxPrice) {
-      setPriceRange([parseInt(minPrice || '0'), parseInt(maxPrice || stats?.maxPrice.toString() || '100000')]);
-    }
-    if (minDaysOnLot || maxDaysOnLot) {
-      setDaysOnLotRange([parseInt(minDaysOnLot || '0'), parseInt(maxDaysOnLot || stats?.maxDaysOnLot.toString() || '90')]);
-    }
-    if (minYear || maxYear) {
-      setYearRange([parseInt(minYear || stats?.minYear.toString() || '2015'), parseInt(maxYear || stats?.maxYear.toString() || String(new Date().getFullYear()))]);
-    }
-    if (minMileage || maxMileage) {
-      setMileageRange([parseInt(minMileage || '0'), parseInt(maxMileage || stats?.maxMileage.toString() || '150000')]);
-    }
+    if (!stats) return; // Wait for stats to load
+    
+    // Always update sliders based on current params or default to full range
+    setPriceRange([
+      parseInt(minPrice || stats.minPrice.toString()),
+      parseInt(maxPrice || stats.maxPrice.toString())
+    ]);
+    
+    setDaysOnLotRange([
+      parseInt(minDaysOnLot || stats.minDaysOnLot.toString()),
+      parseInt(maxDaysOnLot || stats.maxDaysOnLot.toString())
+    ]);
+    
+    setYearRange([
+      parseInt(minYear || stats.minYear.toString()),
+      parseInt(maxYear || stats.maxYear.toString())
+    ]);
+    
+    setMileageRange([
+      parseInt(minMileage || stats.minMileage.toString()),
+      parseInt(maxMileage || stats.maxMileage.toString())
+    ]);
   }, [minPrice, maxPrice, minDaysOnLot, maxDaysOnLot, minYear, maxYear, minMileage, maxMileage, stats]);
 
   const statuses = [
