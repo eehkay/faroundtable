@@ -35,7 +35,6 @@ export interface DealershipLocation {
   _type: 'dealershipLocation'
   name: string
   code: string
-  storeId: string // Alias for code field
   address?: string
   city?: string
   state?: string

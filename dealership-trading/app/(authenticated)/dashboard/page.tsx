@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 import RecentActivity from "@/components/dashboard/RecentActivitySupabase";
 import QuickActions from "@/components/dashboard/QuickActions";
+import IncomingTransferRequests from "@/components/dashboard/IncomingTransferRequests";
+import { canViewAllTransfers } from "@/lib/permissions";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -32,6 +34,14 @@ export default async function DashboardPage() {
       {/* Quick Actions */}
       <QuickActions userRole={session.user.role} />
 
+      {/* Incoming Transfer Requests for Managers/Admins */}
+      {canViewAllTransfers(session.user.role) && session.user.location && (
+        <IncomingTransferRequests 
+          userRole={session.user.role}
+          userLocationId={session.user.location.id}
+        />
+      )}
+
       {/* Recent Activity */}
       <RecentActivity 
         initialActivity={stats.recentActivity} 
@@ -40,7 +50,6 @@ export default async function DashboardPage() {
           _type: 'dealershipLocation' as const,
           name: session.user.location.name,
           code: session.user.location.code,
-          storeId: session.user.location.code, // Alias for code field
           address: undefined,
           city: undefined,
           state: undefined,

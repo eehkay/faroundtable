@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { Truck, Check, X, AlertTriangle, Package, Clock } from 'lucide-react';
 import TransferActionModal from './TransferActionModal';
-import { canApproveTransfers, canUpdateTransferStatus } from '@/lib/permissions';
+import { canApproveTransfers, canUpdateTransferStatus, canApproveTransferForLocation, canRejectTransferForLocation } from '@/lib/permissions';
 
 interface Transfer {
   _id: string;
@@ -19,6 +19,7 @@ interface Transfer {
   deliveredAt?: string;
   cancelledAt?: string;
   cancellationReason?: string;
+  fromLocationId?: string;
   vehicle: {
     _id: string;
     vin: string;
@@ -73,9 +74,10 @@ interface TransferListProps {
   transfers: Transfer[];
   userRole: string;
   currentUserId: string;
+  userLocationId?: string;
 }
 
-export default function TransferList({ transfers, userRole, currentUserId }: TransferListProps) {
+export default function TransferList({ transfers, userRole, currentUserId, userLocationId }: TransferListProps) {
   console.log('TransferList rendering with:', {
     transfersCount: transfers.length,
     userRole,
@@ -128,7 +130,9 @@ export default function TransferList({ transfers, userRole, currentUserId }: Tra
   const canPerformAction = (transfer: Transfer, action: string) => {
     switch (action) {
       case 'approve':
-        return transfer.status === 'requested' && canApproveTransfers(userRole);
+        return transfer.status === 'requested' && 
+               transfer.fromLocationId &&
+               canApproveTransferForLocation(userRole, userLocationId || null, transfer.fromLocationId);
       case 'in-transit':
         return transfer.status === 'approved' && canUpdateTransferStatus(userRole);
       case 'delivered':

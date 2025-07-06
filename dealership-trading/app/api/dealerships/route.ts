@@ -25,7 +25,7 @@ export async function GET() {
     const transformedDealerships = dealerships?.map(dealership => ({
       _id: dealership.id,
       name: dealership.name,
-      storeId: dealership.code,
+      code: dealership.code,
       address: dealership.address,
       phone: dealership.phone,
       email: dealership.email

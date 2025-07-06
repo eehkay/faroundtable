@@ -3,7 +3,7 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus, AlertCircle, DollarSign, Calendar, MapPin, BarChart3 } from 'lucide-react';
 
-interface MarketInsightsData {
+export interface MarketInsightsData {
   vin: string;
   zipCode: string;
   regionName: string;

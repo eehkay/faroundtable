@@ -27,7 +27,7 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter(dealership =>
         dealership.name.toLowerCase().includes(search) ||
-        dealership.storeId.toLowerCase().includes(search) ||
+        dealership.code.toLowerCase().includes(search) ||
         dealership.address?.toLowerCase().includes(search) ||
         dealership.city?.toLowerCase().includes(search)
       );
@@ -195,7 +195,7 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
                       <div className="flex items-center gap-3">
                         <h3 className="font-medium text-gray-100">{dealership.name}</h3>
                         <span className="px-2.5 py-1 bg-[#2a2a2a] text-gray-300 rounded-full text-xs font-medium">
-                          {dealership.storeId}
+                          {dealership.code}
                         </span>
                         {dealership.csvFileName && (
                           <span className="px-2.5 py-1 bg-[#2a2a2a]/50 text-gray-400 rounded-full text-xs">

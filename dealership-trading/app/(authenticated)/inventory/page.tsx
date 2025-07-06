@@ -40,7 +40,6 @@ export default function InventoryPage() {
           _type: 'dealershipLocation' as const,
           name: loc.name,
           code: loc.code,
-          storeId: loc.code, // Alias for code field
           address: loc.address,
           city: loc.city,
           state: loc.state,
@@ -104,7 +103,6 @@ export default function InventoryPage() {
           _type: 'dealershipLocation' as const,
           name: session.user.location.name,
           code: session.user.location.code,
-          storeId: session.user.location.code, // Alias for code field
           active: true
         } : undefined} 
         userRole={session.user.role}

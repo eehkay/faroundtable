@@ -3,7 +3,18 @@
 import { useState } from 'react';
 import VehiclePricing from './VehiclePricing';
 import MarketInsights from './MarketInsights';
+import type { MarketInsightsData } from './MarketInsights';
 import VinDecodeInfo from './VinDecodeInfo';
+
+interface VinDecodeResponse {
+  vehicleInfo: {
+    [key: string]: string | number | undefined;
+  };
+  recalls?: any[];
+  complaints?: any[];
+  investigations?: any[];
+  decodedAt?: string;
+}
 
 interface MarketInsightsWrapperProps {
   price?: number;
@@ -23,9 +34,9 @@ export default function MarketInsightsWrapper({
   msrp, 
   vehicleInfo 
 }: MarketInsightsWrapperProps) {
-  const [marketInsights, setMarketInsights] = useState<any>(null);
+  const [marketInsights, setMarketInsights] = useState<MarketInsightsData | null>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
-  const [vinDecodeData, setVinDecodeData] = useState<any>(null);
+  const [vinDecodeData, setVinDecodeData] = useState<VinDecodeResponse | null>(null);
   const [isLoadingVinDecode, setIsLoadingVinDecode] = useState(false);
 
   const fetchMarketInsights = async () => {
@@ -86,7 +97,12 @@ export default function MarketInsightsWrapper({
       }
 
       const data = await response.json();
-      setVinDecodeData(data);
+      // Add decodedAt timestamp if not present
+      const vinData = {
+        ...data,
+        decodedAt: data.decodedAt || new Date().toISOString()
+      };
+      setVinDecodeData(vinData);
     } catch (error) {
       console.error('Error decoding VIN:', error);
     } finally {
@@ -116,7 +132,11 @@ export default function MarketInsightsWrapper({
       
       {vinDecodeData && vehicleInfo.vin && (
         <VinDecodeInfo 
-          data={vinDecodeData}
+          data={{
+            vehicleInfo: vinDecodeData.vehicleInfo,
+            recalls: vinDecodeData.recalls || [],
+            decodedAt: vinDecodeData.decodedAt || new Date().toISOString()
+          }}
           vin={vehicleInfo.vin}
         />
       )}

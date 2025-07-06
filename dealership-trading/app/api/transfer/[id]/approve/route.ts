@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { canApproveTransfers } from '@/lib/permissions';
+import { canApproveTransfers, canApproveTransferForLocation } from '@/lib/permissions';
 import { sendTransferApprovedNotification } from '@/lib/email/service';
 
-type RouteParams = {
-  params: Promise<{ id: string }>;
-};
-
-export async function PUT(request: NextRequest, props: RouteParams) {
-  const params = await props.params;
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: transferId } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -25,7 +24,6 @@ export async function PUT(request: NextRequest, props: RouteParams) {
       );
     }
 
-    const transferId = params.id;
 
     // Get the current transfer details with vehicle and location info
     const { data: transfer, error: transferError } = await supabaseAdmin
@@ -75,6 +73,19 @@ export async function PUT(request: NextRequest, props: RouteParams) {
       return NextResponse.json(
         { error: 'Only requested transfers can be approved' },
         { status: 400 }
+      );
+    }
+
+    // Check dealer-specific approval permissions
+    // Only managers from the dealership that owns the vehicle (or admins) can approve
+    if (!canApproveTransferForLocation(
+      session.user.role, 
+      session.user.location?.id || null, 
+      transfer.from_location_id
+    )) {
+      return NextResponse.json(
+        { error: 'You can only approve transfers for vehicles from your own dealership' },
+        { status: 403 }
       );
     }
 

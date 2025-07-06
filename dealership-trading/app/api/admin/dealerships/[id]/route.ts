@@ -69,7 +69,7 @@ export async function PUT(
     const transformedDealership = {
       _id: updatedDealership.id,
       name: updatedDealership.name,
-      storeId: updatedDealership.code,
+      code: updatedDealership.code,
       address: updatedDealership.address,
       city: updatedDealership.city,
       state: updatedDealership.state,

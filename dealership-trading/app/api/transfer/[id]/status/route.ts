@@ -5,12 +5,11 @@ import { supabaseAdmin } from '@/lib/supabase-server';
 import { canUpdateTransferStatus } from '@/lib/permissions';
 import { sendTransferStatusUpdateNotification } from '@/lib/email/service';
 
-type RouteParams = {
-  params: Promise<{ id: string }>;
-};
-
-export async function PUT(request: NextRequest, props: RouteParams) {
-  const params = await props.params;
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: transferId } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -25,7 +24,6 @@ export async function PUT(request: NextRequest, props: RouteParams) {
       );
     }
 
-    const transferId = params.id;
     const { status } = await request.json();
 
     // Validate status

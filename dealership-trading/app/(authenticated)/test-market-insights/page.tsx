@@ -4,6 +4,24 @@ import { useState } from 'react';
 import { ArrowLeft, TrendingUp, Eye, Code, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import MarketInsights from '@/components/vehicle/MarketInsights';
+import type { MarketInsightsData } from '@/components/vehicle/MarketInsights';
+
+interface MarketInsightsTestResult {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  data: MarketInsightsData | { rawResponse: string; error?: string };
+  timestamp: string;
+}
+
+interface IndividualEndpointResult {
+  status: number;
+  statusText: string;
+  data: any;
+  timestamp: string;
+}
+
+type IndividualEndpointResults = Record<string, IndividualEndpointResult>;
 
 export default function TestMarketInsightsPage() {
   const [formData, setFormData] = useState({
@@ -15,8 +33,8 @@ export default function TestMarketInsightsPage() {
   });
 
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any>(null);
-  const [individualResults, setIndividualResults] = useState<any>({});
+  const [results, setResults] = useState<MarketInsightsTestResult | null>(null);
+  const [individualResults, setIndividualResults] = useState<IndividualEndpointResults>({});
   const [activeTab, setActiveTab] = useState<'formatted' | 'raw'>('formatted');
   const [error, setError] = useState<string | null>(null);
 
@@ -305,9 +323,9 @@ export default function TestMarketInsightsPage() {
                   </div>
                 </div>
 
-                {activeTab === 'formatted' && results.data && !results.data.error ? (
+                {activeTab === 'formatted' && results.data && !('error' in results.data) ? (
                   <MarketInsights 
-                    data={results.data}
+                    data={results.data as MarketInsightsData}
                     currentPrice={50000} // Mock price for testing
                     vehicleInfo={{
                       make: formData.make,

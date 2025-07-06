@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { canApproveTransfer } from '@/lib/permissions';
+import { canApproveTransfer, canRejectTransferForLocation } from '@/lib/permissions';
 
 export async function PUT(
   request: NextRequest,
@@ -29,6 +29,10 @@ export async function PUT(
       .from('transfers')
       .select(`
         *,
+        from_location:from_location_id(
+          id,
+          name
+        ),
         vehicle:vehicle_id(
           id,
           year,
@@ -59,6 +63,19 @@ export async function PUT(
     
     if (transfer.status !== 'requested') {
       return NextResponse.json({ error: 'Only requested transfers can be rejected' }, { status: 400 });
+    }
+
+    // Check dealer-specific rejection permissions
+    // Only managers from the dealership that owns the vehicle (or admins) can reject
+    if (!canRejectTransferForLocation(
+      session.user.role, 
+      session.user.location?.id || null, 
+      transfer.from_location_id
+    )) {
+      return NextResponse.json(
+        { error: 'You can only reject transfers for vehicles from your own dealership' },
+        { status: 403 }
+      );
     }
     
     // Update transfer status to rejected

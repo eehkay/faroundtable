@@ -14,7 +14,7 @@ interface DealershipEditModalProps {
 export default function DealershipEditModal({ dealership, isCreating, onSave, onClose }: DealershipEditModalProps) {
   const [formData, setFormData] = useState({
     name: dealership.name || '',
-    storeId: dealership.storeId || dealership.code || '',
+    code: dealership.code || '',
     address: dealership.address || '',
     city: dealership.city || '',
     state: dealership.state || '',
@@ -31,7 +31,7 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
   useEffect(() => {
     setFormData({
       name: dealership.name || '',
-      storeId: dealership.storeId || dealership.code || '',
+      code: dealership.code || '',
       address: dealership.address || '',
       city: dealership.city || '',
       state: dealership.state || '',
@@ -53,10 +53,10 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
 
     // Only validate store code for new dealerships
     if (isCreating) {
-      if (!formData.storeId.trim()) {
-        newErrors.storeId = 'Store code is required';
-      } else if (!/^[A-Z0-9]+$/.test(formData.storeId)) {
-        newErrors.storeId = 'Store code must contain only uppercase letters and numbers';
+      if (!formData.code.trim()) {
+        newErrors.code = 'Store code is required';
+      } else if (!/^[A-Z0-9]+$/.test(formData.code)) {
+        newErrors.code = 'Store code must contain only uppercase letters and numbers';
       }
     }
 
@@ -90,7 +90,7 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
       await onSave({
         _id: dealership._id,
         name: formData.name,
-        storeId: formData.storeId,
+        code: formData.code,
         address: formData.address || undefined,
         city: formData.city || undefined,
         state: formData.state ? formData.state.toUpperCase() : undefined,
@@ -163,17 +163,17 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
                 </label>
                 <input
                   type="text"
-                  value={formData.storeId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, storeId: e.target.value.toUpperCase() }))}
+                  value={formData.code}
+                  onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
                   disabled={!isCreating}
                   className={`w-full px-3 py-2 bg-[#141414] border rounded-lg text-gray-100 placeholder-gray-400 focus:ring-1 focus:outline-none transition-all duration-200 ${
                     !isCreating ? 'opacity-50 cursor-not-allowed' : ''
                   } ${
-                    errors.storeId ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#2a2a2a] focus:border-[#3b82f6] focus:ring-[#3b82f6]/20'
+                    errors.code ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#2a2a2a] focus:border-[#3b82f6] focus:ring-[#3b82f6]/20'
                   }`}
                   placeholder="e.g., MP1568"
                 />
-                {errors.storeId && <p className="mt-1 text-sm text-red-400">{errors.storeId}</p>}
+                {errors.code && <p className="mt-1 text-sm text-red-400">{errors.code}</p>}
                 {!isCreating && (
                   <p className="mt-1 text-xs text-gray-500">Store code cannot be changed after creation</p>
                 )}

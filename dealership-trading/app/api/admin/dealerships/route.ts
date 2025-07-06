@@ -26,7 +26,7 @@ export async function GET() {
     const transformedDealerships = dealerships?.map(dealership => ({
       _id: dealership.id,
       name: dealership.name,
-      storeId: dealership.code,
+      code: dealership.code,
       address: dealership.address,
       city: dealership.city,
       state: dealership.state,
@@ -58,10 +58,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, storeId, address, city, state, zip, phone, email, csvFileName, active } = body;
+    const { name, code, address, city, state, zip, phone, email, csvFileName, active } = body;
 
     // Validate required fields
-    if (!name || !storeId) {
+    if (!name || !code) {
       return NextResponse.json(
         { error: 'Name and store code are required' },
         { status: 400 }
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     const { data: existing, error: checkError } = await supabaseAdmin
       .from('dealership_locations')
       .select('id')
-      .eq('code', storeId)
+      .eq('code', code)
       .single();
 
     if (existing) {
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       .from('dealership_locations')
       .insert({
         name,
-        code: storeId,
+        code: code,
         address: address || null,
         city: city || null,
         state: state || null,
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
     const transformedDealership = {
       _id: newDealership.id,
       name: newDealership.name,
-      storeId: newDealership.code,
+      code: newDealership.code,
       address: newDealership.address,
       city: newDealership.city,
       state: newDealership.state,

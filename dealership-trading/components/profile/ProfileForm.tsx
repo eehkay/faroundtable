@@ -11,7 +11,7 @@ import Image from 'next/image';
 interface DealershipLocation {
   _id: string;
   name: string;
-  storeId: string;
+  code: string;
 }
 
 interface ProfileFormProps {
@@ -141,7 +141,7 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
             <option value="">Select a location</option>
             {locations.map((loc) => (
               <option key={loc._id} value={loc._id}>
-                {loc.name} ({loc.storeId})
+                {loc.name} ({loc.code})
               </option>
             ))}
           </select>
