@@ -14,7 +14,7 @@ interface DealershipEditModalProps {
 export default function DealershipEditModal({ dealership, isCreating, onSave, onClose }: DealershipEditModalProps) {
   const [formData, setFormData] = useState({
     name: dealership.name || '',
-    storeId: dealership.storeId || '',
+    storeId: dealership.storeId || dealership.code || '',
     address: dealership.address || '',
     city: dealership.city || '',
     state: dealership.state || '',
@@ -27,6 +27,23 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Re-initialize form when dealership data changes
+  useEffect(() => {
+    setFormData({
+      name: dealership.name || '',
+      storeId: dealership.storeId || dealership.code || '',
+      address: dealership.address || '',
+      city: dealership.city || '',
+      state: dealership.state || '',
+      zip: dealership.zip || '',
+      phone: dealership.phone || '',
+      email: dealership.email || '',
+      csvFileName: dealership.csvFileName || '',
+      active: dealership.active !== undefined ? dealership.active : true
+    });
+    setErrors({}); // Clear any existing errors
+  }, [dealership]);
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -34,10 +51,13 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
       newErrors.name = 'Name is required';
     }
 
-    if (!formData.storeId.trim()) {
-      newErrors.storeId = 'Store code is required';
-    } else if (!/^[A-Z0-9]+$/.test(formData.storeId)) {
-      newErrors.storeId = 'Store code must contain only uppercase letters and numbers';
+    // Only validate store code for new dealerships
+    if (isCreating) {
+      if (!formData.storeId.trim()) {
+        newErrors.storeId = 'Store code is required';
+      } else if (!/^[A-Z0-9]+$/.test(formData.storeId)) {
+        newErrors.storeId = 'Store code must contain only uppercase letters and numbers';
+      }
     }
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {

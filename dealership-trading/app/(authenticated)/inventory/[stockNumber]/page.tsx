@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation';
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getVehicleByStockNumber } from "@/lib/queries-supabase";
 import VehicleGallery from "@/components/vehicle/VehicleGallery";
 import VehicleSpecs from "@/components/vehicle/VehicleSpecs";
-import VehiclePricing from "@/components/vehicle/VehiclePricing";
+import MarketInsightsWrapper from "@/components/vehicle/MarketInsightsWrapper";
 import VehicleFeatures from "@/components/vehicle/VehicleFeatures";
 import VehicleLocation from "@/components/vehicle/VehicleLocation";
 import VehicleActions from "@/components/vehicle/VehicleActions";
@@ -21,8 +21,8 @@ interface PageProps {
 }
 
 export default async function VehicleDetailPage({ params }: PageProps) {
+  // Check authentication
   const session = await getServerSession(authOptions);
-  
   if (!session) {
     notFound();
   }
@@ -76,6 +76,7 @@ export default async function VehicleDetailPage({ params }: PageProps) {
               vehicleStatus={vehicle.status}
               vehicleLocation={vehicle.location?._id}
               activeTransferRequests={vehicle.activeTransferRequests?.filter((t: any) => t.status === 'requested').length || 0}
+              className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold py-3 px-6 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl"
             />
           </div>
         </div>
@@ -90,11 +91,17 @@ export default async function VehicleDetailPage({ params }: PageProps) {
             vehicleTitle={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
           />
 
-          {/* Pricing */}
-          <VehiclePricing
+          {/* Pricing & Market Insights */}
+          <MarketInsightsWrapper
             price={vehicle.price}
             salePrice={vehicle.salePrice}
             msrp={vehicle.msrp}
+            vehicleInfo={{
+              make: vehicle.make,
+              model: vehicle.model,
+              year: vehicle.year,
+              vin: vehicle.vin,
+            }}
           />
 
           {/* Specifications */}

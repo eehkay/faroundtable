@@ -8,9 +8,10 @@ interface VehicleActionsProps {
   vehicleStatus: string;
   vehicleLocation?: string;
   activeTransferRequests?: number;
+  className?: string;
 }
 
-export default function VehicleActions({ vehicleId, vehicleStatus, vehicleLocation, activeTransferRequests = 0 }: VehicleActionsProps) {
+export default function VehicleActions({ vehicleId, vehicleStatus, vehicleLocation, activeTransferRequests = 0, className }: VehicleActionsProps) {
   const router = useRouter();
 
   const handleSuccess = () => {
@@ -24,6 +25,7 @@ export default function VehicleActions({ vehicleId, vehicleStatus, vehicleLocati
       vehicleLocation={vehicleLocation || ''}
       activeTransferRequests={activeTransferRequests}
       onSuccess={handleSuccess}
+      className={className}
     />
   );
 }
