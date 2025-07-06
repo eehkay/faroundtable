@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "test": "npm run type-check && npm run lint && npm run build"
   },
   "dependencies": {
     "@netlify/functions": "^4.1.8",
