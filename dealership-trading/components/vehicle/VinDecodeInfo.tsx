@@ -292,7 +292,7 @@ export default function VinDecodeInfo({ data, vin }: VinDecodeInfoProps) {
               <div className="space-y-1">
                 <p className="text-sm text-yellow-300 font-medium">Important Recall Information:</p>
                 <p className="text-sm text-yellow-200">
-                  Contact your dealership's service department immediately to schedule recall repairs. 
+                  Contact your dealership&apos;s service department immediately to schedule recall repairs. 
                   All recall repairs are performed free of charge. For urgent safety concerns, 
                   contact NHTSA at 1-888-327-4236.
                 </p>
