@@ -568,6 +568,7 @@ export async function getDealershipLocations() {
     _type: 'dealershipLocation' as const,
     name: location.name,
     code: location.code,
+    storeId: location.code, // Alias for code field
     address: location.address,
     city: location.city,
     state: location.state,
