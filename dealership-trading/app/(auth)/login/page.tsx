@@ -6,6 +6,7 @@ import TechnicalBackground from "@/components/auth/TechnicalBackground"
 import GoogleIcon from "@/components/icons/GoogleIcon"
 import { AlertCircle } from "lucide-react"
 import { Suspense } from "react"
+import Image from "next/image"
 
 function LoginContent() {
   const searchParams = useSearchParams()
@@ -21,14 +22,21 @@ function LoginContent() {
         <div className="bg-[#1f1f1f] border border-[#2a2a2a] rounded-xl p-8 shadow-2xl backdrop-blur-sm">
           {/* Logo and Title */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-[#3b82f6]/20 rounded-full mb-4">
-              <div className="w-12 h-12 bg-[#3b82f6] rounded-full flex items-center justify-center">
-                <span className="text-white text-2xl font-bold">RT</span>
-              </div>
+            <div className="mb-6">
+              <Image
+                src="https://vchtbaawxxruwtvebxlg.supabase.co/storage/v1/object/public/logos/roundtable-logo-stacked.png"
+                alt="Round Table Logo"
+                width={200}
+                height={200}
+                className="mx-auto"
+                priority
+              />
             </div>
-            <h1 className="text-4xl font-bold text-white mb-2">Round Table</h1>
-            <p className="text-base text-[#a3a3a3]">
-              Dealership inventory management platform
+            <p className="text-sm text-[#a3a3a3]">
+              Dealership Inventory Trading and Analytics System
+            </p>
+            <p className="text-lg text-[#3b82f6] font-medium mb-2">
+              Connect • Trade • Analyze • Succeed
             </p>
           </div>
 

@@ -17,7 +17,8 @@ export default function VehicleSearch() {
     if (urlSearchTerm !== searchTerm) {
       setSearchTerm(urlSearchTerm);
     }
-  }, [searchParams, searchTerm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Intentionally exclude searchTerm to prevent infinite loop
 
   // Debounced search to avoid too many URL updates
   const debouncedSearch = useDebouncedCallback((value: string) => {

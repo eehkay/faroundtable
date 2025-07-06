@@ -24,7 +24,18 @@ export async function PUT(
       );
     }
 
-    const { status } = await request.json();
+    let requestBody;
+    try {
+      requestBody = await request.json();
+    } catch (jsonError) {
+      console.error('JSON parsing error:', jsonError);
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+
+    const { status } = requestBody;
 
     // Validate status
     if (!['in-transit', 'delivered'].includes(status)) {
@@ -211,8 +222,13 @@ export async function PUT(
 
   } catch (error) {
     console.error('Failed to update transfer status:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      transferId
+    });
     return NextResponse.json(
-      { error: 'Failed to update transfer status' },
+      { error: 'Failed to update transfer status', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

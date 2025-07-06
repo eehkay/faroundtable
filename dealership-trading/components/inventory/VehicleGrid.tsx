@@ -3,6 +3,7 @@
 import { useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { X, RotateCcw } from 'lucide-react';
+import { useDebouncedCallback } from 'use-debounce';
 import VehicleCard from './VehicleCard';
 import { supabase } from '@/lib/supabase-client';
 import { useVehicles } from '@/hooks/useVehicles';
@@ -76,6 +77,11 @@ export default function VehicleGrid({ userLocation, userRole }: VehicleGridProps
     router.push('/inventory');
   };
 
+  // Debounced refresh to prevent rapid successive updates
+  const debouncedRefresh = useDebouncedCallback(() => {
+    refreshVehicles();
+  }, 1000);
+
   // Subscribe to real-time updates
   useEffect(() => {
     const channel = supabase
@@ -89,16 +95,18 @@ export default function VehicleGrid({ userLocation, userRole }: VehicleGridProps
         },
         (payload) => {
           console.log('Vehicle real-time update:', payload);
-          // Refresh the current page when changes occur
-          refreshVehicles();
+          // Use debounced refresh to prevent rapid successive updates
+          debouncedRefresh();
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      // Cancel any pending refresh when component unmounts
+      debouncedRefresh.cancel();
     };
-  }, [refreshVehicles]);
+  }, [debouncedRefresh]);
 
   const handleVehicleUpdate = useCallback(() => {
     refreshVehicles();

@@ -75,15 +75,10 @@ interface TransferListProps {
   userRole: string;
   currentUserId: string;
   userLocationId?: string;
+  onTransferUpdate?: (updatedTransfer: any) => void;
 }
 
-export default function TransferList({ transfers, userRole, currentUserId, userLocationId }: TransferListProps) {
-  console.log('TransferList rendering with:', {
-    transfersCount: transfers.length,
-    userRole,
-    currentUserId,
-    transfers: transfers
-  });
+export default function TransferList({ transfers, userRole, currentUserId, userLocationId, onTransferUpdate }: TransferListProps) {
   
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [actionType, setActionType] = useState<'approve' | 'status' | 'cancel' | null>(null);
@@ -264,6 +259,7 @@ export default function TransferList({ transfers, userRole, currentUserId, userL
             setSelectedTransfer(null);
             setActionType(null);
           }}
+          onTransferUpdate={onTransferUpdate}
         />
       )}
     </>

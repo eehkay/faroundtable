@@ -84,10 +84,6 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted!');
-    console.log('Form data:', formData);
-    console.log('Requested by date:', requestedByDateTime);
-    console.log('Expected pickup date:', expectedPickupDate);
     
     // Validate required fields
     if (!formData.transferNotes.trim()) {
@@ -114,7 +110,6 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
         expectedPickupDate: expectedPickupDate?.toISOString()
       };
       
-      console.log('Sending payload:', payload);
       
       const response = await fetch('/api/transfer/claim', {
         method: 'POST',
@@ -168,7 +163,7 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
-        <form onSubmit={handleSubmit} onClick={() => console.log('Form clicked')}>
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Request Vehicle Transfer</DialogTitle>
             <DialogDescription>
@@ -280,7 +275,6 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
               type="button"
               disabled={loading}
               onClick={(e) => {
-                console.log('Submit button clicked - manual submit');
                 e.preventDefault();
                 handleSubmit(e as React.FormEvent);
               }}

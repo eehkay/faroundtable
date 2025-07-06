@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { isAdmin, isManager } from "@/lib/permissions";
 import { 
@@ -14,7 +14,9 @@ import {
   Settings, 
   FileText, 
   Activity,
-  ChevronLeft
+  ChevronLeft,
+  ChevronRight,
+  Car
 } from "lucide-react";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 
@@ -26,6 +28,34 @@ export default function AdminLayout({
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('adminSidebarCollapsed');
+      // Auto-collapse on smaller screens by default
+      const isMobile = window.innerWidth < 1024;
+      return saved !== null ? saved === 'true' : isMobile;
+    }
+    return false;
+  });
+
+  const toggleSidebar = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    localStorage.setItem('adminSidebarCollapsed', newState.toString());
+  };
+
+  // Handle responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      const saved = localStorage.getItem('adminSidebarCollapsed');
+      if (saved === null && window.innerWidth < 1024) {
+        setIsCollapsed(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -38,7 +68,7 @@ export default function AdminLayout({
   if (status === "loading") {
     return (
       <div className="flex h-screen">
-        <div className="animate-pulse bg-[#1f1f1f] w-64 h-full"></div>
+        <div className={`animate-pulse bg-[#1f1f1f] ${isCollapsed ? 'w-16' : 'w-64'} h-full transition-all duration-200`}></div>
         <div className="flex-1 p-8">
           <div className="animate-pulse">
             <div className="h-8 bg-[#2a2a2a] rounded w-1/4 mb-4"></div>
@@ -58,6 +88,12 @@ export default function AdminLayout({
       name: "Dashboard",
       href: "/admin",
       icon: LayoutDashboard,
+      show: true
+    },
+    {
+      name: "Vehicles",
+      href: "/admin/vehicles",
+      icon: Car,
       show: true
     },
     {
@@ -115,19 +151,66 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
+    <div 
+      className="flex h-[calc(100vh-4rem)]"
+      style={{
+        marginLeft: 'calc(-50vw + 50%)',
+        marginRight: 'calc(-50vw + 50%)',
+        width: '100vw',
+        position: 'relative'
+      }}
+    >
       {/* Sidebar */}
-      <div className="w-64 bg-[#1f1f1f] border-r border-[#2a2a2a]">
-        <div className="p-4">
-          <Link 
-            href="/dashboard"
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-6"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back to Main Dashboard
-          </Link>
+      <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-[#1f1f1f] border-r border-[#2a2a2a] transition-all duration-200 ease-in-out`}>
+        <div className={`${isCollapsed ? 'px-2 py-4' : 'px-4 py-4'}`}>
+          {/* Toggle Button */}
+          {!isCollapsed ? (
+            <button
+              onClick={toggleSidebar}
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-6"
+              title="Collapse sidebar"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Collapse Navigation
+            </button>
+          ) : (
+            <div className="relative group mb-6">
+              <button
+                onClick={toggleSidebar}
+                className="flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-lg transition-colors"
+                title="Expand sidebar"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#2a2a2a] text-white text-sm rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                Expand sidebar
+              </div>
+            </div>
+          )}
+
+          {!isCollapsed ? (
+            <Link 
+              href="/dashboard"
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-6"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back to Main Dashboard
+            </Link>
+          ) : (
+            <div className="relative group mb-6">
+              <Link 
+                href="/dashboard"
+                className="flex items-center justify-center p-2 text-gray-400 hover:text-white hover:bg-[#2a2a2a] rounded-lg transition-colors"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Link>
+              <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#2a2a2a] text-white text-sm rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                Back to Main Dashboard
+              </div>
+            </div>
+          )}
           
-          <h2 className="text-lg font-semibold text-white mb-4">Admin Panel</h2>
+          {!isCollapsed && <h2 className="text-lg font-semibold text-white mb-4">Admin Panel</h2>}
           
           <nav className="space-y-1">
             {navigationItems.filter(item => item.show).map((item) => {
@@ -135,26 +218,39 @@ export default function AdminLayout({
               const active = isActive(item.href);
               
               return (
-                <Link
-                  key={item.href}
-                  href={item.comingSoon ? '#' : item.href}
-                  className={`
-                    flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                    ${active 
-                      ? 'bg-blue-600 text-white' 
-                      : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
-                    }
-                    ${item.comingSoon ? 'cursor-not-allowed opacity-50' : ''}
-                  `}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span>{item.name}</span>
-                  {item.comingSoon && (
-                    <span className="ml-auto text-xs bg-[#2a2a2a] text-gray-500 px-2 py-1 rounded">
-                      Soon
-                    </span>
+                <div key={item.href} className="relative group">
+                  <Link
+                    href={item.comingSoon ? '#' : item.href}
+                    className={`
+                      flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                      ${active 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-400 hover:text-white hover:bg-[#2a2a2a]'
+                      }
+                      ${item.comingSoon ? 'cursor-not-allowed opacity-50' : ''}
+                    `}
+                  >
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    {!isCollapsed && (
+                      <>
+                        <span>{item.name}</span>
+                        {item.comingSoon && (
+                          <span className="ml-auto text-xs bg-[#2a2a2a] text-gray-500 px-2 py-1 rounded">
+                            Soon
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </Link>
+                  
+                  {/* Tooltip for collapsed state */}
+                  {isCollapsed && (
+                    <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#2a2a2a] text-white text-sm rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                      {item.name}
+                      {item.comingSoon && ' (Soon)'}
+                    </div>
                   )}
-                </Link>
+                </div>
               );
             })}
           </nav>
@@ -163,7 +259,7 @@ export default function AdminLayout({
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-8">
+        <div className="px-4 py-4 pr-6">
           <AdminBreadcrumb />
           {children}
         </div>

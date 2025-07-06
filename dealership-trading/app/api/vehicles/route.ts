@@ -60,14 +60,14 @@ export async function GET(request: NextRequest) {
 
     // Apply filters
     if (search) {
+      // Escape special characters for PostgreSQL LIKE queries
+      const escapedSearch = search
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')
+      
       // Use ilike for case-insensitive search
-      query = query.or(`
-        make.ilike.%${search}%,
-        model.ilike.%${search}%,
-        vin.ilike.%${search}%,
-        title.ilike.%${search}%,
-        stock_number.ilike.%${search}%
-      `)
+      query = query.or(`make.ilike.%${escapedSearch}%,model.ilike.%${escapedSearch}%,vin.ilike.%${escapedSearch}%,title.ilike.%${escapedSearch}%,stock_number.ilike.%${escapedSearch}%`)
     }
 
     if (location && location !== 'all') {
@@ -132,16 +132,22 @@ export async function GET(request: NextRequest) {
 
     const { data: vehicles, error, count } = await query
 
-    console.log('Query result:', { 
-      vehicleCount: vehicles?.length, 
-      totalCount: count,
-      error: error?.message 
-    })
-
     if (error) {
-      console.error('Supabase error:', error)
-      throw error
+      console.error('Supabase query error:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        searchTerm: search,
+        query: search ? `make.ilike.%${search}%,model.ilike.%${search}%,vin.ilike.%${search}%,title.ilike.%${search}%,stock_number.ilike.%${search}%` : 'no search'
+      })
+      throw new Error(`Database query failed: ${error.message}`)
     }
+
+    console.log('Query successful:', { 
+      vehicleCount: vehicles?.length, 
+      totalCount: count
+    })
 
     const totalCount = count || 0
     const totalPages = Math.ceil(totalCount / limit)

@@ -8,9 +8,10 @@ interface TransferActionModalProps {
   transfer: any;
   actionType: 'approve' | 'status' | 'cancel';
   onClose: () => void;
+  onTransferUpdate?: (updatedTransfer: any) => void;
 }
 
-export default function TransferActionModal({ transfer, actionType, onClose }: TransferActionModalProps) {
+export default function TransferActionModal({ transfer, actionType, onClose, onTransferUpdate }: TransferActionModalProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
@@ -78,12 +79,27 @@ export default function TransferActionModal({ transfer, actionType, onClose }: T
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to perform action');
+        let errorMessage = 'Failed to perform action';
+        try {
+          const data = await response.json();
+          errorMessage = data.error || errorMessage;
+        } catch (jsonError) {
+          // If response is not JSON, use the status text or default message
+          errorMessage = response.statusText || `Server error (${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
 
-      // Refresh the page to show updated data
-      router.refresh();
+      // Get the updated transfer data from response
+      const result = await response.json();
+      
+      // Call the update callback if provided, otherwise fall back to router refresh
+      if (onTransferUpdate && result.transfer) {
+        onTransferUpdate(result.transfer);
+      } else {
+        router.refresh();
+      }
+      
       onClose();
     } catch (err: any) {
       setError(err.message);
