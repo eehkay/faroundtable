@@ -16,6 +16,11 @@ interface ActivityItem {
     _id: string;
     title: string;
     stockNumber: string;
+    location?: {
+      id: string;
+      name: string;
+      code: string;
+    };
   } | null;
   user: {
     _id: string;
@@ -51,7 +56,12 @@ export default function RecentActivity({ initialActivity, userLocation }: Recent
             model,
             year,
             location_id,
-            original_location_id
+            original_location_id,
+            location:location_id(
+              id,
+              name,
+              code
+            )
           ),
           user:user_id(
             id,
@@ -99,7 +109,8 @@ export default function RecentActivity({ initialActivity, userLocation }: Recent
                      (vehicle.year && vehicle.make && vehicle.model 
                        ? `${vehicle.year} ${vehicle.make} ${vehicle.model}`.trim()
                        : `Stock #${vehicle.stock_number || 'Unknown'}`),
-              stockNumber: vehicle.stock_number
+              stockNumber: vehicle.stock_number,
+              location: vehicle.location
             } : null,
             user: user ? {
               _id: user.id,
@@ -144,7 +155,12 @@ export default function RecentActivity({ initialActivity, userLocation }: Recent
                 model,
                 year,
                 location_id,
-                original_location_id
+                original_location_id,
+                location:location_id(
+                  id,
+                  name,
+                  code
+                )
               ),
               user:user_id(
                 id,
@@ -179,7 +195,8 @@ export default function RecentActivity({ initialActivity, userLocation }: Recent
                          (activityVehicle.year && activityVehicle.make && activityVehicle.model 
                            ? `${activityVehicle.year} ${activityVehicle.make} ${activityVehicle.model}`.trim()
                            : `Stock #${activityVehicle.stock_number || 'Unknown'}`),
-                  stockNumber: activityVehicle.stock_number
+                  stockNumber: activityVehicle.stock_number,
+                  location: activityVehicle.location
                 } : null,
                 user: activityUser ? {
                   _id: activityUser.id,
@@ -224,6 +241,7 @@ export default function RecentActivity({ initialActivity, userLocation }: Recent
   const getActivityDescription = (activity: ActivityItem) => {
     const userName = activity.user?.name || 'Someone';
     const vehicleTitle = activity.vehicle?.title || `Stock #${activity.vehicle?.stockNumber || 'Unknown'}`;
+    const storeName = activity.vehicle?.location?.name;
     
     // Create vehicle link if we have a stock number
     const vehicleLink = activity.vehicle?.stockNumber ? (
@@ -236,28 +254,33 @@ export default function RecentActivity({ initialActivity, userLocation }: Recent
     ) : (
       <span>{vehicleTitle}</span>
     );
+
+    // Add store name if available
+    const storeText = storeName ? (
+      <span className="text-gray-500 dark:text-gray-400 text-sm"> at {storeName}</span>
+    ) : null;
     
     switch (activity.action) {
       case 'claimed':
-        return <>{userName} claimed {vehicleLink}</>;
+        return <>{userName} claimed {vehicleLink}{storeText}</>;
       case 'released':
-        return <>{userName} released claim on {vehicleLink}</>;
+        return <>{userName} released claim on {vehicleLink}{storeText}</>;
       case 'commented':
-        return <>{userName} commented on {vehicleLink}</>;
+        return <>{userName} commented on {vehicleLink}{storeText}</>;
       case 'status-updated':
-        return <>{userName} updated status of {vehicleLink}</>;
+        return <>{userName} updated status of {vehicleLink}{storeText}</>;
       case 'transfer-approved':
         // For transfer activities, check if details contains store information
         if (activity.details?.includes(' to ')) {
-          return <>Transfer approved for {vehicleLink}</>;
+          return <>Transfer approved for {vehicleLink}{storeText}</>;
         }
-        return <>Transfer approved for {vehicleLink}</>;
+        return <>Transfer approved for {vehicleLink}{storeText}</>;
       case 'transfer-started':
-        return <>Transfer started for {vehicleLink}</>;
+        return <>Transfer started for {vehicleLink}{storeText}</>;
       case 'transfer-completed':
-        return <>Transfer completed for {vehicleLink}</>;
+        return <>Transfer completed for {vehicleLink}{storeText}</>;
       default:
-        return <>{activity.details || `${userName} performed an action on`} {vehicleLink}</>;
+        return <>{activity.details || `${userName} performed an action on`} {vehicleLink}{storeText}</>;
     }
   };
 
