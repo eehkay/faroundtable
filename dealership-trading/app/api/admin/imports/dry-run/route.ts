@@ -46,8 +46,9 @@ export async function POST(request: NextRequest) {
     }
 
     // For now, return a mock dry run result
-    // TODO: Implement actual dry run logic without SFTP dependency
-    // The actual import process will handle the SFTP connection
+    // NOTE: Actual dry run with SFTP should be implemented server-side only
+    // to avoid webpack build issues with native Node.js modules
+    // The GitHub Actions workflow handles the real SFTP connection
     const result = {
       success: true,
       stores: {} as Record<string, any>,
