@@ -16,9 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
-import { DateTimePicker } from '@/components/ui/date-time-picker';
 
 interface ClaimButtonProps {
   vehicleId: string;
@@ -37,7 +35,6 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
     reason: '',
     transferNotes: '',
     moneyOffer: '',
-    customerWaiting: false,
     priority: 'normal' as 'normal' | 'high' | 'urgent',
     expectedPickupDate: '',
     requestedByDate: ''
@@ -85,18 +82,7 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!formData.transferNotes.trim()) {
-      console.error('Missing transfer notes');
-      alert('Please provide transfer notes explaining why you need this vehicle.');
-      return;
-    }
-    
-    if (!requestedByDateTime) {
-      console.error('Missing requested by date');
-      alert('Please select when you need this vehicle by.');
-      return;
-    }
+    // No validation needed - all fields are optional
     
     setLoading(true);
 
@@ -124,7 +110,6 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
           reason: '',
           transferNotes: '',
           moneyOffer: '',
-          customerWaiting: false,
           priority: 'normal' as 'normal' | 'high' | 'urgent',
           expectedPickupDate: '',
           requestedByDate: ''
@@ -176,16 +161,15 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
           <div className="grid gap-4 py-4">
             <div className="grid w-full gap-1.5">
               <Label htmlFor="transferNotes">
-                Transfer Notes <span className="text-red-500">*</span>
+                Transfer Notes (Optional)
               </Label>
               <Textarea
                 id="transferNotes"
                 value={formData.transferNotes}
                 onChange={(e) => setFormData({...formData, transferNotes: e.target.value})}
                 rows={3}
-                placeholder="Explain why you need this vehicle (e.g., customer waiting, specific request, etc.)"
+                placeholder="Add any notes about why you need this vehicle (optional)"
                 className="bg-zinc-800 border-zinc-700"
-                required
               />
             </div>
 
@@ -213,12 +197,12 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
             <div className="grid grid-cols-2 gap-4">
               <div className="grid w-full gap-1.5">
                 <Label htmlFor="requestedByDate">
-                  Needed By <span className="text-red-500">*</span>
+                  Needed By (Optional)
                 </Label>
-                <DateTimePicker
+                <DatePicker
                   date={requestedByDateTime}
                   onSelect={setRequestedByDateTime}
-                  placeholder="Select date and time"
+                  placeholder="Select date"
                   minDate={new Date()}
                 />
               </div>
@@ -238,17 +222,6 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
                   <option value="urgent">Urgent</option>
                 </select>
               </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="customerWaiting"
-                checked={formData.customerWaiting}
-                onCheckedChange={(checked) => setFormData({...formData, customerWaiting: !!checked})}
-              />
-              <Label htmlFor="customerWaiting" className="text-sm font-normal">
-                Customer is waiting for this vehicle
-              </Label>
             </div>
 
             <div className="grid w-full gap-1.5">
@@ -278,6 +251,7 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
                 e.preventDefault();
                 handleSubmit(e as React.FormEvent);
               }}
+              className="bg-[#3b82f6] text-white hover:bg-[#2563eb] transition-all duration-200 ease-in-out hover:transform hover:-translate-y-[1px] hover:shadow-[0_4px_12px_rgba(59,130,246,0.3)]"
             >
               {loading ? 'Submitting...' : 'Submit Request'}
             </Button>

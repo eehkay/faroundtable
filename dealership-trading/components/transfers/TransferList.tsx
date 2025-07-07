@@ -126,8 +126,8 @@ export default function TransferList({ transfers, userRole, currentUserId, userL
     switch (action) {
       case 'approve':
         return transfer.status === 'requested' && 
-               transfer.fromLocationId &&
-               canApproveTransferForLocation(userRole, userLocationId || null, transfer.fromLocationId);
+               transfer.fromLocation._id &&
+               canApproveTransferForLocation(userRole, userLocationId || null, transfer.fromLocation._id);
       case 'in-transit':
         return transfer.status === 'approved' && canUpdateTransferStatus(userRole);
       case 'delivered':
