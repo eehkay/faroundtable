@@ -99,6 +99,21 @@ The import system uses these settings:
 - **Cleanup**: Delivered vehicles reset to available after 3 days
 - **Validation**: VIN must be 17 characters, valid year range
 
+## Important: Vehicle Deletion Behavior
+
+**Vehicles are soft-deleted when they disappear from the CSV feed:**
+- Status changes to `removed` with timestamp
+- 30-day grace period before permanent deletion
+- Vehicles with active transfers are NEVER deleted
+- If vehicle returns to feed within 30 days, it's automatically restored
+- "Removed" vehicles are hidden from inventory by default (can be shown with filter)
+
+**This protects against:**
+- Accidental removal from feed
+- Temporary SFTP/CSV issues
+- Loss of sold vehicle history (30-day retention)
+- Deletion of vehicles being transferred
+
 ## Implementation Strategy
 
 ### Phase 1: Pre-Deployment Checklist

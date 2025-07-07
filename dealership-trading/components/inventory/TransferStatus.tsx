@@ -1,5 +1,5 @@
 interface TransferStatusProps {
-  status: 'available' | 'claimed' | 'in-transit' | 'delivered';
+  status: 'available' | 'claimed' | 'in-transit' | 'delivered' | 'removed';
   className?: string;
 }
 
@@ -14,6 +14,8 @@ export default function TransferStatus({ status, className = '' }: TransferStatu
         return 'bg-[#3b82f6]/20 text-[#3b82f6]';
       case 'delivered':
         return 'bg-[#8b5cf6]/20 text-[#8b5cf6]';
+      case 'removed':
+        return 'bg-[#ef4444]/20 text-[#ef4444]';
       default:
         return 'bg-[#1f1f1f] text-gray-300';
     }
@@ -29,6 +31,8 @@ export default function TransferStatus({ status, className = '' }: TransferStatu
         return 'In Transit';
       case 'delivered':
         return 'Delivered';
+      case 'removed':
+        return 'Removed';
       default:
         return status;
     }

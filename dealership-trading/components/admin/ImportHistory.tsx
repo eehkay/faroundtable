@@ -52,24 +52,24 @@ export default function ImportHistory({ limit = 10 }: ImportHistoryProps) {
   const [selectedLog, setSelectedLog] = useState<ImportLog | null>(null);
 
   useEffect(() => {
-    fetchLogs();
-  }, [offset]);
-
-  const fetchLogs = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/admin/imports?limit=${limit}&offset=${offset}`);
-      if (response.ok) {
-        const data = await response.json();
-        setLogs(data.logs);
-        setTotal(data.total);
+    const fetchLogs = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/admin/imports?limit=${limit}&offset=${offset}`);
+        if (response.ok) {
+          const data = await response.json();
+          setLogs(data.logs);
+          setTotal(data.total);
+        }
+      } catch (error) {
+        console.error('Failed to fetch import logs:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to fetch import logs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchLogs();
+  }, [limit, offset]);
 
   const getStatusIcon = (log: ImportLog) => {
     if (log.details.status === 'triggered') {
@@ -109,7 +109,7 @@ export default function ImportHistory({ limit = 10 }: ImportHistoryProps) {
             <h2 className="text-xl font-semibold text-gray-100">Import History</h2>
           </div>
           <button
-            onClick={fetchLogs}
+            onClick={() => setOffset(0)}
             className="p-2 text-gray-400 hover:text-gray-200 hover:bg-[#2a2a2a] rounded-lg transition-all duration-200"
           >
             <RefreshCw className="h-4 w-4" />

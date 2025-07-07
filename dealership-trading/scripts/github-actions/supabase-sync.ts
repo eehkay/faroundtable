@@ -49,7 +49,7 @@ export async function syncToSupabase(
     // 2. Get existing vehicles for this dealership
     const { data: existingVehicles, error: fetchError } = await supabase
       .from('vehicles')
-      .select('id, vin, stock_number, status, current_transfer_id')
+      .select('id, vin, stock_number, status, current_transfer_id, removed_from_feed_at')
       .eq('location_id', dealership.id);
 
     if (fetchError) {
@@ -81,28 +81,49 @@ export async function syncToSupabase(
           id: existing.id,
           // Preserve certain fields during update
           status: existing.status === 'delivered' ? 'available' : existing.status,
-          current_transfer_id: existing.current_transfer_id
+          current_transfer_id: existing.current_transfer_id,
+          removed_from_feed_at: null // Clear if it was previously removed
         });
       } else {
         toCreate.push(vehicle);
       }
     }
 
-    // 4. Find vehicles to delete (not in feed and no active transfers)
-    const toDelete = existingVehicles?.filter(existing => {
+    // 4. Find vehicles to soft delete (not in feed and no active transfers)
+    const toSoftDelete = existingVehicles?.filter(existing => {
       const stillInFeed = incomingVins.has(existing.vin);
       const hasActiveTransfer = existing.current_transfer_id && 
         ['claimed', 'in-transit'].includes(existing.status);
       
-      return !stillInFeed && !hasActiveTransfer;
+      // Don't soft delete if already removed or has active transfer
+      return !stillInFeed && !hasActiveTransfer && existing.status !== 'removed';
     }) || [];
 
-    console.log(`    📊 Changes: ${toCreate.length} new, ${toUpdate.length} updates, ${toDelete.length} to delete`);
+    // 5. Find vehicles that returned to feed (currently removed but now in feed)
+    const toRestore = existingVehicles?.filter(existing => {
+      const nowInFeed = incomingVins.has(existing.vin);
+      return existing.status === 'removed' && nowInFeed;
+    }) || [];
+
+    // 6. Find vehicles to permanently delete (removed > 30 days ago)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const toPermanentlyDelete = existingVehicles?.filter(existing => {
+      if (existing.status !== 'removed' || !existing.removed_from_feed_at) {
+        return false;
+      }
+      const removedDate = new Date(existing.removed_from_feed_at);
+      return removedDate < thirtyDaysAgo;
+    }) || [];
+
+    console.log(`    📊 Changes: ${toCreate.length} new, ${toUpdate.length} updates, ${toSoftDelete.length} to remove`);
+    console.log(`    🔄 Restoring: ${toRestore.length}, Permanent delete: ${toPermanentlyDelete.length}`);
 
     if (dryRun) {
       result.created = toCreate.length;
-      result.updated = toUpdate.length;
-      result.deleted = toDelete.length;
+      result.updated = toUpdate.length + toRestore.length;
+      result.deleted = toSoftDelete.length + toPermanentlyDelete.length;
       return result;
     }
 
@@ -135,17 +156,51 @@ export async function syncToSupabase(
       result.updated = toUpdate.length;
     }
 
-    // Delete vehicles (soft delete by setting status)
-    if (toDelete.length > 0) {
-      const { error: deleteError } = await supabase
+    // Soft delete vehicles (mark as removed)
+    if (toSoftDelete.length > 0) {
+      const { error: softDeleteError } = await supabase
+        .from('vehicles')
+        .update({ 
+          status: 'removed',
+          removed_from_feed_at: new Date().toISOString()
+        })
+        .in('id', toSoftDelete.map(v => v.id));
+
+      if (softDeleteError) {
+        throw new Error(`Failed to soft delete vehicles: ${softDeleteError.message}`);
+      }
+      result.deleted += toSoftDelete.length;
+    }
+
+    // Restore vehicles that returned to feed
+    if (toRestore.length > 0) {
+      const { error: restoreError } = await supabase
+        .from('vehicles')
+        .update({ 
+          status: 'available',
+          removed_from_feed_at: null
+        })
+        .in('id', toRestore.map(v => v.id));
+
+      if (restoreError) {
+        throw new Error(`Failed to restore vehicles: ${restoreError.message}`);
+      }
+      result.updated += toRestore.length;
+      console.log(`    ♻️  Restored ${toRestore.length} vehicles that returned to feed`);
+    }
+
+    // Permanently delete old removed vehicles
+    if (toPermanentlyDelete.length > 0) {
+      const { error: permanentDeleteError } = await supabase
         .from('vehicles')
         .delete()
-        .in('id', toDelete.map(v => v.id));
+        .in('id', toPermanentlyDelete.map(v => v.id));
 
-      if (deleteError) {
-        throw new Error(`Failed to delete vehicles: ${deleteError.message}`);
+      if (permanentDeleteError) {
+        throw new Error(`Failed to permanently delete vehicles: ${permanentDeleteError.message}`);
       }
-      result.deleted = toDelete.length;
+      result.deleted += toPermanentlyDelete.length;
+      console.log(`    🗑️  Permanently deleted ${toPermanentlyDelete.length} vehicles (removed > 30 days)`);
     }
 
     // 6. Clean up old delivered transfers (3+ days old)
@@ -228,6 +283,7 @@ function transformVehicleForDB(vehicle: any) {
     current_transfer_id: vehicle.current_transfer_id,
     image_urls: vehicle.imageUrls,
     last_seen_in_feed: new Date().toISOString(),
+    removed_from_feed_at: vehicle.removed_from_feed_at || null,
     days_on_lot: vehicle.daysOnLot || calculateDaysOnLot(vehicle.imported_at)
   };
 }

@@ -1,10 +1,18 @@
 "use client"
 
-import { useState } from 'react';
-import { Play, Loader2, AlertCircle, Settings, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Play, Loader2, AlertCircle, Settings, CheckCircle, ChevronDown } from 'lucide-react';
+import DryRunPreview from './DryRunPreview';
 
 interface ImportTriggerProps {
   onImportTriggered?: () => void;
+}
+
+interface Dealership {
+  id: string;
+  name: string;
+  code: string;
+  csv_file_name: string | null;
 }
 
 export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps) {
@@ -17,6 +25,48 @@ export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps)
   const [stores, setStores] = useState('all');
   const [enrichment, setEnrichment] = useState(true);
   const [dryRun, setDryRun] = useState(false);
+  
+  // Store selector
+  const [dealerships, setDealerships] = useState<Dealership[]>([]);
+  const [selectedStores, setSelectedStores] = useState<string[]>([]);
+  const [showStoreDropdown, setShowStoreDropdown] = useState(false);
+  
+  // Dry run preview
+  const [dryRunResult, setDryRunResult] = useState<any | null>(null);
+  const [showDryRunPreview, setShowDryRunPreview] = useState(false);
+
+  // Fetch dealerships on mount
+  useEffect(() => {
+    if (isOpen) {
+      fetchDealerships();
+    }
+  }, [isOpen]);
+
+  const fetchDealerships = async () => {
+    try {
+      const response = await fetch('/api/admin/dealerships/active');
+      if (response.ok) {
+        const data = await response.json();
+        setDealerships(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch dealerships:', err);
+    }
+  };
+
+  const handleStoreSelection = (storeCode: string) => {
+    if (storeCode === 'all') {
+      setSelectedStores([]);
+      setStores('all');
+    } else {
+      const newSelection = selectedStores.includes(storeCode)
+        ? selectedStores.filter(s => s !== storeCode)
+        : [...selectedStores, storeCode];
+      
+      setSelectedStores(newSelection);
+      setStores(newSelection.length === 0 ? 'all' : newSelection.join(','));
+    }
+  };
 
   const triggerImport = async () => {
     setLoading(true);
@@ -24,10 +74,33 @@ export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps)
     setSuccess(false);
 
     try {
+      // If dry run, fetch preview first
+      if (dryRun) {
+        const response = await fetch('/api/admin/imports/dry-run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stores, enrichment })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setDryRunResult(data);
+          setShowDryRunPreview(true);
+          setLoading(false);
+          return;
+        } else {
+          setError(data.error || 'Failed to run dry run');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Normal import
       const response = await fetch('/api/admin/imports/trigger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stores, enrichment, dryRun })
+        body: JSON.stringify({ stores, enrichment, dryRun: false })
       });
 
       const data = await response.json();
@@ -47,6 +120,12 @@ export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps)
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleProceedWithImport = async () => {
+    setShowDryRunPreview(false);
+    setDryRun(false);
+    await triggerImport();
   };
 
   return (
@@ -76,16 +155,74 @@ export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps)
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Stores to Import
                 </label>
-                <input
-                  type="text"
-                  value={stores}
-                  onChange={(e) => setStores(e.target.value)}
-                  placeholder="all or comma-separated codes (e.g., MP1568,MP22171)"
-                  className="w-full px-3 py-2 bg-[#141414] border border-[#2a2a2a] rounded-lg text-gray-100 placeholder-gray-400 focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] focus:outline-none"
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowStoreDropdown(!showStoreDropdown)}
+                    disabled={loading}
+                    className="w-full px-3 py-2 bg-[#141414] border border-[#2a2a2a] rounded-lg text-gray-100 text-left focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+                  >
+                    <span>
+                      {stores === 'all' 
+                        ? 'All Stores' 
+                        : selectedStores.length === 0 
+                          ? 'Select stores...'
+                          : `${selectedStores.length} store${selectedStores.length > 1 ? 's' : ''} selected`
+                      }
+                    </span>
+                    <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showStoreDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {showStoreDropdown && (
+                    <div className="absolute z-10 mt-1 w-full bg-[#141414] border border-[#2a2a2a] rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      <div
+                        className="px-3 py-2 hover:bg-[#1f1f1f] cursor-pointer text-sm text-gray-100 border-b border-[#2a2a2a]"
+                        onClick={() => {
+                          handleStoreSelection('all');
+                          setShowStoreDropdown(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded border ${stores === 'all' ? 'bg-[#3b82f6] border-[#3b82f6]' : 'border-[#2a2a2a]'}`}>
+                            {stores === 'all' && (
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="font-medium">All Stores</span>
+                        </div>
+                      </div>
+                      
+                      {dealerships.map((dealership) => (
+                        <div
+                          key={dealership.id}
+                          className="px-3 py-2 hover:bg-[#1f1f1f] cursor-pointer text-sm text-gray-100"
+                          onClick={() => handleStoreSelection(dealership.code)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className={`w-4 h-4 rounded border ${selectedStores.includes(dealership.code) ? 'bg-[#3b82f6] border-[#3b82f6]' : 'border-[#2a2a2a]'}`}>
+                              {selectedStores.includes(dealership.code) && (
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium">{dealership.name}</div>
+                              <div className="text-xs text-gray-400">{dealership.code}</div>
+                            </div>
+                            {!dealership.csv_file_name && (
+                              <span className="text-xs text-orange-400">No CSV configured</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <p className="mt-1 text-xs text-gray-400">
-                  Use "all" to import all stores or specify store codes
+                  Select specific stores or choose &quot;All Stores&quot; to import everything
                 </p>
               </div>
 
@@ -174,6 +311,19 @@ export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps)
             </div>
           </div>
         </div>
+      )}
+
+      {/* Dry Run Preview Modal */}
+      {showDryRunPreview && dryRunResult && (
+        <DryRunPreview
+          result={dryRunResult}
+          onClose={() => {
+            setShowDryRunPreview(false);
+            setDryRunResult(null);
+          }}
+          onProceed={handleProceedWithImport}
+          loading={loading}
+        />
       )}
     </>
   );

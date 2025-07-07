@@ -76,6 +76,9 @@ export async function GET(request: NextRequest) {
 
     if (status && status !== 'all') {
       query = query.eq('status', status)
+    } else if (!status || status === 'all') {
+      // By default, exclude removed vehicles from general queries
+      query = query.neq('status', 'removed')
     }
 
     if (minPrice) {

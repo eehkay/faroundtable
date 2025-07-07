@@ -18,7 +18,7 @@ export interface Vehicle {
   fuelType?: string
   description?: string
   features?: string[]
-  status: 'available' | 'claimed' | 'in-transit' | 'delivered'
+  status: 'available' | 'claimed' | 'in-transit' | 'delivered' | 'removed'
   storeCode: string
   address?: string
   location?: DealershipLocation | { _ref: string }
@@ -27,6 +27,7 @@ export interface Vehicle {
   imageUrls?: string[]
   importedAt?: string
   lastSeenInFeed?: string
+  removedFromFeedAt?: string
   daysOnLot?: number
 }
 

@@ -119,6 +119,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
     { value: 'claimed', label: 'Claimed' },
     { value: 'in-transit', label: 'In Transit' },
     { value: 'delivered', label: 'Delivered' },
+    { value: 'removed', label: 'Removed' },
   ];
 
   // Close dropdowns when clicking outside
