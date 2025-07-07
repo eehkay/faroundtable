@@ -44,6 +44,7 @@
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.11.4",
+    "@octokit/rest": "^22.0.0",
     "@types/node": "^20.19.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -1,6 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
-import type { DealershipLocation } from '@/types/vehicle';
 import type { SFTPFile, MappedFile } from './types/import';
+
+// Use the actual Supabase dealership type
+interface SupabaseDealership {
+  id: string;
+  name: string;
+  code: string;
+  csv_file_name?: string;
+  active: boolean;
+}
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -26,7 +34,7 @@ export async function mapFilesToDealerships(files: SFTPFile[]): Promise<MappedFi
   console.log(`    Found ${dealerships.length} active dealerships`);
 
   // Create a map of CSV filename to dealership
-  const dealershipMap = new Map<string, DealershipLocation>();
+  const dealershipMap = new Map<string, SupabaseDealership>();
   dealerships.forEach(dealership => {
     if (dealership.csv_file_name) {
       dealershipMap.set(dealership.csv_file_name, dealership);

@@ -1,4 +1,11 @@
-import type { DealershipLocation } from '@/types/vehicle';
+// Use the actual Supabase dealership type
+interface SupabaseDealership {
+  id: string;
+  name: string;
+  code: string;
+  csv_file_name?: string;
+  active: boolean;
+}
 
 export interface ImportResult {
   stores: Record<string, StoreImportResult>;
@@ -49,7 +56,7 @@ export interface SFTPFile {
 export interface MappedFile {
   filename: string;
   content: string;
-  dealership: DealershipLocation | null;
+  dealership: SupabaseDealership | null;
   shouldProcess: boolean;
 }
 

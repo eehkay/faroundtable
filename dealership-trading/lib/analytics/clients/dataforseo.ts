@@ -230,10 +230,12 @@ export class DataForSEOClient {
       ].filter(Boolean);
 
       // Get search volume data
-      const volumeResults = await this.getSearchVolume(keywords, vehicle.locationCode);
+      // TODO: Convert lat/lng to location code - for now use US default
+      const locationCode = 2840; // United States
+      const volumeResults = await this.getSearchVolume(keywords, locationCode);
       
       // Get related keywords
-      const suggestions = await this.getKeywordSuggestions(baseKeyword, vehicle.locationCode);
+      const suggestions = await this.getKeywordSuggestions(baseKeyword, locationCode);
 
       // Calculate total monthly search volume
       const monthlySearchVolume = volumeResults.reduce(

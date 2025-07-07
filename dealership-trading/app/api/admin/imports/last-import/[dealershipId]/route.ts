@@ -10,13 +10,15 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { dealershipId: string } }
+  { params }: { params: Promise<{ dealershipId: string }> }
 ) {
   const session = await getServerSession(authOptions);
   
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const { dealershipId } = await params;
 
   try {
     // Get the most recent import log
@@ -45,7 +47,7 @@ export async function GET(
     const { data: dealership } = await supabase
       .from('dealership_locations')
       .select('code')
-      .eq('id', params.dealershipId)
+      .eq('id', dealershipId)
       .single();
 
     if (!dealership) {

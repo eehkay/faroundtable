@@ -103,8 +103,7 @@ async function testImport() {
 
   try {
     // Import and run the main function
-    const { default: runImport } = await import('./github-actions/index');
-    await runImport();
+    await import('./github-actions/index');
     
     console.log('\n✅ Import test completed successfully!');
   } catch (error) {

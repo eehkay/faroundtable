@@ -1,7 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
-import type { DealershipLocation } from '@/types/vehicle';
 import type { SyncResult } from './types/import';
 import { validateVehicle } from '../../netlify/functions/utils/csv-parser';
+
+// Use the actual Supabase dealership type
+interface SupabaseDealership {
+  id: string;
+  name: string;
+  code: string;
+  csv_file_name?: string;
+  active: boolean;
+}
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -11,7 +19,7 @@ const supabase = createClient(
 
 export async function syncToSupabase(
   vehicles: any[],
-  dealership: DealershipLocation
+  dealership: SupabaseDealership
 ): Promise<SyncResult> {
   const result: SyncResult = {
     created: 0,

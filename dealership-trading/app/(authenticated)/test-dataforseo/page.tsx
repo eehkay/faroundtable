@@ -9,6 +9,7 @@ interface SearchResult {
   keyword: string;
   search_volume: number;
   competition: number;
+  trend: number[];
 }
 
 interface LocationResult {
