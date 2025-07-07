@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "test": "npm run type-check && npm run lint && npm run build"
+    "test": "npm run type-check && npm run lint && npm run build",
+    "test-import": "tsx scripts/test-import.ts"
   },
   "dependencies": {
     "@netlify/functions": "^4.1.8",

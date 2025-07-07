@@ -189,7 +189,7 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
                   value={formData.csvFileName}
                   onChange={(e) => setFormData(prev => ({ ...prev, csvFileName: e.target.value }))}
                   className="w-full px-3 py-2 bg-[#141414] border border-[#2a2a2a] rounded-lg text-gray-100 placeholder-gray-400 focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
-                  placeholder="e.g., inventory_MP1568.csv"
+                  placeholder="e.g., MP1568.csv"
                 />
                 <p className="mt-1 text-xs text-gray-500">Used for automated inventory imports</p>
               </div>

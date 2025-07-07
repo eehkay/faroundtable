@@ -1,12 +1,22 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Search, Building2, Filter, MoreVertical, Edit, Trash2, CheckCircle, XCircle, Phone, Mail, MapPin } from 'lucide-react';
+import { Search, Building2, Filter, MoreVertical, Edit, Trash2, CheckCircle, XCircle, Phone, Mail, MapPin, Download, Clock, AlertCircle } from 'lucide-react';
+import { format, formatDistanceToNow } from 'date-fns';
 import DealershipEditModal from './DealershipEditModal';
 import type { DealershipLocation } from '@/types/vehicle';
 
 interface DealershipListProps {
   initialDealerships: DealershipLocation[];
+}
+
+interface ImportStatus {
+  timestamp: string;
+  success: boolean;
+  created: number;
+  updated: number;
+  deleted: number;
+  errors: number;
 }
 
 export default function DealershipList({ initialDealerships }: DealershipListProps) {
@@ -17,6 +27,7 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
   const [editingDealership, setEditingDealership] = useState<DealershipLocation | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [importStatuses, setImportStatuses] = useState<Record<string, ImportStatus>>({});
 
   // Filter dealerships based on search and filters
   useEffect(() => {
@@ -50,6 +61,8 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
       if (response.ok) {
         const data = await response.json();
         setDealerships(data);
+        // Fetch import statuses for all dealerships
+        fetchImportStatuses(data);
       }
     } catch (error) {
       console.error('Failed to fetch dealerships:', error);
@@ -57,6 +70,36 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
       setLoading(false);
     }
   };
+
+  const fetchImportStatuses = async (dealershipList: DealershipLocation[]) => {
+    const statuses: Record<string, ImportStatus> = {};
+    
+    // Fetch all statuses in parallel
+    await Promise.all(
+      dealershipList.map(async (dealership) => {
+        try {
+          const response = await fetch(`/api/admin/imports/last-import/${dealership._id}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.lastImport) {
+              statuses[dealership._id] = data.lastImport;
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to fetch import status for ${dealership.name}:`, error);
+        }
+      })
+    );
+    
+    setImportStatuses(statuses);
+  };
+
+  // Fetch import statuses on mount
+  useEffect(() => {
+    if (dealerships.length > 0) {
+      fetchImportStatuses(dealerships);
+    }
+  }, [dealerships]);
 
   const handleSaveDealership = async (dealership: Partial<DealershipLocation>) => {
     try {
@@ -224,6 +267,39 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
                           </div>
                         )}
                       </div>
+                      
+                      {/* Import Status */}
+                      {importStatuses[dealership._id] && (
+                        <div className="mt-3 flex items-center gap-3 text-xs">
+                          <div className="flex items-center gap-1.5 text-gray-500">
+                            <Download className="h-3 w-3" />
+                            <span>Last import:</span>
+                          </div>
+                          {importStatuses[dealership._id].success ? (
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-3 w-3 text-green-500" />
+                              <span className="text-gray-400">
+                                {formatDistanceToNow(new Date(importStatuses[dealership._id].timestamp), { addSuffix: true })}
+                              </span>
+                              <span className="text-gray-500">
+                                ({importStatuses[dealership._id].created} new, {importStatuses[dealership._id].updated} updated)
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-3 w-3 text-orange-500" />
+                              <span className="text-orange-400">
+                                Failed {formatDistanceToNow(new Date(importStatuses[dealership._id].timestamp), { addSuffix: true })}
+                              </span>
+                              {importStatuses[dealership._id].errors > 0 && (
+                                <span className="text-orange-500">
+                                  ({importStatuses[dealership._id].errors} errors)
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

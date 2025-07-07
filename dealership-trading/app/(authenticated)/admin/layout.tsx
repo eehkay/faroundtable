@@ -16,7 +16,8 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
-  Car
+  Car,
+  Download
 } from "lucide-react";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 
@@ -113,6 +114,12 @@ export default function AdminLayout({
       href: "/admin/transfers",
       icon: TruckIcon,
       show: true
+    },
+    {
+      name: "Imports",
+      href: "/admin/imports",
+      icon: Download,
+      show: isAdmin(session.user.role)
     },
     {
       name: "Notifications",

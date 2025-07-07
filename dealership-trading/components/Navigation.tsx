@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Car, TruckIcon, LayoutDashboard, ChevronDown, LogOut, User, Shield, Moon, Sun } from 'lucide-react'
+import { Car, TruckIcon, LayoutDashboard, ChevronDown, LogOut, User, Shield, Moon, Sun, BarChart3 } from 'lucide-react'
 import { useState } from 'react'
 import { canViewAllTransfers, canManageUsers, isAdmin, isManager } from '@/lib/permissions'
 import { useTheme } from 'next-themes'
@@ -45,6 +45,12 @@ export default function Navigation() {
       href: '/transfers',
       label: 'Transfers',
       icon: TruckIcon,
+      show: true
+    },
+    {
+      href: '/analytics',
+      label: 'Analytics',
+      icon: BarChart3,
       show: true
     },
     {

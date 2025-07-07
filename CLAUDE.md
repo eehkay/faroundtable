@@ -7,24 +7,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **IMPORTANT**: Always consult `dealership-trading/DESIGN-GUIDELINES.md` when making UI changes. The project follows a modern dark theme with:
 - True black backgrounds (#000000 to #0a0a0a)
 - Bright blue accents (#3b82f6)
-- No borders - use background contrast for separation
-- Smooth transitions and hover effects
+- Subtle 1px borders (#2a2a2a) on all cards and containers
+- Smooth transitions (200ms ease) and hover effects
 
 ## Project Overview
 
-This is **Round Table** - an internal inventory management platform for a 5-store dealership network. The system enables stores to claim vehicles from each other, track transfers, and communicate about trades.
+**Round Table** - An internal inventory management platform for a 5-store dealership network. The system enables stores to claim vehicles from each other, track transfers, and communicate about trades.
 
-## Architecture
-
-- **Frontend**: Next.js 14 (App Router) with TypeScript
-- **Authentication**: NextAuth.js with Google SSO (domain-restricted to delmaradv.com and formanautomotive.com)
-- **Database/CMS**: Sanity.io
-- **Styling**: Tailwind CSS v4
-- **Hosting**: Netlify
-- **Real-time Updates**: Sanity listeners for activity feeds
-- **Automated Imports**: Netlify Scheduled Functions (daily CSV imports at 2 AM from SFTP)
-
-## Common Development Commands
+## Development Commands
 
 ```bash
 # Development
@@ -36,64 +26,202 @@ npm run start        # Start production server
 
 # Code Quality
 npm run lint         # Run ESLint
+npm run type-check   # TypeScript validation
+npm run test         # Combined type-check + lint + build
 ```
 
-## High-Level Architecture
+## Architecture
 
-### Data Flow
-1. **CSV Import Pipeline**: Daily scheduled function fetches inventory CSV files from SFTP for each store (MP18527-MP18531)
-2. **Sanity CMS**: Central data store for vehicles, transfers, users, and activities
-3. **Real-time Updates**: Sanity listeners provide live updates for activities and comments
-4. **Authentication**: Google SSO creates/updates user records in Sanity with role-based permissions
+### Tech Stack
+- **Frontend**: Next.js 15 (App Router) with TypeScript
+- **Authentication**: NextAuth.js with Google SSO (domain-restricted)
+- **Database**: Supabase (PostgreSQL) - Migrated from Sanity.io in January 2025
+- **Styling**: Tailwind CSS v3 with custom dark theme
+- **Hosting**: Netlify with edge functions
+- **Real-time**: Supabase Realtime subscriptions
+- **Email**: Resend for transactional emails
+- **Imports**: Netlify Scheduled Functions (daily CSV at 2 AM)
+
+### Data Flow Architecture
+
+```
+┌─────────────────┐     ┌────────────────┐     ┌─────────────────┐
+│   Next.js 15    │────▶│  Supabase DB   │◀────│ Netlify Function│
+│   (App Router)  │     │  (PostgreSQL)  │     │ (CSV Import)    │
+└─────────────────┘     └────────────────┘     └─────────────────┘
+         │                       │                        │
+         ▼                       ▼                        ▼
+┌─────────────────┐     ┌────────────────┐     ┌─────────────────┐
+│  NextAuth.js    │     │  Real-time     │     │   SFTP Server   │
+│ (Google OAuth)  │     │  Subscriptions │     │ (Inventory CSV) │
+└─────────────────┘     └────────────────┘     └─────────────────┘
+```
+
+### Database Schema
+
+```sql
+dealership_locations (id, name, code, csv_file_name)
+    ├── users (location_id)
+    ├── vehicles (location_id, original_location_id)
+    └── transfers (from_location_id, to_location_id)
+
+vehicles (id, vin, stock_number, status)
+    ├── transfers (vehicle_id)
+    ├── activities (vehicle_id)
+    ├── comments (vehicle_id)
+    └── current_transfer_id → transfers
+
+users (id, email, role, location_id)
+    ├── transfers (requested_by_id, approved_by_id)
+    ├── activities (user_id)
+    ├── comments (author_id)
+    └── comment_mentions (user_id)
+
+transfers (id, vehicle_id, status, from/to_location_id)
+    - States: requested → approved → in-transit → delivered
+    - Preserves vehicles during daily imports
+    - 3-day retention after delivery
+```
 
 ### Key Components
 
-**Authentication Flow** (`/app/api/auth/[...nextauth]/route.ts`)
-- Validates user domain against allowed list
-- Creates/updates user record in Sanity
-- Assigns default 'sales' role, preserves existing roles
-- Middleware enforces authentication on all routes except login
+**Authentication** (`/app/api/auth/[...nextauth]/route.ts`)
+- Domain validation: delmaradv.com, formanautomotive.com
+- Auto-creates/updates Supabase user records
+- Enriches session with role and location
+- Middleware enforces auth except /login
 
-**Vehicle Transfer System**
-- Claims API (`/app/api/transfer/claim/route.ts`) - Creates transfer request and updates vehicle status
-- Transfer states: requested → approved → in-transit → delivered
-- Vehicles preserve transfer state during daily imports
-- Delivered vehicles are retained for 3 days before deletion
+**Transfer System**
+- `/api/transfer/claim` - Create transfer request
+- `/api/transfer/[id]/approve` - Manager/admin approval
+- `/api/transfer/[id]/status` - Update transfer status
+- Vehicles retain transfer state during imports
 
-**CSV Import Logic** (`/netlify/functions/scheduled-import.ts`)
-- Parses non-standard CSV format with dynamic headers
-- Validates VIN (17 chars), year, price requirements
-- Preserves vehicles in active transfers
+**CSV Import** (`/netlify/functions/scheduled-import.ts`)
+- Parses non-standard CSV with dynamic headers
+- Validates: VIN (17 chars), year, price
+- Preserves active transfer vehicles
 - Updates only 'available' status vehicles
 
-**Permission System** (`/lib/permissions.ts`)
-- Role hierarchy: admin > manager > sales/transport
-- Transfer approval requires manager/admin role
-- Status updates require manager/admin/transport role
+**Permissions** (`/lib/permissions.ts`)
+- Hierarchy: admin > manager > sales/transport
+- Transfer approval: manager/admin only
+- Status updates: manager/admin/transport
+- User impersonation: admin only
 
-### Sanity Schema Structure
+### API Patterns
 
-The system uses these main document types:
-- `vehicle` - Inventory items with status tracking
-- `transfer` - Transfer requests between stores
-- `user` - Authenticated users with roles
-- `activity` - Vehicle action history
-- `comment` - Inter-store communication
-- `dealershipLocation` - Store configuration
+```typescript
+// Standard API route pattern
+export async function GET/POST(request: NextRequest) {
+  // 1. Session validation
+  const session = await getServerSession(authOptions);
+  if (!session) return unauthorized();
+  
+  // 2. Permission check
+  if (!hasPermission(session.user.role)) return forbidden();
+  
+  // 3. Supabase operation
+  const { data, error } = await supabase
+    .from('table')
+    .select('*');
+    
+  // 4. Activity logging
+  await createActivity(action, details);
+  
+  // 5. Response
+  return NextResponse.json(data);
+}
+```
+
+### Real-time Patterns
+
+```typescript
+// Client-side subscription
+const channel = supabase
+  .channel('activities')
+  .on('postgres_changes', 
+    { event: 'INSERT', schema: 'public', table: 'activities' },
+    (payload) => handleNewActivity(payload)
+  )
+  .subscribe();
+```
 
 ### Environment Variables
 
-Critical configurations:
-- `NEXTAUTH_URL` and `NEXTAUTH_SECRET`
-- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+**Authentication**
+- `NEXTAUTH_URL`, `NEXTAUTH_SECRET`
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - `ALLOWED_DOMAINS` (comma-separated)
-- `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_API_TOKEN`
+
+**Database**
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+**Services**
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
+- `AUTODEALERDATA_API_KEY_ID`, `AUTODEALERDATA_API_KEY`
 - SFTP credentials for CSV imports
 
-### Development Notes
+## Development Guidelines
 
-1. **Sanity Studio** is embedded at `/studio` route
-2. **TypeScript** strict mode is enabled
-3. **Path alias** `@/*` maps to project root
-4. **No test framework** is currently configured
-5. **Turbopack** is used for faster development builds
+### File Structure
+- `/app` - Next.js App Router pages and API routes
+- `/components` - React components organized by feature
+- `/lib` - Utilities, queries, and shared logic
+- `/types` - TypeScript type definitions
+- `/public` - Static assets
+
+### Code Patterns
+- Use server components by default
+- Client components only for interactivity
+- Supabase admin client for server operations
+- Supabase client for real-time subscriptions
+- Always validate sessions in API routes
+- Log activities for audit trail
+
+### Testing Approach
+- No dedicated test framework configured
+- Use `npm run test` for type/lint/build validation
+- Manual testing in development environment
+- Staging deployment on Netlify for QA
+
+### Common Tasks
+
+**Add a new API endpoint**
+1. Create route in `/app/api/[resource]/route.ts`
+2. Validate session and permissions
+3. Use Supabase admin client
+4. Create activity log entry
+5. Return consistent response format
+
+**Update UI component**
+1. Follow DESIGN-GUIDELINES.md
+2. Use existing Tailwind classes
+3. Maintain dark theme consistency
+4. Add proper TypeScript types
+5. Test responsive behavior
+
+**Modify database schema**
+1. Create migration in `/supabase/migrations/`
+2. Update TypeScript types
+3. Update relevant queries
+4. Test with local Supabase
+
+### Deployment
+
+**Netlify Configuration**
+```toml
+[build]
+  base = "dealership-trading"
+  command = "npm run build"
+  publish = ".next"
+```
+
+**Pre-deployment Checklist**
+1. Run `npm run test`
+2. Check environment variables
+3. Verify database migrations
+4. Test critical user flows
+5. Review security permissions
