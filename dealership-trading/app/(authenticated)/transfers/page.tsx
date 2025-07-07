@@ -438,6 +438,7 @@ export default function TransfersPage() {
         transfers={transfers}
         userRole={session.user.role}
         currentUserId={session.user.id}
+        userLocationId={session.user.location?.id}
         onTransferUpdate={handleTransferUpdate}
       />
     </div>

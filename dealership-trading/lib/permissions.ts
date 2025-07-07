@@ -11,6 +11,26 @@ export function canUpdateTransferStatus(role: string): boolean {
   return ['manager', 'admin', 'transport'].includes(role)
 }
 
+// Check if user can mark a transfer as delivered
+export function canMarkTransferAsDelivered(
+  role: string,
+  userLocationId: string | null,
+  transferToLocationId: string
+): boolean {
+  // Admins can always mark as delivered
+  if (role === 'admin') return true
+  
+  // Transport users can always mark as delivered
+  if (role === 'transport') return true
+  
+  // Managers can only mark as delivered if they are at the destination location
+  if (role === 'manager' && userLocationId) {
+    return userLocationId === transferToLocationId
+  }
+  
+  return false
+}
+
 export function canDeleteComment(role: string, isAuthor: boolean): boolean {
   return role === 'admin' || (isAuthor && ['manager', 'sales'].includes(role))
 }
@@ -60,6 +80,9 @@ export function canApproveTransferForLocation(
   // Admins can approve any transfer
   if (role === 'admin') return true
   
+  // Transport users can approve any transfer
+  if (role === 'transport') return true
+  
   // Managers can only approve transfers for vehicles FROM their own dealership
   if (role === 'manager' && userLocationId) {
     return userLocationId === vehicleFromLocationId
@@ -73,7 +96,7 @@ export function canRejectTransferForLocation(
   userLocationId: string | null, 
   vehicleFromLocationId: string
 ): boolean {
-  // Same logic as approval - only the owning dealership (or admin) can reject
+  // Same logic as approval - only the owning dealership (or admin/transport) can reject
   return canApproveTransferForLocation(role, userLocationId, vehicleFromLocationId)
 }
 

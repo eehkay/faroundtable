@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
-import { canUpdateTransferStatus } from '@/lib/permissions';
+import { canUpdateTransferStatus, canMarkTransferAsDelivered } from '@/lib/permissions';
 import { sendTransferStatusUpdateNotification } from '@/lib/email/service';
 
 export async function PUT(
@@ -16,7 +16,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check permissions
+    // Initial permission check
     if (!canUpdateTransferStatus(session.user.role)) {
       return NextResponse.json(
         { error: 'You do not have permission to update transfer status' },
@@ -92,6 +92,20 @@ export async function PUT(
     if (transferError || !transfer) {
       console.error('Transfer fetch error:', transferError);
       return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
+    }
+
+    // Special permission check for delivery status
+    if (status === 'delivered') {
+      if (!canMarkTransferAsDelivered(
+        session.user.role,
+        session.user.location?.id || null,
+        transfer.to_location_id
+      )) {
+        return NextResponse.json(
+          { error: 'You do not have permission to mark this transfer as delivered' },
+          { status: 403 }
+        );
+      }
     }
 
     // Validate status transition
