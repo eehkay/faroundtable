@@ -23,7 +23,7 @@ export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps)
   
   // Import options
   const [stores, setStores] = useState('all');
-  const [enrichment, setEnrichment] = useState(true);
+  const [enrichment, setEnrichment] = useState(false);
   const [dryRun, setDryRun] = useState(false);
   
   // Store selector
@@ -237,8 +237,8 @@ export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps)
                     className="w-4 h-4 bg-[#141414] border-[#2a2a2a] rounded text-[#3b82f6] focus:ring-[#3b82f6]"
                   />
                   <div>
-                    <span className="text-sm text-gray-100">Enable Data Enrichment</span>
-                    <p className="text-xs text-gray-400">Use analytics APIs to enrich vehicle data</p>
+                    <span className="text-sm text-gray-100">Enable Import Data Enrichment</span>
+                    <p className="text-xs text-gray-400">Decode VINs and enrich data during import (slower)</p>
                   </div>
                 </label>
 

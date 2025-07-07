@@ -12,9 +12,9 @@ on:
         default: 'all'
         type: string
       enrichment:
-        description: 'Enable data enrichment'
+        description: 'Enable data enrichment during import'
         required: false
-        default: true
+        default: false
         type: boolean
       dryRun:
         description: 'Dry run (no database updates)'
@@ -71,7 +71,7 @@ jobs:
           SFTP_PATH: ${{ secrets.SFTP_PATH }}
           
           # Enrichment API Keys (Optional)
-          ENABLE_ADVANCED_ANALYTICS: ${{ github.event.inputs.enrichment || 'true' }}
+          ENABLE_IMPORT_ENRICHMENT: ${{ github.event.inputs.enrichment || 'false' }}
           MARKETCHECK_API_KEY: ${{ secrets.MARKETCHECK_API_KEY }}
           DATAFORSEO_EMAIL: ${{ secrets.DATAFORSEO_EMAIL }}
           DATAFORSEO_API_KEY: ${{ secrets.DATAFORSEO_API_KEY }}
