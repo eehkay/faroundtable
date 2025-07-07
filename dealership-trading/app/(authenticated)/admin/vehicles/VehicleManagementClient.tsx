@@ -15,6 +15,30 @@ import { useDebouncedCallback } from 'use-debounce'
 
 interface VehicleWithLocation extends Vehicle {
   dealership_location?: DealershipLocation
+  originalLocation?: DealershipLocation
+  currentTransfer?: {
+    id: string
+    status: string
+    from_location_id: string
+    to_location_id: string
+    requested_by_id: string
+    reason?: string
+    transfer_notes: string
+    requested_by_date: string
+    customer_waiting: boolean
+    priority: string
+    expected_pickup_date?: string
+    actual_pickup_date?: string
+    delivered_date?: string
+    created_at: string
+    from_location?: DealershipLocation
+    to_location?: DealershipLocation
+    requested_by?: {
+      id: string
+      name: string
+      email: string
+    }
+  }
 }
 
 export default function VehicleManagementClient() {
@@ -64,6 +88,42 @@ export default function VehicleManagementClient() {
             city,
             state,
             zip
+          ),
+          original_location:original_location_id(
+            id,
+            name,
+            code
+          ),
+          current_transfer:current_transfer_id(
+            id,
+            status,
+            from_location_id,
+            to_location_id,
+            requested_by_id,
+            reason,
+            transfer_notes,
+            requested_by_date,
+            customer_waiting,
+            priority,
+            expected_pickup_date,
+            actual_pickup_date,
+            delivered_date,
+            created_at,
+            from_location:from_location_id(
+              id,
+              name,
+              code
+            ),
+            to_location:to_location_id(
+              id,
+              name,
+              code
+            ),
+            requested_by:requested_by_id(
+              id,
+              name,
+              email
+            )
           )
         `, { count: 'exact' })
         .order('imported_at', { ascending: false })
