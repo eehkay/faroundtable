@@ -5,6 +5,23 @@ import { syncToSupabase } from './supabase-sync';
 import { parseInventoryCSV } from '../../netlify/functions/utils/csv-parser';
 import type { ImportResult, StoreImportResult, ImportLogEntry } from './types/import';
 
+// Validate required environment variables
+const requiredEnvVars = [
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'SFTP_HOST',
+  'SFTP_USERNAME',
+  'SFTP_PASSWORD'
+];
+
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:');
+  missingEnvVars.forEach(varName => console.error(`   - ${varName}`));
+  console.error('\nPlease ensure all required secrets are configured in GitHub Actions.');
+  process.exit(254);
+}
+
 // Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -229,5 +246,6 @@ async function writeReports(results: ImportResult) {
 // Run the import
 main().catch(error => {
   console.error('Fatal error:', error);
-  process.exit(1);
+  console.error('Stack trace:', error.stack);
+  process.exit(254);
 });
