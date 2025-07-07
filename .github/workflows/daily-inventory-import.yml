@@ -41,9 +41,19 @@ jobs:
       - name: Install dependencies
         working-directory: dealership-trading
         run: |
-          npm ci
-          npm install ssh2-sftp-client
-          npm install --save-dev tsx
+          npm install --legacy-peer-deps
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+      
+      - name: Verify installation
+        working-directory: dealership-trading
+        run: |
+          echo "Checking for required packages..."
+          npm list ssh2-sftp-client || echo "ssh2-sftp-client not found"
+          npm list tsx || echo "tsx not found"
+          echo "Checking script exists..."
+          ls -la scripts/github-actions/index.ts
+          echo "Current directory: $(pwd)"
       
       - name: Cache enrichment data
         uses: actions/cache@v4
