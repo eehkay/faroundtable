@@ -39,21 +39,21 @@ jobs:
           cache-dependency-path: 'dealership-trading/package-lock.json'
       
       - name: Install dependencies
-        working-directory: dealership-trading
         run: |
+          cd dealership-trading
           npm install --legacy-peer-deps
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"
       
       - name: Verify installation
-        working-directory: dealership-trading
         run: |
+          cd dealership-trading
+          echo "Current directory: $(pwd)"
           echo "Checking for required packages..."
           npm list ssh2-sftp-client || echo "ssh2-sftp-client not found"
           npm list tsx || echo "tsx not found"
           echo "Checking script exists..."
           ls -la scripts/github-actions/index.ts
-          echo "Current directory: $(pwd)"
       
       - name: Cache enrichment data
         uses: actions/cache@v4
@@ -66,7 +66,6 @@ jobs:
       
       - name: Run Vehicle Import
         id: import
-        working-directory: dealership-trading
         env:
           # Supabase Configuration
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -95,6 +94,7 @@ jobs:
           DRY_RUN: ${{ github.event.inputs.dryRun || 'false' }}
           
         run: |
+          cd dealership-trading
           echo "Starting vehicle import..."
           npx tsx scripts/github-actions/index.ts
       
@@ -134,8 +134,8 @@ jobs:
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
-        working-directory: dealership-trading
         run: |
+          cd dealership-trading
           npx tsx scripts/github-actions/send-failure-notification.ts \
             --runId=${{ github.run_id }} \
             --errors=${{ steps.import.outputs.errors || '0' }}
