@@ -1,0 +1,168 @@
+name: Daily Inventory Import
+
+on:
+  schedule:
+    # Run at 2 AM PST every day (10 AM UTC)
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+    inputs:
+      stores:
+        description: 'Specific stores to import (comma-separated codes, or "all")'
+        required: false
+        default: 'all'
+        type: string
+      enrichment:
+        description: 'Enable data enrichment'
+        required: false
+        default: true
+        type: boolean
+      dryRun:
+        description: 'Dry run (no database updates)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'dealership-trading/package-lock.json'
+      
+      - name: Install dependencies
+        working-directory: dealership-trading
+        run: |
+          npm ci
+          npm install ssh2-sftp-client
+          npm install --save-dev tsx
+      
+      - name: Cache enrichment data
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/vehicle-enrichment
+          key: enrichment-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ github.run_id }}
+          restore-keys: |
+            enrichment-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-
+            enrichment-${{ runner.os }}-
+      
+      - name: Run Vehicle Import
+        id: import
+        working-directory: dealership-trading
+        env:
+          # Supabase Configuration
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          
+          # SFTP Configuration
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USERNAME: ${{ secrets.SFTP_USERNAME }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT || '22' }}
+          SFTP_PATH: ${{ secrets.SFTP_PATH }}
+          
+          # Enrichment API Keys (Optional)
+          ENABLE_ADVANCED_ANALYTICS: ${{ github.event.inputs.enrichment || 'true' }}
+          MARKETCHECK_API_KEY: ${{ secrets.MARKETCHECK_API_KEY }}
+          DATAFORSEO_EMAIL: ${{ secrets.DATAFORSEO_EMAIL }}
+          DATAFORSEO_API_KEY: ${{ secrets.DATAFORSEO_API_KEY }}
+          
+          # AutoDealerData API (for VIN decoding)
+          AUTODEALERDATA_API_KEY_ID: ${{ secrets.AUTODEALERDATA_API_KEY_ID }}
+          AUTODEALERDATA_API_KEY: ${{ secrets.AUTODEALERDATA_API_KEY }}
+          
+          # Runtime Configuration
+          IMPORT_STORES: ${{ github.event.inputs.stores || 'all' }}
+          DRY_RUN: ${{ github.event.inputs.dryRun || 'false' }}
+          
+        run: |
+          echo "Starting vehicle import..."
+          npx tsx scripts/github-actions/index.ts
+      
+      - name: Upload Import Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: import-report-${{ github.run_id }}
+          path: |
+            dealership-trading/import-report.json
+            dealership-trading/import-errors.log
+          retention-days: 30
+      
+      - name: Send Slack Notification
+        if: always() && env.SLACK_WEBHOOK != ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            🚗 Vehicle Import ${{ job.status }}
+            
+            📊 Import Results:
+            • Created: ${{ steps.import.outputs.created || '0' }}
+            • Updated: ${{ steps.import.outputs.updated || '0' }}
+            • Deleted: ${{ steps.import.outputs.deleted || '0' }}
+            • Errors: ${{ steps.import.outputs.errors || '0' }}
+            
+            🕐 Duration: ${{ steps.import.outputs.duration || 'N/A' }}
+            
+            [View Details](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      
+      - name: Send Email Notification on Failure
+        if: failure() && env.RESEND_API_KEY != ''
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+        working-directory: dealership-trading
+        run: |
+          npx tsx scripts/github-actions/send-failure-notification.ts \
+            --runId=${{ github.run_id }} \
+            --errors=${{ steps.import.outputs.errors || '0' }}
+      
+      - name: Create GitHub Issue on Critical Failure
+        if: failure() && steps.import.outputs.critical_failure == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Critical Import Failure - Run #${context.runId}`,
+              body: `## Vehicle Import Critical Failure
+              
+              The daily inventory import has encountered a critical failure that requires immediate attention.
+              
+              ### Import Details
+              - **Run ID**: ${context.runId}
+              - **Date**: ${new Date().toISOString()}
+              - **Error Count**: ${{ steps.import.outputs.errors || 'Unknown' }}
+              - **Critical Error**: ${{ steps.import.outputs.critical_error || 'Unknown error' }}
+              
+              ### Action Required
+              1. Check the [workflow run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for detailed logs
+              2. Review the import report artifact
+              3. Verify SFTP credentials and connectivity
+              4. Check Supabase service status
+              
+              ### Import Statistics
+              - Created: ${{ steps.import.outputs.created || '0' }}
+              - Updated: ${{ steps.import.outputs.updated || '0' }}
+              - Deleted: ${{ steps.import.outputs.deleted || '0' }}
+              
+              cc: @admin-team`,
+              labels: ['bug', 'import-failure', 'critical'],
+              assignees: []
+            });
+            
+            console.log(`Created issue #${issue.data.number}`);
