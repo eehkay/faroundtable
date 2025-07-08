@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { SyncResult } from './types/import';
 import { validateVehicle } from '../../netlify/functions/utils/csv-parser';
 
@@ -11,11 +11,18 @@ interface SupabaseDealership {
   active: boolean;
 }
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Initialize Supabase client lazily
+let supabase: SupabaseClient;
+
+function getSupabaseClient() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return supabase;
+}
 
 export async function syncToSupabase(
   vehicles: any[],
@@ -55,7 +62,7 @@ export async function syncToSupabase(
     console.log(`    ✅ ${validVehicles.length} valid vehicles, ${invalidCount} invalid`);
 
     // 2. Get existing vehicles for this dealership
-    const { data: existingVehicles, error: fetchError } = await supabase
+    const { data: existingVehicles, error: fetchError } = await getSupabaseClient()
       .from('vehicles')
       .select('id, vin, stock_number, status, current_transfer_id, removed_from_feed_at')
       .eq('location_id', dealership.id);
@@ -138,7 +145,7 @@ export async function syncToSupabase(
     // 5. Perform database operations
     // Create new vehicles
     if (toCreate.length > 0) {
-      const { error: createError } = await supabase
+      const { error: createError } = await getSupabaseClient()
         .from('vehicles')
         .insert(toCreate.map(transformVehicleForDB));
 
@@ -151,7 +158,7 @@ export async function syncToSupabase(
     // Update existing vehicles
     if (toUpdate.length > 0) {
       // Batch updates by doing upserts
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabaseClient()
         .from('vehicles')
         .upsert(toUpdate.map(transformVehicleForDB), {
           onConflict: 'vin',
@@ -166,7 +173,7 @@ export async function syncToSupabase(
 
     // Soft delete vehicles (mark as removed)
     if (toSoftDelete.length > 0) {
-      const { error: softDeleteError } = await supabase
+      const { error: softDeleteError } = await getSupabaseClient()
         .from('vehicles')
         .update({ 
           status: 'removed',
@@ -182,7 +189,7 @@ export async function syncToSupabase(
 
     // Restore vehicles that returned to feed
     if (toRestore.length > 0) {
-      const { error: restoreError } = await supabase
+      const { error: restoreError } = await getSupabaseClient()
         .from('vehicles')
         .update({ 
           status: 'available',
@@ -199,7 +206,7 @@ export async function syncToSupabase(
 
     // Permanently delete old removed vehicles
     if (toPermanentlyDelete.length > 0) {
-      const { error: permanentDeleteError } = await supabase
+      const { error: permanentDeleteError } = await getSupabaseClient()
         .from('vehicles')
         .delete()
         .in('id', toPermanentlyDelete.map(v => v.id));
@@ -215,7 +222,7 @@ export async function syncToSupabase(
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-    const { data: oldDeliveredTransfers } = await supabase
+    const { data: oldDeliveredTransfers } = await getSupabaseClient()
       .from('transfers')
       .select('id, vehicle_id')
       .eq('status', 'delivered')
@@ -225,7 +232,7 @@ export async function syncToSupabase(
     if (oldDeliveredTransfers && oldDeliveredTransfers.length > 0) {
       // Reset vehicles to available
       const vehicleIds = oldDeliveredTransfers.map(t => t.vehicle_id);
-      await supabase
+      await getSupabaseClient()
         .from('vehicles')
         .update({ 
           status: 'available', 
@@ -241,7 +248,7 @@ export async function syncToSupabase(
     // TODO: Create a system user for automated activities
     // For now, skip activity logging since both user_id and vehicle_id are required
     /*
-    await supabase
+    await getSupabaseClient()
       .from('activities')
       .insert({
         vehicle_id: validVehicles[0]?.id || null, // Use first vehicle or null

@@ -20,11 +20,8 @@ interface CSVRow {
   dealership_name: string;
   description: string;
   image_link: string;
-  image_link1: string;
-  image_link2: string;
-  image_link3: string;
-  image_link4: string;
-  image_link5: string;
+  // Note: The CSV contains 10 duplicate "additional_image_link " columns
+  // PapaParse puts these duplicate values in __parsed_extra array
   __parsed_extra?: string[];
 }
 
@@ -91,13 +88,12 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
   };
 
   const images = [];
+  // Add the main image_link if it exists
   if (row.image_link) images.push(row.image_link);
-  for (let i = 1; i <= 5; i++) {
-    if (row[`image_link${i}` as keyof CSVRow]) {
-      images.push(row[`image_link${i}` as keyof CSVRow] as string);
-    }
-  }
   
+  // The CSV has 10 duplicate columns named "additional_image_link " (with trailing space)
+  // PapaParse puts duplicate column values in __parsed_extra array
+  // Based on the CSV structure, the additional_image_link values are in the first 10 positions
   if (row.__parsed_extra && Array.isArray(row.__parsed_extra)) {
     for (let i = 0; i < 10; i++) {
       const img = row.__parsed_extra[i];
@@ -113,6 +109,10 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
   let dealershipName: string | null = null;
   let fullDescription: string | null = null;
   
+  // After the 10 additional_image_link columns, the next columns in __parsed_extra are:
+  // index 10: vehicle_option (features)
+  // index 11: dealership_name
+  // index 12: description
   if (row.__parsed_extra && Array.isArray(row.__parsed_extra)) {
     if (row.__parsed_extra[10] && typeof row.__parsed_extra[10] === 'string') {
       features = row.__parsed_extra[10].split(',').map(f => f.trim()).filter(Boolean);

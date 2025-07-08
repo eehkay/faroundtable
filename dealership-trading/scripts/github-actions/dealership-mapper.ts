@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { SFTPFile, MappedFile } from './types/import';
 
 // Use the actual Supabase dealership type
@@ -10,15 +10,22 @@ interface SupabaseDealership {
   active: boolean;
 }
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Initialize Supabase client lazily
+let supabase: SupabaseClient;
+
+function getSupabaseClient() {
+  if (!supabase) {
+    supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return supabase;
+}
 
 export async function mapFilesToDealerships(files: SFTPFile[]): Promise<MappedFile[]> {
   // Fetch all active dealerships from Supabase
-  const { data: dealerships, error } = await supabase
+  const { data: dealerships, error } = await getSupabaseClient()
     .from('dealership_locations')
     .select('*')
     .eq('active', true);
@@ -102,7 +109,7 @@ export async function validateDealershipConfiguration(): Promise<{
 }> {
   const issues: string[] = [];
 
-  const { data: dealerships, error } = await supabase
+  const { data: dealerships, error } = await getSupabaseClient()
     .from('dealership_locations')
     .select('*')
     .eq('active', true);
