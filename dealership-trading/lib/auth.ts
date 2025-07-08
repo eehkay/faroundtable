@@ -4,7 +4,7 @@ import { supabaseAdmin } from "./supabase-server"
 import { getImpersonationData } from "./impersonation"
 
 // Allowed domains from environment variable
-const ALLOWED_DOMAINS = process.env.ALLOWED_DOMAINS?.split(',').map(d => d.trim()) || ['delmaradv.com', 'formanautomotive.com']
+const ALLOWED_DOMAINS = process.env.ALLOWED_DOMAINS?.split(',').map(d => d.trim()).filter(d => d.length > 0) || ['delmaradv.com', 'formanautomotive.com']
 
 console.log('NextAuth Config:', {
   ALLOWED_DOMAINS,

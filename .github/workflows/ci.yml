@@ -40,8 +40,8 @@ jobs:
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-        NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-        GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-        ALLOWED_DOMAINS: ${{ secrets.ALLOWED_DOMAINS }}
+        NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'https://faroundtable.com' }}
+        NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-build-secret' }}
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID || 'placeholder-client-id' }}
+        GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET || 'placeholder-client-secret' }}
+        ALLOWED_DOMAINS: ${{ secrets.ALLOWED_DOMAINS || 'delmaradv.com,formanautomotive.com' }}
