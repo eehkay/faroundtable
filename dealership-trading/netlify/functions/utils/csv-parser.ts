@@ -71,6 +71,13 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
     return null;
   }
 
+  // Filter out non-used vehicles
+  const condition = row.condition ? row.condition.toLowerCase() : 'used';
+  if (condition !== 'used') {
+    console.log(`Skipping vehicle ${row.id} - condition: ${condition} (only 'used' vehicles are imported)`);
+    return null;
+  }
+
   const parsePrice = (priceStr: string) => {
     if (!priceStr) return null;
     const cleaned = priceStr.toString().replace(/[^0-9]/g, '');
@@ -153,6 +160,11 @@ export function validateVehicle(vehicle: any) {
   if (!vehicle.model) errors.push('Missing model');
   if (!vehicle.year) errors.push('Missing year');
   if (!vehicle.price) errors.push('Missing price');
+  
+  // Validate condition - only accept 'used' vehicles
+  if (vehicle.condition && vehicle.condition !== 'used') {
+    errors.push(`Invalid condition: ${vehicle.condition} (only 'used' vehicles allowed)`);
+  }
   
   if (vehicle.vin && vehicle.vin.length !== 17) {
     errors.push(`Invalid VIN length: ${vehicle.vin.length}`);
