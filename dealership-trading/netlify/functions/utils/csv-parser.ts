@@ -20,6 +20,11 @@ interface CSVRow {
   dealership_name: string;
   description: string;
   image_link: string;
+  image_link1: string;
+  image_link2: string;
+  image_link3: string;
+  image_link4: string;
+  image_link5: string;
   // Note: The CSV contains 10 duplicate "additional_image_link " columns
   // PapaParse puts these duplicate values in __parsed_extra array
   __parsed_extra?: string[];
@@ -91,17 +96,15 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
   // Add the main image_link if it exists
   if (row.image_link) images.push(row.image_link);
   
-  // The CSV has 10 duplicate columns named "additional_image_link " (with trailing space)
-  // PapaParse puts duplicate column values in __parsed_extra array
-  // Based on the CSV structure, the additional_image_link values are in the first 10 positions
-  if (row.__parsed_extra && Array.isArray(row.__parsed_extra)) {
-    for (let i = 0; i < 10; i++) {
-      const img = row.__parsed_extra[i];
-      if (img && img.startsWith('http')) {
-        images.push(img);
-      }
+  // Add image_link1 through image_link5
+  for (let i = 1; i <= 5; i++) {
+    if (row[`image_link${i}` as keyof CSVRow]) {
+      images.push(row[`image_link${i}` as keyof CSVRow] as string);
     }
   }
+  
+  // Note: We could also parse additional_image_link columns from __parsed_extra in the future
+  // but for now we'll stick with image_link1-5 which is working well
 
   const uniqueImages = [...new Set(images)].slice(0, 10);
 
@@ -109,19 +112,23 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
   let dealershipName: string | null = null;
   let fullDescription: string | null = null;
   
-  // After the 10 additional_image_link columns, the next columns in __parsed_extra are:
-  // index 10: vehicle_option (features)
-  // index 11: dealership_name
-  // index 12: description
-  if (row.__parsed_extra && Array.isArray(row.__parsed_extra)) {
-    if (row.__parsed_extra[10] && typeof row.__parsed_extra[10] === 'string') {
-      features = row.__parsed_extra[10].split(',').map(f => f.trim()).filter(Boolean);
-    }
-    if (row.__parsed_extra[11]) {
-      dealershipName = row.__parsed_extra[11];
-    }
-    if (row.__parsed_extra[12]) {
-      fullDescription = row.__parsed_extra[12];
+  // The __parsed_extra array contains the duplicate "additional_image_link " columns
+  // and any other extra columns. Since we're not parsing additional_image_link for now,
+  // we can still try to extract features and other data if they exist
+  if (row.__parsed_extra && Array.isArray(row.__parsed_extra) && row.__parsed_extra.length > 10) {
+    // Try to find non-image data in the parsed_extra array
+    // This is a bit fragile but works for the current CSV structure
+    const lastItems = row.__parsed_extra.slice(-3);
+    if (lastItems.length >= 3) {
+      if (lastItems[0] && typeof lastItems[0] === 'string' && !lastItems[0].startsWith('http')) {
+        features = lastItems[0].split(',').map(f => f.trim()).filter(Boolean);
+      }
+      if (lastItems[1] && !lastItems[1].startsWith('http')) {
+        dealershipName = lastItems[1];
+      }
+      if (lastItems[2] && !lastItems[2].startsWith('http')) {
+        fullDescription = lastItems[2];
+      }
     }
   }
 
