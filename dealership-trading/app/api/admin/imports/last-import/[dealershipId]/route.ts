@@ -38,14 +38,19 @@ export async function GET(
       ? JSON.parse(lastImport.details) 
       : lastImport.details;
 
-    // Get dealership code from ID
+    // Get dealership code and import settings from ID
     const { data: dealership } = await supabaseAdmin
       .from('dealership_locations')
-      .select('code')
+      .select('code, enable_csv_import')
       .eq('id', dealershipId)
       .single();
 
     if (!dealership) {
+      return NextResponse.json({ lastImport: null });
+    }
+
+    // If CSV import is disabled for this dealership, return null
+    if (!dealership.enable_csv_import) {
       return NextResponse.json({ lastImport: null });
     }
 

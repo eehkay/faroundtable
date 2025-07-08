@@ -116,3 +116,22 @@ export function canBeImpersonated(targetRole: string): boolean {
   // Cannot impersonate other admins for security
   return targetRole !== 'admin'
 }
+
+// Check if user can edit transport information for a transfer
+export function canEditTransportInfo(
+  user: { role: string; location_id?: string | null },
+  transfer: { from_location_id: string }
+): boolean {
+  // Admins can always edit transport info
+  if (user.role === 'admin') return true
+  
+  // Transport users can always edit transport info
+  if (user.role === 'transport') return true
+  
+  // Managers can edit transport info for transfers from their location
+  if (user.role === 'manager' && user.location_id) {
+    return user.location_id === transfer.from_location_id
+  }
+  
+  return false
+}

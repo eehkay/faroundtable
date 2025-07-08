@@ -9,6 +9,7 @@ import VehicleSearch from "@/components/inventory/VehicleSearch";
 import { supabase } from "@/lib/supabase-client";
 import { LoadingCard } from "@/components/Loading";
 import type { DealershipLocation } from "@/types/vehicle";
+import { isCorporateUser, getCorporateDisplayText, CORPORATE_LOCATION_CODE } from "@/lib/utils/corporate";
 
 export default function InventoryPage() {
   const { data: session, status } = useSession();
@@ -30,6 +31,7 @@ export default function InventoryPage() {
           .from('dealership_locations')
           .select('*')
           .eq('active', true)
+          .neq('code', CORPORATE_LOCATION_CODE) // Exclude corporate location from filters
           .order('name', { ascending: true });
         
         if (error) throw error;
@@ -86,7 +88,9 @@ export default function InventoryPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Vehicle Inventory</h1>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Browse and manage vehicles across all dealership locations
+          {isCorporateUser(session.user) 
+            ? getCorporateDisplayText().locationDescription
+            : 'Browse and manage vehicles across all dealership locations'}
         </p>
       </div>
 

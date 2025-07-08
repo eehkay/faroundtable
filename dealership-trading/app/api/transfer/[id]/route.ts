@@ -8,7 +8,7 @@ import { TransferWithRelations } from '@/types/supabase'
 // GET /api/transfer/[id] - Get transfer details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -16,6 +16,7 @@ export async function GET(
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
+    const { id } = await params
     const { data: transfer, error } = await supabaseAdmin
       .from('transfers')
       .select(`
@@ -37,7 +38,7 @@ export async function GET(
           user:users!user_id (*)
         )
       `)
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) {
@@ -55,7 +56,7 @@ export async function GET(
 // PATCH /api/transfer/[id] - Update transfer transport information
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -72,11 +73,13 @@ export async function PATCH(
       transport_notes
     } = body
 
+    const { id } = await params
+    
     // Fetch the current transfer to check permissions
     const { data: currentTransfer, error: fetchError } = await supabaseAdmin
       .from('transfers')
       .select('*, vehicle:vehicles!vehicle_id(*)')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (fetchError || !currentTransfer) {
@@ -131,7 +134,7 @@ export async function PATCH(
     const { data: updatedTransfer, error: updateError } = await supabaseAdmin
       .from('transfers')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
       .select(`
         *,
         vehicle:vehicles!vehicle_id (*),
@@ -152,7 +155,7 @@ export async function PATCH(
       await supabaseAdmin
         .from('transfer_updates')
         .insert({
-          transfer_id: params.id,
+          transfer_id: id,
           user_id: session.user.id,
           update_type: 'transport_info',
           update_notes: updates.last_update_notes,
@@ -170,7 +173,7 @@ export async function PATCH(
         action: 'status-updated',
         details: `Updated transport information: ${Object.keys(newValues).join(', ')}`,
         metadata: {
-          transferId: params.id,
+          transferId: id,
           updatedFields: Object.keys(newValues)
         }
       })

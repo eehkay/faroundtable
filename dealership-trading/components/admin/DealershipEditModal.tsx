@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { X, Save, Building2 } from 'lucide-react';
+import { X, Save, Building2, Plus, Trash2 } from 'lucide-react';
 import type { DealershipLocation } from '@/types/vehicle';
 
 interface DealershipEditModalProps {
-  dealership: Partial<DealershipLocation>;
+  dealership: Partial<DealershipLocation & { emailDomains?: string[]; enableCsvImport?: boolean }>;
   isCreating: boolean;
-  onSave: (dealership: Partial<DealershipLocation>) => Promise<void>;
+  onSave: (dealership: Partial<DealershipLocation & { emailDomains?: string[]; enableCsvImport?: boolean }>) => Promise<void>;
   onClose: () => void;
 }
 
@@ -22,8 +22,11 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
     phone: dealership.phone || '',
     email: dealership.email || '',
     csvFileName: dealership.csvFileName || '',
+    emailDomains: dealership.emailDomains || [],
+    enableCsvImport: dealership.enableCsvImport !== undefined ? dealership.enableCsvImport : true,
     active: dealership.active !== undefined ? dealership.active : true
   });
+  const [emailDomainInput, setEmailDomainInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -39,8 +42,11 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
       phone: dealership.phone || '',
       email: dealership.email || '',
       csvFileName: dealership.csvFileName || '',
+      emailDomains: dealership.emailDomains || [],
+      enableCsvImport: dealership.enableCsvImport !== undefined ? dealership.enableCsvImport : true,
       active: dealership.active !== undefined ? dealership.active : true
     });
+    setEmailDomainInput('');
     setErrors({}); // Clear any existing errors
   }, [dealership]);
 
@@ -98,6 +104,8 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
         phone: formData.phone || undefined,
         email: formData.email || undefined,
         csvFileName: formData.csvFileName || undefined,
+        emailDomains: formData.emailDomains.length > 0 ? formData.emailDomains : undefined,
+        enableCsvImport: formData.enableCsvImport,
         active: formData.active
       });
     } catch (error) {
@@ -179,19 +187,36 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
                 )}
               </div>
 
-              {/* CSV File Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  CSV File Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.csvFileName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, csvFileName: e.target.value }))}
-                  className="w-full px-3 py-2 bg-[#141414] border border-[#2a2a2a] rounded-lg text-gray-100 placeholder-gray-400 focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
-                  placeholder="e.g., MP1568.csv"
-                />
-                <p className="mt-1 text-xs text-gray-500">Used for automated inventory imports</p>
+              {/* CSV Import Settings */}
+              <div className="md:col-span-2 space-y-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="enableCsvImport"
+                    checked={formData.enableCsvImport}
+                    onChange={(e) => setFormData(prev => ({ ...prev, enableCsvImport: e.target.checked }))}
+                    className="w-4 h-4 text-[#3b82f6] bg-[#141414] border-[#2a2a2a] rounded focus:ring-[#3b82f6]/20 focus:ring-2"
+                  />
+                  <label htmlFor="enableCsvImport" className="text-sm font-medium text-gray-300">
+                    Enable CSV Import
+                  </label>
+                </div>
+                
+                {formData.enableCsvImport && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      CSV File Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.csvFileName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, csvFileName: e.target.value }))}
+                      className="w-full px-3 py-2 bg-[#141414] border border-[#2a2a2a] rounded-lg text-gray-100 placeholder-gray-400 focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                      placeholder="e.g., MP1568.csv"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">Used for automated inventory imports</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -303,6 +328,81 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
                   placeholder="e.g., info@unitednissan.com"
                 />
                 {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Email Domains for Auto-Assignment */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Email Domain Auto-Assignment</h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Associated Email Domains
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                Users with these email domains will be automatically assigned to this dealership
+              </p>
+              
+              <div className="space-y-2">
+                {/* Existing domains */}
+                {formData.emailDomains.map((domain, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="flex-1 px-3 py-2 bg-[#141414] border border-[#2a2a2a] rounded-lg text-gray-100">
+                      {domain}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newDomains = [...formData.emailDomains];
+                        newDomains.splice(index, 1);
+                        setFormData(prev => ({ ...prev, emailDomains: newDomains }));
+                      }}
+                      className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                
+                {/* Add new domain input */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={emailDomainInput}
+                    onChange={(e) => setEmailDomainInput(e.target.value.toLowerCase())}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (emailDomainInput && !formData.emailDomains.includes(emailDomainInput)) {
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            emailDomains: [...prev.emailDomains, emailDomainInput] 
+                          }));
+                          setEmailDomainInput('');
+                        }
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 bg-[#141414] border border-[#2a2a2a] rounded-lg text-gray-100 placeholder-gray-400 focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    placeholder="e.g., unitednissan.com"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (emailDomainInput && !formData.emailDomains.includes(emailDomainInput)) {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          emailDomains: [...prev.emailDomains, emailDomainInput] 
+                        }));
+                        setEmailDomainInput('');
+                      }
+                    }}
+                    disabled={!emailDomainInput || formData.emailDomains.includes(emailDomainInput)}
+                    className="p-2 bg-[#3b82f6] text-white rounded-lg hover:bg-[#2563eb] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

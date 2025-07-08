@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { isCorporateUser, getCorporateDisplayText } from '@/lib/utils/corporate'
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -152,7 +153,9 @@ export default function Navigation() {
                     </p>
                     {session.user.location && (
                       <p className="text-xs text-muted-foreground">
-                        {session.user.location.name}
+                        {isCorporateUser(session.user) 
+                          ? getCorporateDisplayText().locationName 
+                          : session.user.location.name}
                       </p>
                     )}
                   </div>

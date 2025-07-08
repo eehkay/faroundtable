@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { ChevronDown, X, Check } from 'lucide-react';
 import StatusFilterPills from './StatusFilterPills';
@@ -25,7 +25,7 @@ export default function TransferFilters({ filters, onFilterChange }: TransferFil
   const [locations, setLocations] = useState<Location[]>([]);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
-  const selectedLocations = filters.locations || [];
+  const selectedLocations = useMemo(() => filters.locations || [], [filters.locations]);
   const [tempSelectedLocations, setTempSelectedLocations] = useState<string[]>(selectedLocations);
 
   // Sync temp selections with actual selections when they change externally
