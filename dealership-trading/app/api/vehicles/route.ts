@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
     const make = searchParams.get('make') || ''
     const model = searchParams.get('model') || ''
     const condition = searchParams.get('condition') || ''
+    const sortBy = searchParams.get('sortBy') || 'age'
+    const sortOrder = searchParams.get('sortOrder') || 'desc'
+    const locations = searchParams.get('locations') || ''
 
     const offset = (page - 1) * limit
 
@@ -70,7 +73,14 @@ export async function GET(request: NextRequest) {
       query = query.or(`make.ilike.%${escapedSearch}%,model.ilike.%${escapedSearch}%,vin.ilike.%${escapedSearch}%,title.ilike.%${escapedSearch}%,stock_number.ilike.%${escapedSearch}%`)
     }
 
-    if (location && location !== 'all') {
+    // Handle multiple locations
+    if (locations) {
+      const locationIds = locations.split(',').filter(id => id !== '')
+      if (locationIds.length > 0) {
+        query = query.in('location_id', locationIds)
+      }
+    } else if (location && location !== 'all') {
+      // Fallback to single location for backward compatibility
       query = query.eq('location_id', location)
     }
 
@@ -128,10 +138,27 @@ export async function GET(request: NextRequest) {
       query = query.eq('condition', condition)
     }
 
-    // Apply pagination and ordering
-    query = query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+    // Apply sorting based on sortBy parameter
+    const isAscending = sortOrder === 'asc'
+    
+    switch (sortBy) {
+      case 'price':
+        query = query.order('price', { ascending: isAscending, nullsFirst: false })
+        break
+      case 'year':
+        query = query.order('year', { ascending: isAscending, nullsFirst: false })
+        break
+      case 'age':
+        query = query.order('days_on_lot', { ascending: isAscending, nullsFirst: false })
+        break
+      case 'created_at':
+      default:
+        query = query.order('created_at', { ascending: isAscending })
+        break
+    }
+    
+    // Apply pagination
+    query = query.range(offset, offset + limit - 1)
 
     const { data: vehicles, error, count } = await query
 

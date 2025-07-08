@@ -1,3 +1,5 @@
+"use client";
+
 import { MapPin, Phone, Clock, Navigation } from 'lucide-react';
 
 interface VehicleLocationProps {

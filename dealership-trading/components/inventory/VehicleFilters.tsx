@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { ChevronDown, X, Calendar, Gauge, DollarSign, Clock } from 'lucide-react';
+import { ChevronDown, X, Calendar, Gauge, DollarSign, Clock, ArrowUpDown, Check } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { DealershipLocation } from '@/types/vehicle';
 import { RangeSlider } from '@/components/ui/range-slider';
@@ -30,8 +30,10 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
   // Dropdown states
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
   
   // Fetch dynamic ranges from inventory
   const [stats, setStats] = useState<VehicleStats | null>(null);
@@ -45,6 +47,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
 
   // Get current filter values
   const selectedLocation = searchParams.get('location');
+  const selectedLocations = searchParams.get('locations')?.split(',').filter(Boolean) || [];
   const selectedStatus = searchParams.get('status');
   const minPrice = searchParams.get('minPrice');
   const maxPrice = searchParams.get('maxPrice');
@@ -54,6 +57,8 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
   const maxYear = searchParams.get('maxYear');
   const minMileage = searchParams.get('minMileage');
   const maxMileage = searchParams.get('maxMileage');
+  const sortBy = searchParams.get('sortBy') || 'age';
+  const sortOrder = searchParams.get('sortOrder') || 'desc';
   
   // Fetch vehicle stats for dynamic ranges
   useEffect(() => {
@@ -122,6 +127,17 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
     { value: 'removed', label: 'Removed' },
   ];
 
+  const sortOptions = [
+    { value: 'created_at-desc', label: 'Newest Listed' },
+    { value: 'created_at-asc', label: 'Oldest Listed' },
+    { value: 'price-asc', label: 'Price: Low to High' },
+    { value: 'price-desc', label: 'Price: High to Low' },
+    { value: 'year-desc', label: 'Year: Newest First' },
+    { value: 'year-asc', label: 'Year: Oldest First' },
+    { value: 'age-asc', label: 'Age: Newest on Lot' },
+    { value: 'age-desc', label: 'Age: Oldest on Lot' },
+  ];
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -130,6 +146,9 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       }
       if (statusRef.current && !statusRef.current.contains(event.target as Node)) {
         setShowStatusDropdown(false);
+      }
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false);
       }
     }
 
@@ -150,6 +169,58 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       router.push(`${pathname}?${params.toString()}`);
     } catch (error) {
       console.error('Error updating filter:', error);
+    }
+  };
+
+  const updateSort = (sortValue: string) => {
+    try {
+      const params = new URLSearchParams(searchParams.toString());
+      const [newSortBy, newSortOrder] = sortValue.split('-');
+      
+      params.set('sortBy', newSortBy);
+      params.set('sortOrder', newSortOrder);
+      
+      router.push(`${pathname}?${params.toString()}`);
+    } catch (error) {
+      console.error('Error updating sort:', error);
+    }
+  };
+
+  const toggleLocation = (locationId: string) => {
+    try {
+      const params = new URLSearchParams(searchParams.toString());
+      const currentLocations = [...selectedLocations];
+      
+      const index = currentLocations.indexOf(locationId);
+      if (index > -1) {
+        currentLocations.splice(index, 1);
+      } else {
+        currentLocations.push(locationId);
+      }
+      
+      // Remove old single location param if exists
+      params.delete('location');
+      
+      if (currentLocations.length > 0) {
+        params.set('locations', currentLocations.join(','));
+      } else {
+        params.delete('locations');
+      }
+      
+      router.push(`${pathname}?${params.toString()}`);
+    } catch (error) {
+      console.error('Error updating locations:', error);
+    }
+  };
+
+  const selectAllLocations = () => {
+    try {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('location');
+      params.delete('locations');
+      router.push(`${pathname}?${params.toString()}`);
+    } catch (error) {
+      console.error('Error selecting all locations:', error);
     }
   };
 
@@ -178,6 +249,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
 
   const clearAllFilters = () => {
     try {
+      // Clear all filters including sorting
       router.push(pathname);
     } catch (error) {
       console.error('Error clearing filters:', error);
@@ -186,6 +258,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
 
   const activeFilterCount = [
     selectedLocation,
+    selectedLocations.length > 0 ? 'locations' : null,
     selectedStatus,
     minPrice,
     maxPrice,
@@ -194,7 +267,8 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
     minYear,
     maxYear,
     minMileage,
-    maxMileage
+    maxMileage,
+    (sortBy !== 'age' || sortOrder !== 'desc') ? 'sort' : null
   ].filter(Boolean).length;
   
   if (isLoadingStats) {
@@ -210,7 +284,19 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
   // Build active filter chips
   const filterChips: { label: string; onRemove: () => void }[] = [];
   
-  if (selectedLocation) {
+  if (selectedLocations.length > 0) {
+    const locationNames = selectedLocations.map(id => 
+      locations.find(l => l._id === id)?.name || 'Unknown'
+    ).join(', ');
+    filterChips.push({
+      label: `Locations: ${locationNames}`,
+      onRemove: () => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('locations');
+        router.push(`${pathname}?${params.toString()}`);
+      }
+    });
+  } else if (selectedLocation) {
     filterChips.push({
       label: `Location: ${locations.find(l => l._id === selectedLocation)?.name || 'Selected'}`,
       onRemove: () => updateFilter('location', null)
@@ -294,44 +380,49 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm font-medium text-gray-700 dark:text-gray-100">Quick Filters:</span>
         
-        {/* Location Filter */}
+        {/* Location Filter - Multi-select */}
         <div className="relative" ref={locationRef}>
           <button
             onClick={() => setShowLocationDropdown(!showLocationDropdown)}
             className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] transition-all duration-200"
           >
-            {selectedLocation
-              ? locations.find(l => l._id === selectedLocation)?.name || 'Location'
+            {selectedLocations.length > 0
+              ? `${selectedLocations.length} Location${selectedLocations.length > 1 ? 's' : ''}`
               : 'All Locations'}
             <ChevronDown className="h-4 w-4" />
           </button>
           
           {showLocationDropdown && (
-            <div className="absolute z-10 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333]">
+            <div className="absolute z-10 mt-2 w-64 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333] max-h-80 overflow-y-auto">
               <div className="py-1">
                 <button
-                  onClick={() => {
-                    updateFilter('location', null);
-                    setShowLocationDropdown(false);
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#333333] transition-all duration-200"
+                  onClick={selectAllLocations}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#333333] transition-all duration-200 font-medium"
                 >
-                  All Locations
+                  <div className="flex items-center justify-between">
+                    <span>All Locations</span>
+                    {selectedLocations.length === 0 && <Check className="h-4 w-4 text-blue-600" />}
+                  </div>
                 </button>
+                <div className="border-t border-gray-200 dark:border-[#333333] my-1"></div>
                 {locations.map((location) => (
                   <button
                     key={location._id}
-                    onClick={() => {
-                      updateFilter('location', location._id);
-                      setShowLocationDropdown(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm transition-all duration-200 ${
-                      selectedLocation === location._id
-                        ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-400'
-                        : 'text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#333333]'
-                    }`}
+                    onClick={() => toggleLocation(location._id)}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#333333] transition-all duration-200"
                   >
-                    {location.name}
+                    <div className="flex items-center gap-3">
+                      <div className={`w-4 h-4 border rounded ${
+                        selectedLocations.includes(location._id)
+                          ? 'bg-blue-600 border-blue-600'
+                          : 'border-gray-300 dark:border-gray-600'
+                      } flex items-center justify-center`}>
+                        {selectedLocations.includes(location._id) && (
+                          <Check className="h-3 w-3 text-white" />
+                        )}
+                      </div>
+                      <span>{location.name}</span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -377,6 +468,41 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
                     }`}
                   >
                     {status.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sort Filter */}
+        <div className="relative" ref={sortRef}>
+          <button
+            onClick={() => setShowSortDropdown(!showSortDropdown)}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-[#2a2a2a] rounded-lg text-sm text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1f1f1f] transition-all duration-200"
+          >
+            <ArrowUpDown className="h-4 w-4" />
+            {sortOptions.find(s => s.value === `${sortBy}-${sortOrder}`)?.label || 'Sort By'}
+            <ChevronDown className="h-4 w-4" />
+          </button>
+          
+          {showSortDropdown && (
+            <div className="absolute z-10 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#333333]">
+              <div className="py-1">
+                {sortOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      updateSort(option.value);
+                      setShowSortDropdown(false);
+                    }}
+                    className={`block w-full text-left px-4 py-2 text-sm transition-all duration-200 ${
+                      `${sortBy}-${sortOrder}` === option.value
+                        ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-700 dark:text-blue-400'
+                        : 'text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#333333]'
+                    }`}
+                  >
+                    {option.label}
                   </button>
                 ))}
               </div>

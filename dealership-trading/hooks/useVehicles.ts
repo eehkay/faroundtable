@@ -28,6 +28,7 @@ export function useVehicles() {
   // Get search params directly - VehicleSearch already handles debouncing
   const search = searchParams.get('search') || ''
   const location = searchParams.get('location') || ''
+  const locations = searchParams.get('locations') || ''
   const status = searchParams.get('status') || ''
   const minPrice = searchParams.get('minPrice') || ''
   const maxPrice = searchParams.get('maxPrice') || ''
@@ -40,6 +41,8 @@ export function useVehicles() {
   const make = searchParams.get('make') || ''
   const model = searchParams.get('model') || ''
   const condition = searchParams.get('condition') || ''
+  const sortBy = searchParams.get('sortBy') || ''
+  const sortOrder = searchParams.get('sortOrder') || ''
 
   // Reset and fetch when any filter changes
   useEffect(() => {
@@ -68,6 +71,7 @@ export function useVehicles() {
           limit: '20',
           ...(search && { search }),
           ...(location && { location }),
+          ...(locations && { locations }),
           ...(status && { status }),
           ...(minPrice && { minPrice }),
           ...(maxPrice && { maxPrice }),
@@ -80,6 +84,8 @@ export function useVehicles() {
           ...(make && { make }),
           ...(model && { model }),
           ...(condition && { condition }),
+          ...(sortBy && { sortBy }),
+          ...(sortOrder && { sortOrder }),
         })
 
         const response = await fetch(`/api/vehicles?${params}`, {
@@ -121,7 +127,7 @@ export function useVehicles() {
         abortControllerRef.current.abort()
       }
     }
-  }, [search, location, status, minPrice, maxPrice, minDaysOnLot, maxDaysOnLot, minYear, maxYear, minMileage, maxMileage, make, model, condition])
+  }, [search, location, locations, status, minPrice, maxPrice, minDaysOnLot, maxDaysOnLot, minYear, maxYear, minMileage, maxMileage, make, model, condition, sortBy, sortOrder])
 
   const fetchVehicles = useCallback(async (pageNum: number, reset = false) => {
     // Create abort controller for this request
@@ -136,6 +142,7 @@ export function useVehicles() {
         limit: '20',
         ...(search && { search }),
         ...(location && { location }),
+        ...(locations && { locations }),
         ...(status && { status }),
         ...(minPrice && { minPrice }),
         ...(maxPrice && { maxPrice }),
@@ -148,6 +155,8 @@ export function useVehicles() {
         ...(make && { make }),
         ...(model && { model }),
         ...(condition && { condition }),
+        ...(sortBy && { sortBy }),
+        ...(sortOrder && { sortOrder }),
       })
 
       const response = await fetch(`/api/vehicles?${params}`, {
@@ -175,7 +184,7 @@ export function useVehicles() {
         setIsLoading(false)
       }
     }
-  }, [search, location, status, minPrice, maxPrice, minDaysOnLot, maxDaysOnLot, minYear, maxYear, minMileage, maxMileage, make, model, condition])
+  }, [search, location, locations, status, minPrice, maxPrice, minDaysOnLot, maxDaysOnLot, minYear, maxYear, minMileage, maxMileage, make, model, condition, sortBy, sortOrder])
 
   const loadMore = useCallback(() => {
     if (!isLoading && hasMore) {
