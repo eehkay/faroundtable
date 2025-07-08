@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Vehicle, DealershipLocation } from '@/types/vehicle'
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, AlertCircle, Clock } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, AlertCircle, Clock, AlertTriangle, RotateCcw } from 'lucide-react'
 
 interface VehicleWithLocation extends Vehicle {
   dealership_location?: DealershipLocation
@@ -45,6 +45,38 @@ interface VehicleDataTableProps {
 type SortKey = 'stockNumber' | 'year' | 'make' | 'model' | 'price' | 'status' | 'daysOnLot'
 type SortDirection = 'asc' | 'desc'
 
+interface ColumnWidths {
+  checkbox: number
+  stockNumber: number
+  vin: number
+  condition: number
+  year: number
+  make: number
+  model: number
+  trim: number
+  location: number
+  transferInfo: number
+  price: number
+  status: number
+  days: number
+}
+
+const DEFAULT_COLUMN_WIDTHS: ColumnWidths = {
+  checkbox: 50,
+  stockNumber: 120,
+  vin: 180,
+  condition: 100,
+  year: 80,
+  make: 120,
+  model: 120,
+  trim: 120,
+  location: 150,
+  transferInfo: 250,
+  price: 120,
+  status: 120,
+  days: 80
+}
+
 export default function VehicleDataTable({
   vehicles,
   selectedVehicles,
@@ -57,6 +89,25 @@ export default function VehicleDataTable({
   const [sortKey, setSortKey] = useState<SortKey>('stockNumber')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const checkboxRef = useRef<HTMLInputElement>(null)
+  
+  // Column resizing state
+  const [columnWidths, setColumnWidths] = useState<ColumnWidths>(() => {
+    // Load saved widths from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('vehicleTableColumnWidths')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch (e) {
+          console.error('Failed to parse saved column widths:', e)
+        }
+      }
+    }
+    return DEFAULT_COLUMN_WIDTHS
+  })
+  const [resizingColumn, setResizingColumn] = useState<keyof ColumnWidths | null>(null)
+  const [startX, setStartX] = useState(0)
+  const [startWidth, setStartWidth] = useState(0)
 
   // Set indeterminate state on checkbox
   useEffect(() => {
@@ -64,6 +115,53 @@ export default function VehicleDataTable({
       checkboxRef.current.indeterminate = selectedVehicles.size > 0 && selectedVehicles.size < vehicles.length
     }
   }, [selectedVehicles.size, vehicles.length])
+
+  // Save column widths to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('vehicleTableColumnWidths', JSON.stringify(columnWidths))
+  }, [columnWidths])
+
+  // Handle column resize
+  const handleMouseDown = (column: keyof ColumnWidths, e: React.MouseEvent) => {
+    e.preventDefault()
+    setResizingColumn(column)
+    setStartX(e.clientX)
+    setStartWidth(columnWidths[column])
+  }
+
+  useEffect(() => {
+    if (!resizingColumn) return
+
+    // Add class to body to change cursor and prevent selection
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - startX
+      const newWidth = Math.max(50, Math.min(500, startWidth + diff)) // Min 50px, max 500px
+      
+      setColumnWidths(prev => ({
+        ...prev,
+        [resizingColumn]: newWidth
+      }))
+    }
+
+    const handleMouseUp = () => {
+      setResizingColumn(null)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [resizingColumn, startX, startWidth])
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -186,13 +284,37 @@ export default function VehicleDataTable({
     )
   }
 
+  const ResizeHandle = ({ column }: { column: keyof ColumnWidths }) => (
+    <div
+      className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-blue-500 transition-colors group"
+      onMouseDown={(e) => handleMouseDown(column, e)}
+    >
+      <div className="absolute right-[-2px] top-0 h-full w-[5px]" />
+    </div>
+  )
+
   return (
     <div>
       <div className="overflow-x-auto rounded-lg border border-[#2a2a2a]">
-        <table className="w-full min-w-[1200px]">
+        <table className="w-full" style={{ tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: columnWidths.checkbox }} />
+            <col style={{ width: columnWidths.stockNumber }} />
+            <col style={{ width: columnWidths.vin }} />
+            <col style={{ width: columnWidths.condition }} className="hidden xl:table-column" />
+            <col style={{ width: columnWidths.year }} />
+            <col style={{ width: columnWidths.make }} />
+            <col style={{ width: columnWidths.model }} />
+            <col style={{ width: columnWidths.trim }} className="hidden lg:table-column" />
+            <col style={{ width: columnWidths.location }} />
+            <col style={{ width: columnWidths.transferInfo }} />
+            <col style={{ width: columnWidths.price }} />
+            <col style={{ width: columnWidths.status }} />
+            <col style={{ width: columnWidths.days }} />
+          </colgroup>
           <thead>
             <tr className="border-b border-[#2a2a2a]">
-              <th className="text-left px-6 py-4">
+              <th className="relative text-left px-6 py-4">
                 <input
                   ref={checkboxRef}
                   type="checkbox"
@@ -200,8 +322,9 @@ export default function VehicleDataTable({
                   onChange={handleSelectAll}
                   className="rounded border-gray-600 bg-[#141414] text-blue-500 focus:ring-blue-500"
                 />
+                <ResizeHandle column="checkbox" />
               </th>
-              <th className="text-left px-6 py-4">
+              <th className="relative text-left px-6 py-4">
                 <button
                   onClick={() => handleSort('stockNumber')}
                   className="flex items-center gap-1 text-base font-medium text-gray-400 hover:text-white transition-colors"
@@ -209,10 +332,17 @@ export default function VehicleDataTable({
                   Stock
                   <SortIcon column="stockNumber" />
                 </button>
+                <ResizeHandle column="stockNumber" />
               </th>
-              <th className="text-left px-6 py-4 text-base font-medium text-gray-400">VIN</th>
-              <th className="text-left px-6 py-4 text-base font-medium text-gray-400 hidden xl:table-cell">Condition</th>
-              <th className="text-left px-6 py-4">
+              <th className="relative text-left px-6 py-4 text-base font-medium text-gray-400">
+                VIN
+                <ResizeHandle column="vin" />
+              </th>
+              <th className="relative text-left px-6 py-4 text-base font-medium text-gray-400 hidden xl:table-cell">
+                Condition
+                <ResizeHandle column="condition" />
+              </th>
+              <th className="relative text-left px-6 py-4">
                 <button
                   onClick={() => handleSort('year')}
                   className="flex items-center gap-1 text-base font-medium text-gray-400 hover:text-white transition-colors"
@@ -220,8 +350,9 @@ export default function VehicleDataTable({
                   Year
                   <SortIcon column="year" />
                 </button>
+                <ResizeHandle column="year" />
               </th>
-              <th className="text-left px-6 py-4">
+              <th className="relative text-left px-6 py-4">
                 <button
                   onClick={() => handleSort('make')}
                   className="flex items-center gap-1 text-base font-medium text-gray-400 hover:text-white transition-colors"
@@ -229,8 +360,9 @@ export default function VehicleDataTable({
                   Make
                   <SortIcon column="make" />
                 </button>
+                <ResizeHandle column="make" />
               </th>
-              <th className="text-left px-6 py-4">
+              <th className="relative text-left px-6 py-4">
                 <button
                   onClick={() => handleSort('model')}
                   className="flex items-center gap-1 text-base font-medium text-gray-400 hover:text-white transition-colors"
@@ -238,11 +370,21 @@ export default function VehicleDataTable({
                   Model
                   <SortIcon column="model" />
                 </button>
+                <ResizeHandle column="model" />
               </th>
-              <th className="text-left px-6 py-4 text-base font-medium text-gray-400 hidden lg:table-cell">Trim</th>
-              <th className="text-left px-6 py-4 text-base font-medium text-gray-400">Location</th>
-              <th className="text-left px-6 py-4 text-base font-medium text-gray-400">Transfer Info</th>
-              <th className="text-left px-6 py-4">
+              <th className="relative text-left px-6 py-4 text-base font-medium text-gray-400 hidden lg:table-cell">
+                Trim
+                <ResizeHandle column="trim" />
+              </th>
+              <th className="relative text-left px-6 py-4 text-base font-medium text-gray-400">
+                Location
+                <ResizeHandle column="location" />
+              </th>
+              <th className="relative text-left px-6 py-4 text-base font-medium text-gray-400">
+                Transfer Info
+                <ResizeHandle column="transferInfo" />
+              </th>
+              <th className="relative text-left px-6 py-4">
                 <button
                   onClick={() => handleSort('price')}
                   className="flex items-center gap-1 text-base font-medium text-gray-400 hover:text-white transition-colors"
@@ -250,8 +392,9 @@ export default function VehicleDataTable({
                   Price
                   <SortIcon column="price" />
                 </button>
+                <ResizeHandle column="price" />
               </th>
-              <th className="text-left px-6 py-4">
+              <th className="relative text-left px-6 py-4">
                 <button
                   onClick={() => handleSort('status')}
                   className="flex items-center gap-1 text-base font-medium text-gray-400 hover:text-white transition-colors"
@@ -259,8 +402,9 @@ export default function VehicleDataTable({
                   Status
                   <SortIcon column="status" />
                 </button>
+                <ResizeHandle column="status" />
               </th>
-              <th className="text-left px-6 py-4">
+              <th className="relative text-left px-6 py-4">
                 <button
                   onClick={() => handleSort('daysOnLot')}
                   className="flex items-center gap-1 text-base font-medium text-gray-400 hover:text-white transition-colors"
@@ -268,6 +412,7 @@ export default function VehicleDataTable({
                   Days
                   <SortIcon column="daysOnLot" />
                 </button>
+                <ResizeHandle column="days" />
               </th>
             </tr>
           </thead>
@@ -307,9 +452,23 @@ export default function VehicleDataTable({
                 <td className="px-6 py-4 text-gray-400 hidden lg:table-cell">{vehicle.trim || '-'}</td>
                 <td className="px-6 py-4 text-gray-400">
                   <div className="flex flex-col">
-                    <span className="block truncate max-w-[150px]" title={vehicle.dealership_location?.name || vehicle.storeCode}>
-                      {vehicle.dealership_location?.name || vehicle.storeCode}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="block truncate max-w-[150px]" title={vehicle.dealership_location?.name || vehicle.storeCode}>
+                        {vehicle.dealership_location?.name || vehicle.storeCode}
+                      </span>
+                      {vehicle.currentTransfer && 
+                       vehicle.currentTransfer.status === 'delivered' && 
+                       vehicle.dealership_location?._id !== vehicle.currentTransfer.to_location_id && (
+                        <div className="relative group">
+                          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                          <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-10">
+                            <div className="bg-gray-900 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                              Location mismatch: Should be at {vehicle.currentTransfer.to_location?.name}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     {vehicle.originalLocation && vehicle.originalLocation._id !== vehicle.dealership_location?._id && (
                       <span className="text-xs text-gray-500">
                         Originally: {vehicle.originalLocation.name}
@@ -378,8 +537,18 @@ export default function VehicleDataTable({
 
       {/* Pagination */}
       <div className="flex items-center justify-between p-4 border-t border-[#2a2a2a]">
-        <div className="text-sm text-gray-400">
-          Showing {((currentPage - 1) * 50) + 1}-{Math.min(currentPage * 50, vehicles.length)} of {vehicles.length}
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-400">
+            Showing {((currentPage - 1) * 50) + 1}-{Math.min(currentPage * 50, vehicles.length)} of {vehicles.length}
+          </div>
+          <button
+            onClick={() => setColumnWidths(DEFAULT_COLUMN_WIDTHS)}
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            title="Reset column widths"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Reset columns
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <button

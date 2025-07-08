@@ -29,7 +29,24 @@ export default function VehicleFilters({ filters, onFiltersChange, onClose }: Ve
         .order('name')
 
       if (!error && data) {
-        setLocations(data)
+        // Transform Supabase data to match our type
+        const transformedLocations = data.map((loc: any) => ({
+          _id: loc.id,
+          _type: 'dealershipLocation' as const,
+          name: loc.name,
+          code: loc.code,
+          address: loc.address,
+          city: loc.city,
+          state: loc.state,
+          zip: loc.zip,
+          phone: loc.phone,
+          email: loc.email,
+          csvFileName: loc.csv_file_name,
+          active: loc.active,
+          createdAt: loc.created_at,
+          updatedAt: loc.updated_at
+        }))
+        setLocations(transformedLocations)
       }
     }
 
@@ -123,7 +140,7 @@ export default function VehicleFilters({ filters, onFiltersChange, onClose }: Ve
           >
             <option value="all">All Locations</option>
             {locations.map((location) => (
-              <option key={location._id} value={location.code}>
+              <option key={location._id} value={location._id}>
                 {location.name}
               </option>
             ))}

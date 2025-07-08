@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { canManageDealerships } from '@/lib/permissions';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from '@/lib/supabase-server';
 
 interface DryRunOptions {
   stores?: string;
@@ -29,7 +24,7 @@ export async function POST(request: NextRequest) {
     const options: DryRunOptions = await request.json();
     
     // Fetch active dealerships
-    const { data: dealerships, error: dealershipError } = await supabase
+    const { data: dealerships, error: dealershipError } = await supabaseAdmin
       .from('dealership_locations')
       .select('*')
       .eq('active', true);

@@ -39,5 +39,3 @@ jobs:
         SKIP_ENV_VALIDATION: true
         NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        supabaseUrl: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-        supabaseKey: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

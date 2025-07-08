@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from '@/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -16,7 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { data: dealerships, error } = await supabase
+    const { data: dealerships, error } = await supabaseAdmin
       .from('dealership_locations')
       .select('id, name, code, csv_file_name')
       .eq('active', true)

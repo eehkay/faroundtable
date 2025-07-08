@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { canManageDealerships } from '@/lib/permissions';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-server';
 import { Octokit } from '@octokit/rest';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -40,7 +35,7 @@ export async function POST(request: NextRequest) {
     const workflowFileName = 'daily-inventory-import.yml';
 
     // Create activity log
-    await supabase
+    await supabaseAdmin
       .from('activities')
       .insert({
         vehicle_id: null,
@@ -71,7 +66,7 @@ export async function POST(request: NextRequest) {
 
       if (response.status === 204) {
         // Create initial import log entry
-        const { data: importLog } = await supabase
+        const { data: importLog } = await supabaseAdmin
           .from('import_logs')
           .insert({
             timestamp: new Date().toISOString(),
@@ -135,7 +130,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get the most recent import log
-    const { data: recentLog, error } = await supabase
+    const { data: recentLog, error } = await supabaseAdmin
       .from('import_logs')
       .select('*')
       .order('timestamp', { ascending: false })

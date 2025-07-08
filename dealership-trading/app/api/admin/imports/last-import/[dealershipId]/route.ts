@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from '@/lib/supabase-server';
 
 export async function GET(
   request: NextRequest,
@@ -22,7 +17,7 @@ export async function GET(
 
   try {
     // Get the most recent import log
-    const { data: lastImport, error: importError } = await supabase
+    const { data: lastImport, error: importError } = await supabaseAdmin
       .from('import_logs')
       .select('*')
       .order('timestamp', { ascending: false })
@@ -44,7 +39,7 @@ export async function GET(
       : lastImport.details;
 
     // Get dealership code from ID
-    const { data: dealership } = await supabase
+    const { data: dealership } = await supabaseAdmin
       .from('dealership_locations')
       .select('code')
       .eq('id', dealershipId)

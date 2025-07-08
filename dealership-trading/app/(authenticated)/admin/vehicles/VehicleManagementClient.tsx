@@ -146,7 +146,7 @@ export default function VehicleManagementClient() {
 
       // Apply location filter
       if (filters.location !== 'all') {
-        query = query.eq('store_code', filters.location)
+        query = query.eq('location_id', filters.location)
       }
 
       // Apply price range filter
@@ -196,6 +196,23 @@ export default function VehicleManagementClient() {
         daysOnLot: vehicle.days_on_lot
       }))
 
+      // Debug: Check for location mismatches
+      transformedVehicles.forEach(vehicle => {
+        if (vehicle.currentTransfer && vehicle.currentTransfer.status === 'delivered') {
+          if (vehicle.dealership_location?._id !== vehicle.currentTransfer.to_location?.id) {
+            console.warn('Location mismatch for vehicle:', {
+              stockNumber: vehicle.stockNumber,
+              vin: vehicle.vin,
+              currentLocation: vehicle.dealership_location?.name,
+              currentLocationId: vehicle.dealership_location?._id,
+              shouldBeLocation: vehicle.currentTransfer.to_location?.name,
+              shouldBeLocationId: vehicle.currentTransfer.to_location?.id,
+              transferStatus: vehicle.currentTransfer.status
+            })
+          }
+        }
+      })
+
       setVehicles(transformedVehicles)
       setTotalCount(count || 0)
     } catch (error) {
@@ -221,37 +238,101 @@ export default function VehicleManagementClient() {
           if (payload.eventType === 'INSERT') {
             fetchVehicles()
           } else if (payload.eventType === 'UPDATE') {
-            // Transform the updated data
-            const transformed = {
-              _id: payload.new.id,
-              stockNumber: payload.new.stock_number,
-              vin: payload.new.vin,
-              year: payload.new.year,
-              make: payload.new.make,
-              model: payload.new.model,
-              trim: payload.new.trim,
-              title: payload.new.title,
-              price: payload.new.price,
-              salePrice: payload.new.sale_price,
-              msrp: payload.new.msrp,
-              mileage: payload.new.mileage,
-              condition: payload.new.condition,
-              exteriorColor: payload.new.exterior_color,
-              bodyStyle: payload.new.body_style,
-              fuelType: payload.new.fuel_type,
-              description: payload.new.description,
-              features: payload.new.features || [],
-              status: payload.new.status,
-              storeCode: payload.new.store_code,
-              address: payload.new.address,
-              imageUrls: payload.new.image_urls || [],
-              importedAt: payload.new.imported_at,
-              lastSeenInFeed: payload.new.last_seen_in_feed,
-              daysOnLot: payload.new.days_on_lot
+            // Fetch the updated vehicle with full relationship data
+            const fetchUpdatedVehicle = async () => {
+              const { data, error } = await supabase
+                .from('vehicles')
+                .select(`
+                  *,
+                  location:location_id(
+                    id,
+                    name,
+                    code,
+                    address,
+                    city,
+                    state,
+                    zip
+                  ),
+                  original_location:original_location_id(
+                    id,
+                    name,
+                    code
+                  ),
+                  current_transfer:current_transfer_id(
+                    id,
+                    status,
+                    from_location_id,
+                    to_location_id,
+                    requested_by_id,
+                    reason,
+                    transfer_notes,
+                    requested_by_date,
+                    customer_waiting,
+                    priority,
+                    expected_pickup_date,
+                    actual_pickup_date,
+                    delivered_date,
+                    created_at,
+                    from_location:from_location_id(
+                      id,
+                      name,
+                      code
+                    ),
+                    to_location:to_location_id(
+                      id,
+                      name,
+                      code
+                    ),
+                    requested_by:requested_by_id(
+                      id,
+                      name,
+                      email
+                    )
+                  )
+                `)
+                .eq('id', payload.new.id)
+                .single()
+
+              if (!error && data) {
+                const transformed = {
+                  _id: data.id,
+                  stockNumber: data.stock_number,
+                  vin: data.vin,
+                  year: data.year,
+                  make: data.make,
+                  model: data.model,
+                  trim: data.trim,
+                  title: data.title,
+                  price: data.price,
+                  salePrice: data.sale_price,
+                  msrp: data.msrp,
+                  mileage: data.mileage,
+                  condition: data.condition,
+                  exteriorColor: data.exterior_color,
+                  bodyStyle: data.body_style,
+                  fuelType: data.fuel_type,
+                  description: data.description,
+                  features: data.features || [],
+                  status: data.status,
+                  storeCode: data.store_code,
+                  address: data.address,
+                  location: data.location,
+                  dealership_location: data.location,
+                  originalLocation: data.original_location,
+                  currentTransfer: data.current_transfer,
+                  imageUrls: data.image_urls || [],
+                  importedAt: data.imported_at,
+                  lastSeenInFeed: data.last_seen_in_feed,
+                  daysOnLot: data.days_on_lot
+                }
+                
+                setVehicles(prev => 
+                  prev.map(v => v._id === data.id ? transformed : v)
+                )
+              }
             }
-            setVehicles(prev => 
-              prev.map(v => v._id === payload.new.id ? { ...v, ...transformed } : v)
-            )
+            
+            fetchUpdatedVehicle()
           } else if (payload.eventType === 'DELETE') {
             setVehicles(prev => prev.filter(v => v._id !== payload.old.id))
             setTotalCount(prev => prev - 1)
@@ -423,7 +504,10 @@ export default function VehicleManagementClient() {
       {showFilters && (
         <VehicleFilters
           filters={filters}
-          onFiltersChange={setFilters}
+          onFiltersChange={(newFilters) => {
+            setFilters(newFilters)
+            setPage(1) // Reset to first page when filters change
+          }}
           onClose={() => setShowFilters(false)}
         />
       )}
