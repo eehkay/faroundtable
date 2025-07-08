@@ -238,6 +238,9 @@ export async function syncToSupabase(
     }
 
     // 7. Create activity log for the import
+    // TODO: Create a system user for automated activities
+    // For now, skip activity logging since both user_id and vehicle_id are required
+    /*
     await supabase
       .from('activities')
       .insert({
@@ -253,6 +256,7 @@ export async function syncToSupabase(
           preserved: result.preserved
         }
       });
+    */
 
     return result;
 
@@ -264,8 +268,7 @@ export async function syncToSupabase(
 
 // Transform vehicle data for database
 function transformVehicleForDB(vehicle: any) {
-  return {
-    id: vehicle.id, // Include if updating
+  const transformed: any = {
     stock_number: vehicle.stockNumber,
     vin: vehicle.vin,
     year: vehicle.year,
@@ -294,6 +297,13 @@ function transformVehicleForDB(vehicle: any) {
     removed_from_feed_at: vehicle.removed_from_feed_at || null,
     days_on_lot: vehicle.daysOnLot || calculateDaysOnLot(vehicle.imported_at)
   };
+  
+  // Only include ID if it exists (for updates)
+  if (vehicle.id) {
+    transformed.id = vehicle.id;
+  }
+  
+  return transformed;
 }
 
 function calculateDaysOnLot(importedAt?: string): number {
