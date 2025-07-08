@@ -7,9 +7,10 @@ import { ChevronLeft, ChevronRight, Expand } from 'lucide-react';
 interface VehicleGalleryProps {
   images: string[];
   vehicleTitle: string;
+  compact?: boolean;
 }
 
-export default function VehicleGallery({ images, vehicleTitle }: VehicleGalleryProps) {
+export default function VehicleGallery({ images, vehicleTitle, compact = false }: VehicleGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -26,9 +27,9 @@ export default function VehicleGallery({ images, vehicleTitle }: VehicleGalleryP
 
   return (
     <>
-      <div className="bg-[#1f1f1f] rounded-lg shadow-sm overflow-hidden transition-all duration-200">
+      <div className={`bg-[#1f1f1f] rounded-lg shadow-sm overflow-hidden transition-all duration-200 print:hidden ${compact ? '' : ''}`}>
         {/* Main Image */}
-        <div className="relative aspect-[4/3] bg-[#141414]">
+        <div className={`relative ${compact ? 'aspect-[16/9]' : 'aspect-[4/3]'} bg-[#141414]`}>
           <Image
             src={displayImages[currentIndex]}
             alt={`${vehicleTitle} - Image ${currentIndex + 1}`}
@@ -43,29 +44,31 @@ export default function VehicleGallery({ images, vehicleTitle }: VehicleGalleryP
             <>
               <button
                 onClick={handlePrevious}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-[#2a2a2a]/80 hover:bg-[#333333] rounded-full p-2 shadow-md transition-all duration-200"
+                className={`absolute left-4 top-1/2 -translate-y-1/2 bg-[#2a2a2a]/80 hover:bg-[#333333] rounded-full ${compact ? 'p-1' : 'p-2'} shadow-md transition-all duration-200`}
                 aria-label="Previous image"
               >
-                <ChevronLeft className="h-5 w-5 text-gray-200" />
+                <ChevronLeft className={`${compact ? 'h-4 w-4' : 'h-5 w-5'} text-gray-200`} />
               </button>
               <button
                 onClick={handleNext}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#2a2a2a]/80 hover:bg-[#333333] rounded-full p-2 shadow-md transition-all duration-200"
+                className={`absolute right-4 top-1/2 -translate-y-1/2 bg-[#2a2a2a]/80 hover:bg-[#333333] rounded-full ${compact ? 'p-1' : 'p-2'} shadow-md transition-all duration-200`}
                 aria-label="Next image"
               >
-                <ChevronRight className="h-5 w-5 text-gray-200" />
+                <ChevronRight className={`${compact ? 'h-4 w-4' : 'h-5 w-5'} text-gray-200`} />
               </button>
             </>
           )}
 
           {/* Fullscreen Button */}
-          <button
-            onClick={() => setIsFullscreen(true)}
-            className="absolute top-4 right-4 bg-[#2a2a2a]/80 hover:bg-[#333333] rounded-full p-2 shadow-md transition-all duration-200"
-            aria-label="View fullscreen"
-          >
-            <Expand className="h-5 w-5 text-gray-200" />
-          </button>
+          {!compact && (
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="absolute top-4 right-4 bg-[#2a2a2a]/80 hover:bg-[#333333] rounded-full p-2 shadow-md transition-all duration-200"
+              aria-label="View fullscreen"
+            >
+              <Expand className="h-5 w-5 text-gray-200" />
+            </button>
+          )}
 
           {/* Image Counter */}
           {displayImages.length > 1 && (
@@ -76,7 +79,7 @@ export default function VehicleGallery({ images, vehicleTitle }: VehicleGalleryP
         </div>
 
         {/* Thumbnail Strip */}
-        {displayImages.length > 1 && (
+        {!compact && displayImages.length > 1 && (
           <div className="p-4 bg-[#141414]">
             <div className="flex gap-2 overflow-x-auto">
               {displayImages.map((image, index) => (

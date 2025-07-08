@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase-client";
 import TransferList from "@/components/transfers/TransferList";
 import TransferFilters from "@/components/transfers/TransferFilters";
 import { canViewTransfers, isAdmin, isManager, canUpdateTransferStatus } from "@/lib/permissions";
+import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { ChevronLeft, ChevronRight, List, LayoutGrid } from 'lucide-react';
 
 interface Transfer {
   _id: string;
@@ -77,22 +79,34 @@ export default function TransfersPage() {
   const searchParams = useSearchParams();
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [compactMode, setCompactMode] = useLocalStorage('transfers-compact-mode', false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   
   // Initialize filters
   const [filters, setFilters] = useState({
     status: 'all',
     location: 'all',
+    locations: [] as string[],
     dateRange: 'all'
   });
 
   // Update filters when URL parameters change
   useEffect(() => {
+    const locationsParam = searchParams.get('locations');
     const newFilters = {
       status: searchParams.get('status') || 'all',
       location: searchParams.get('location') || 'all',
+      locations: locationsParam ? locationsParam.split(',').filter(Boolean) : [],
       dateRange: searchParams.get('dateRange') || 'all'
     };
     setFilters(newFilters);
+    
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
   }, [searchParams]);
 
   useEffect(() => {
@@ -165,8 +179,9 @@ export default function TransfersPage() {
               name,
               email
             )
-          `)
-          .order('created_at', { ascending: false });
+          `);
+        
+        // Apply filters BEFORE pagination
         
         // For sales role, only show their own requests or transfers involving their location
         if (session.user.role === 'sales' && session.user.location?.id) {
@@ -175,14 +190,32 @@ export default function TransfersPage() {
           );
         }
         
-        // Apply filters
+        // Apply status filter
         if (filters.status !== 'all') {
           query = query.eq('status', filters.status);
+        } else {
+          // When showing "all", exclude delivered transfers by default
+          query = query.not('status', 'eq', 'delivered');
         }
         
-        if (filters.location !== 'all') {
+        // Handle multi-select locations
+        if (filters.locations && filters.locations.length > 0) {
+          console.log('Applying location filter for:', filters.locations);
+          const locationConditions = filters.locations
+            .map(id => `from_location_id.eq.${id},to_location_id.eq.${id}`)
+            .join(',');
+          console.log('Location condition string:', locationConditions);
+          query = query.or(locationConditions);
+        } else if (filters.location && filters.location !== 'all') {
+          // Fallback to single location for backward compatibility
+          console.log('Applying single location filter for:', filters.location);
           query = query.or(`from_location_id.eq.${filters.location},to_location_id.eq.${filters.location}`);
         }
+        
+        // Apply ordering and pagination AFTER filters
+        query = query
+          .order('created_at', { ascending: false })
+          .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
         
         if (filters.dateRange !== 'all') {
           const now = new Date();
@@ -209,10 +242,19 @@ export default function TransfersPage() {
           }
         }
         
-        const { data, error } = await query;
+        const { data, error, count } = await query;
+        
+        if (count !== null) {
+          setTotalCount(count);
+        }
 
         if (error) {
           console.error('Failed to fetch transfers:', error);
+          console.error('Query details:', {
+            locationFilters: filters.locations,
+            statusFilter: filters.status,
+            error: error.message
+          });
           setTransfers([]);
           return;
         }
@@ -220,6 +262,16 @@ export default function TransfersPage() {
         if (!data) {
           setTransfers([]);
           return;
+        }
+
+        // Debug: Log some sample transfers to see location data
+        if (data.length > 0) {
+          console.log('Sample transfer data:', {
+            transferId: data[0].id,
+            fromLocation: data[0].from_location,
+            toLocation: data[0].to_location,
+            appliedFilters: filters
+          });
         }
 
         // Transform data to match existing format
@@ -327,7 +379,7 @@ export default function TransfersPage() {
       clearTimeout(debounceTimeout);
       supabase.removeChannel(channel);
     };
-  }, [session, filters]);
+  }, [session, filters, currentPage, pageSize]);
 
   if (status === "loading" || loading) {
     return (
@@ -407,23 +459,49 @@ export default function TransfersPage() {
 
   // Update URL when filters change
   const handleFilterChange = (newFilters: typeof filters) => {
+    // Update local state immediately
+    setFilters(newFilters);
+    
     // Update URL parameters
     const params = new URLSearchParams();
     if (newFilters.status !== 'all') params.set('status', newFilters.status);
     if (newFilters.location !== 'all') params.set('location', newFilters.location);
+    if (newFilters.locations && newFilters.locations.length > 0) params.set('locations', newFilters.locations.join(','));
     if (newFilters.dateRange !== 'all') params.set('dateRange', newFilters.dateRange);
     
     const queryString = params.toString();
     router.replace(`/transfers${queryString ? `?${queryString}` : ''}`, { scroll: false });
   };
 
+  const totalPages = Math.ceil(totalCount / pageSize);
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">{getPageTitle()}</h1>
-        <p className="mt-2 text-gray-400">
-          {getPageDescription()}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white">{getPageTitle()}</h1>
+          <p className="mt-2 text-gray-400">
+            {getPageDescription()}
+          </p>
+        </div>
+        <button
+          onClick={() => setCompactMode(!compactMode)}
+          className="flex items-center gap-2 px-4 py-2 bg-[#2a2a2a] text-white rounded-lg hover:bg-[#333333] transition-colors"
+          title={compactMode ? 'Switch to detailed view' : 'Switch to compact view'}
+        >
+          {compactMode ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
+          {compactMode ? 'Detailed' : 'Compact'}
+        </button>
       </div>
 
       {/* Only show filters for roles that can see all transfers */}
@@ -440,7 +518,78 @@ export default function TransfersPage() {
         currentUserId={session.user.id}
         userLocationId={session.user.location?.id}
         onTransferUpdate={handleTransferUpdate}
+        compactMode={compactMode}
       />
+      
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-400">
+                Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)} of {totalCount} transfers
+              </span>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                className="bg-[#2a2a2a] border border-[#333333] text-white rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="10">10 per page</option>
+                <option value="20">20 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 rounded bg-[#2a2a2a] text-white hover:bg-[#333333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                        pageNum === currentPage
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-[#2a2a2a] text-gray-300 hover:bg-[#333333]'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded bg-[#2a2a2a] text-white hover:bg-[#333333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
