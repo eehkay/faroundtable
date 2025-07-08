@@ -13,7 +13,7 @@ export async function GET() {
 
     const { data: dealerships, error } = await supabaseAdmin
       .from('dealership_locations')
-      .select('id, name, code, address, phone, email')
+      .select('id, name, code, address, phone, email, email_domains')
       .order('name', { ascending: true });
 
     if (error) {
@@ -28,7 +28,8 @@ export async function GET() {
       code: dealership.code,
       address: dealership.address,
       phone: dealership.phone,
-      email: dealership.email
+      email: dealership.email,
+      emailDomains: dealership.email_domains
     })) || [];
 
     return NextResponse.json(transformedDealerships);

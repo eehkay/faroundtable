@@ -8,6 +8,7 @@ interface SupabaseDealership {
   code: string;
   csv_file_name?: string;
   active: boolean;
+  enable_csv_import?: boolean;
 }
 
 // Initialize Supabase client lazily
@@ -24,21 +25,22 @@ function getSupabaseClient() {
 }
 
 export async function mapFilesToDealerships(files: SFTPFile[]): Promise<MappedFile[]> {
-  // Fetch all active dealerships from Supabase
+  // Fetch all active dealerships that have CSV import enabled
   const { data: dealerships, error } = await getSupabaseClient()
     .from('dealership_locations')
     .select('*')
-    .eq('active', true);
+    .eq('active', true)
+    .eq('enable_csv_import', true);
 
   if (error) {
     throw new Error(`Failed to fetch dealerships: ${error.message}`);
   }
 
   if (!dealerships || dealerships.length === 0) {
-    throw new Error('No active dealerships found in the database');
+    throw new Error('No active dealerships with CSV import enabled found in the database');
   }
 
-  console.log(`    Found ${dealerships.length} active dealerships`);
+  console.log(`    Found ${dealerships.length} active dealerships with CSV import enabled`);
 
   // Create a map of CSV filename to dealership
   const dealershipMap = new Map<string, SupabaseDealership>();

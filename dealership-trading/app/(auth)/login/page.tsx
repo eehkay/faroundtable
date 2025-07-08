@@ -98,6 +98,15 @@ function LoginContent() {
           <p className="text-xs text-[#737373]">
             © {new Date().getFullYear()} Round Table. All rights reserved.
           </p>
+          <div className="space-x-4">
+            <a href="/terms" className="text-xs text-[#737373] hover:text-[#a3a3a3] transition-colors duration-200">
+              Terms of Service
+            </a>
+            <span className="text-xs text-[#525252]">•</span>
+            <a href="/privacy" className="text-xs text-[#737373] hover:text-[#a3a3a3] transition-colors duration-200">
+              Privacy Policy
+            </a>
+          </div>
           <p className="text-xs text-[#737373]">
             Made with ❤️ by Del Mar Advertising
           </p>

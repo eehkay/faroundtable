@@ -34,6 +34,8 @@ export async function GET() {
       phone: dealership.phone,
       email: dealership.email,
       csvFileName: dealership.csv_file_name,
+      emailDomains: dealership.email_domains,
+      enableCsvImport: dealership.enable_csv_import,
       active: dealership.active,
       createdAt: dealership.created_at,
       updatedAt: dealership.updated_at
@@ -58,7 +60,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, code, address, city, state, zip, phone, email, csvFileName, active } = body;
+    const { name, code, address, city, state, zip, phone, email, csvFileName, emailDomains, enableCsvImport, active } = body;
 
     // Validate required fields
     if (!name || !code) {
@@ -95,6 +97,8 @@ export async function POST(req: NextRequest) {
         phone: phone || null,
         email: email || null,
         csv_file_name: csvFileName || null,
+        email_domains: emailDomains || [],
+        enable_csv_import: enableCsvImport !== undefined ? enableCsvImport : true,
         active: active !== undefined ? active : true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -119,6 +123,8 @@ export async function POST(req: NextRequest) {
       phone: newDealership.phone,
       email: newDealership.email,
       csvFileName: newDealership.csv_file_name,
+      emailDomains: newDealership.email_domains,
+      enableCsvImport: newDealership.enable_csv_import,
       active: newDealership.active,
       createdAt: newDealership.created_at,
       updatedAt: newDealership.updated_at

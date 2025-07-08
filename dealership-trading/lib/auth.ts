@@ -58,16 +58,45 @@ export const authOptions: NextAuthOptions = {
           throw fetchError
         }
         
+        // Try to find matching dealership by email domain
+        let matchingLocationId: string | null = null
+        try {
+          const { data: dealerships } = await supabaseAdmin
+            .from('dealership_locations')
+            .select('id, email_domains')
+            .not('email_domains', 'is', null)
+          
+          if (dealerships) {
+            for (const dealership of dealerships) {
+              if (dealership.email_domains && dealership.email_domains.includes(domain)) {
+                matchingLocationId = dealership.id
+                console.log(`Found matching dealership for domain ${domain}: ${dealership.id}`)
+                break
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error looking up dealership by domain:', error)
+        }
+
         if (existingUser) {
-          // Update last login
+          // Update last login and location if user doesn't have one
+          const updateData: any = {
+            last_login: new Date().toISOString(),
+            name: user.name || email,
+            image_url: user.image || null,
+            updated_at: new Date().toISOString()
+          }
+          
+          // Only update location if user doesn't have one and we found a match
+          if (!existingUser.location_id && matchingLocationId) {
+            updateData.location_id = matchingLocationId
+            console.log(`Auto-assigning location ${matchingLocationId} to existing user ${existingUser.id}`)
+          }
+          
           const { error: updateError } = await supabaseAdmin
             .from('users')
-            .update({
-              last_login: new Date().toISOString(),
-              name: user.name || email,
-              image_url: user.image || null,
-              updated_at: new Date().toISOString()
-            })
+            .update(updateData)
             .eq('id', existingUser.id)
           
           if (updateError) {
@@ -77,7 +106,7 @@ export const authOptions: NextAuthOptions = {
           
           console.log('Updated existing user:', existingUser.id)
         } else {
-          // Create new user with default 'sales' role
+          // Create new user with default 'sales' role and auto-assigned location
           const { data: newUser, error: createError } = await supabaseAdmin
             .from('users')
             .insert({
@@ -86,6 +115,7 @@ export const authOptions: NextAuthOptions = {
               image_url: user.image || null,
               domain: domain,
               role: 'sales', // Default role for new users
+              location_id: matchingLocationId, // Auto-assign location based on domain
               active: true,
               last_login: new Date().toISOString()
             })
@@ -97,7 +127,7 @@ export const authOptions: NextAuthOptions = {
             throw createError
           }
           
-          console.log('Created new user:', newUser.id)
+          console.log('Created new user:', newUser.id, matchingLocationId ? `with location ${matchingLocationId}` : 'without location')
         }
       } catch (error) {
         console.error('Error in user sign-in:', error)

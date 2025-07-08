@@ -226,14 +226,17 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
 
             <div className="grid w-full gap-1.5">
               <Label htmlFor="pickupDate">
-                Expected Pickup Date
+                Requested Pickup Date (Optional)
               </Label>
               <DatePicker
                 date={expectedPickupDate}
                 onSelect={setExpectedPickupDate}
-                placeholder="Select pickup date"
+                placeholder="When would you like to pick up?"
                 minDate={new Date()}
               />
+              <p className="text-xs text-gray-400 mt-1">
+                When you&apos;d ideally like to pick up the vehicle
+              </p>
             </div>
           </div>
           <DialogFooter>

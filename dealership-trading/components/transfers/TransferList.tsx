@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Truck, Check, X, AlertTriangle, Package, Clock } from 'lucide-react';
+import { Truck, Check, X, AlertTriangle, Package, Clock, ExternalLink } from 'lucide-react';
 import TransferActionModal from './TransferActionModal';
 import { canApproveTransfers, canUpdateTransferStatus, canApproveTransferForLocation, canRejectTransferForLocation } from '@/lib/permissions';
 
@@ -76,10 +77,11 @@ interface TransferListProps {
   currentUserId: string;
   userLocationId?: string;
   onTransferUpdate?: (updatedTransfer: any) => void;
+  compactMode?: boolean;
 }
 
-export default function TransferList({ transfers, userRole, currentUserId, userLocationId, onTransferUpdate }: TransferListProps) {
-  
+export default function TransferList({ transfers, userRole, currentUserId, userLocationId, onTransferUpdate, compactMode = false }: TransferListProps) {
+  const router = useRouter();
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [actionType, setActionType] = useState<'approve' | 'status' | 'cancel' | null>(null);
 
@@ -156,7 +158,13 @@ export default function TransferList({ transfers, userRole, currentUserId, userL
         {transfers.map((transfer) => (
           <div
             key={transfer._id}
-            className="bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg p-6 hover:bg-[#2a2a2a] transition-colors"
+            className={`bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg hover:bg-[#2a2a2a] transition-colors cursor-pointer ${compactMode ? 'p-4' : 'p-6'}`}
+            onClick={(e) => {
+              // Only navigate if not clicking on action buttons
+              if (!(e.target as HTMLElement).closest('button')) {
+                router.push(`/transfers/${transfer._id}`);
+              }
+            }}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -178,41 +186,65 @@ export default function TransferList({ transfers, userRole, currentUserId, userL
                   )}
                 </div>
 
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  {transfer.vehicle.year} {transfer.vehicle.make} {transfer.vehicle.model} {transfer.vehicle.trim || ''}
+                <h3 className={`font-semibold text-white ${compactMode ? 'text-base mb-1' : 'text-lg mb-2'}`}>
+                  {transfer.vehicle.year} {transfer.vehicle.make} {transfer.vehicle.model} {compactMode ? '' : transfer.vehicle.trim || ''}
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-400">VIN: <span className="text-gray-300">{transfer.vehicle.vin}</span></p>
-                    <p className="text-gray-400">Stock #: <span className="text-gray-300">{transfer.vehicle.stockNumber || 'N/A'}</span></p>
-                    <p className="text-gray-400">Price: <span className="text-gray-300">${transfer.vehicle.price.toLocaleString()}</span></p>
+                {compactMode ? (
+                  // Compact mode: Single row with essential info
+                  <div className="flex items-center gap-4 text-sm text-gray-400">
+                    <span>{transfer.vehicle.stockNumber || 'N/A'}</span>
+                    <span>${transfer.vehicle.price.toLocaleString()}</span>
+                    <span>{transfer.fromLocation.code} → {transfer.toLocation.code}</span>
+                    <span className="text-gray-300">{transfer.requestedBy.name}</span>
+                    <span>{format(new Date(transfer.requestedAt), 'MMM d')}</span>
                   </div>
-                  <div>
-                    <p className="text-gray-400">From: <span className="text-gray-300">{transfer.fromLocation.name}</span></p>
-                    <p className="text-gray-400">To: <span className="text-gray-300">{transfer.toLocation.name}</span></p>
-                    <p className="text-gray-400">Requested by: <span className="text-gray-300">{transfer.requestedBy.name}</span></p>
-                  </div>
-                </div>
+                ) : (
+                  // Regular mode: Full details
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-400">VIN: <span className="text-gray-300">{transfer.vehicle.vin}</span></p>
+                        <p className="text-gray-400">Stock #: <span className="text-gray-300">{transfer.vehicle.stockNumber || 'N/A'}</span></p>
+                        <p className="text-gray-400">Price: <span className="text-gray-300">${transfer.vehicle.price.toLocaleString()}</span></p>
+                      </div>
+                      <div>
+                        <p className="text-gray-400">From: <span className="text-gray-300">{transfer.fromLocation.name}</span></p>
+                        <p className="text-gray-400">To: <span className="text-gray-300">{transfer.toLocation.name}</span></p>
+                        <p className="text-gray-400">Requested by: <span className="text-gray-300">{transfer.requestedBy.name}</span></p>
+                      </div>
+                    </div>
 
-                {transfer.reason && (
-                  <div className="mt-3 p-3 bg-[#2a2a2a] rounded-lg">
-                    <p className="text-sm text-gray-400">Reason: <span className="text-gray-300">{transfer.reason}</span></p>
-                  </div>
+                    {transfer.reason && (
+                      <div className="mt-3 p-3 bg-[#2a2a2a] rounded-lg">
+                        <p className="text-sm text-gray-400">Reason: <span className="text-gray-300">{transfer.reason}</span></p>
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
+                      <span>Requested: {format(new Date(transfer.requestedAt), 'MMM d, yyyy h:mm a')}</span>
+                      {transfer.approvedAt && (
+                        <span>Approved: {format(new Date(transfer.approvedAt), 'MMM d, yyyy h:mm a')}</span>
+                      )}
+                      {transfer.deliveredAt && (
+                        <span>Delivered: {format(new Date(transfer.deliveredAt), 'MMM d, yyyy h:mm a')}</span>
+                      )}
+                    </div>
+                  </>
                 )}
-
-                <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
-                  <span>Requested: {format(new Date(transfer.requestedAt), 'MMM d, yyyy h:mm a')}</span>
-                  {transfer.approvedAt && (
-                    <span>Approved: {format(new Date(transfer.approvedAt), 'MMM d, yyyy h:mm a')}</span>
-                  )}
-                  {transfer.deliveredAt && (
-                    <span>Delivered: {format(new Date(transfer.deliveredAt), 'MMM d, yyyy h:mm a')}</span>
-                  )}
-                </div>
               </div>
 
-              <div className="flex flex-col gap-2 ml-6">
+              <div className={`flex ${compactMode ? 'flex-row' : 'flex-col'} gap-2 ml-6`}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/transfers/${transfer._id}`);
+                  }}
+                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  View Details
+                </button>
                 {canPerformAction(transfer, 'approve') && (
                   <button
                     onClick={() => handleAction(transfer, 'approve')}

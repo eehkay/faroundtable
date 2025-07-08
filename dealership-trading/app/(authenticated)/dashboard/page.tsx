@@ -7,6 +7,7 @@ import RecentActivity from "@/components/dashboard/RecentActivitySupabase";
 import QuickActions from "@/components/dashboard/QuickActions";
 import IncomingTransferRequests from "@/components/dashboard/IncomingTransferRequests";
 import { canViewAllTransfers } from "@/lib/permissions";
+import { isCorporateUser, getCorporateDisplayText } from "@/lib/utils/corporate";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -26,6 +27,11 @@ export default async function DashboardPage() {
         <p className="mt-2 text-gray-600 dark:text-gray-400">
           Welcome back, {session.user.name}! Here&apos;s an overview of the inventory system.
         </p>
+        {isCorporateUser(session.user) && (
+          <p className="mt-1 text-sm text-[#3b82f6]">
+            {getCorporateDisplayText().locationDescription}
+          </p>
+        )}
       </div>
 
       {/* Statistics Cards */}
