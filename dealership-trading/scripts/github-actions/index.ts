@@ -179,14 +179,14 @@ async function main() {
 
     // 8. Set GitHub Actions outputs
     console.log('\n📤 Setting GitHub Actions outputs...');
-    console.log(`::set-output name=created::${results.totals.created}`);
-    console.log(`::set-output name=updated::${results.totals.updated}`);
-    console.log(`::set-output name=deleted::${results.totals.deleted}`);
-    console.log(`::set-output name=errors::${results.totals.errors}`);
-    console.log(`::set-output name=duration::${(results.duration / 1000).toFixed(2)}s`);
+    await setOutput('created', results.totals.created.toString());
+    await setOutput('updated', results.totals.updated.toString());
+    await setOutput('deleted', results.totals.deleted.toString());
+    await setOutput('errors', results.totals.errors.toString());
+    await setOutput('duration', `${(results.duration / 1000).toFixed(2)}s`);
     
     if (results.totals.errors > 0) {
-      console.log(`::set-output name=critical_failure::false`);
+      await setOutput('critical_failure', 'false');
       process.exit(1); // Exit with error code but not critical
     }
 
@@ -210,8 +210,8 @@ async function main() {
       })
       .eq('id', importLogId);
 
-    console.log(`::set-output name=critical_failure::true`);
-    console.log(`::set-output name=critical_error::${error instanceof Error ? error.message : 'Unknown error'}`);
+    await setOutput('critical_failure', 'true');
+    await setOutput('critical_error', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
 }
@@ -241,6 +241,18 @@ async function writeReports(results: ImportResult) {
   }
 
   console.log('✅ Reports written to import-report.json and import-errors.log');
+}
+
+// Helper function to set GitHub Actions outputs using the new environment file approach
+async function setOutput(name: string, value: string) {
+  const outputFile = process.env.GITHUB_OUTPUT;
+  if (outputFile) {
+    const fs = await import('fs/promises');
+    await fs.appendFile(outputFile, `${name}=${value}\n`);
+  } else {
+    // Fallback for local testing
+    console.log(`Output: ${name}=${value}`);
+  }
 }
 
 // Run the import
