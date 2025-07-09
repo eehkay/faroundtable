@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Round Table",
+  title: "Roundtable",
   description: "Internal inventory management platform for dealership network",
   icons: {
     icon: [

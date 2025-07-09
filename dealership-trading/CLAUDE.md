@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Round Table** - An internal inventory management platform for a 5-store dealership network. The system enables stores to claim vehicles from each other, track transfers, and communicate about trades.
+**Roundtable** - An internal inventory management platform for a 5-store dealership network. The system enables stores to claim vehicles from each other, track transfers, and communicate about trades.
 
 ## Development Commands
 

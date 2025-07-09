@@ -25,7 +25,7 @@ function LoginContent() {
             <div className="mb-6">
               <Image
                 src="https://vchtbaawxxruwtvebxlg.supabase.co/storage/v1/object/public/logos/roundtable-logo-stacked.png"
-                alt="Round Table Logo"
+                alt="Roundtable Logo"
                 width={200}
                 height={200}
                 className="mx-auto"
@@ -96,7 +96,7 @@ function LoginContent() {
         {/* Footer */}
         <div className="mt-12 text-center space-y-3 pb-8">
           <p className="text-xs text-[#737373]">
-            © {new Date().getFullYear()} Round Table. All rights reserved.
+            © {new Date().getFullYear()} Roundtable. All rights reserved.
           </p>
           <div className="space-x-4">
             <a href="/terms" className="text-xs text-[#737373] hover:text-[#a3a3a3] transition-colors duration-200">

@@ -80,7 +80,7 @@ export default function Navigation() {
               <Link href="/dashboard" className="flex items-center">
                 <Image
                   src="https://vchtbaawxxruwtvebxlg.supabase.co/storage/v1/object/public/branding/roundtable_logo.png"
-                  alt="Round Table Logo"
+                  alt="Roundtable Logo"
                   width={150}
                   height={50}
                   className="h-10 w-auto"
