@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transfer Delivered - {{vehicle.year}} {{vehicle.make}} {{vehicle.model}}</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+        /* Reset styles */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; }
+
+        /* Remove default styling */
+        img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        table { border-collapse: collapse !important; }
+        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+
+        /* Mobile styles */
+        @media screen and (max-width: 600px) {
+            .mobile-hide { display: none !important; }
+            .mobile-center { text-align: center !important; }
+            .container { padding: 0 10px !important; width: 100% !important; }
+            .content-table { width: 100% !important; }
+            .vehicle-image { width: 100% !important; height: auto !important; }
+            .button { width: 100% !important; max-width: 300px !important; }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .darkmode-bg { background-color: #0a0a0a !important; }
+            .darkmode-text { color: #ffffff !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #e5e7eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    
+    <!-- Wrapper -->
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #e5e7eb;">
+        <tr>
+            <td align="center" style="padding: 40px 0; background-color: #e5e7eb;">
+                
+                <!-- Email Container -->
+                <table class="container" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 40px 20px; background-color: #0a0a0a; border-radius: 12px 12px 0 0;">
+                            <img src="https://vchtbaawxxruwtvebxlg.supabase.co/storage/v1/object/public/logos//roundtable-logo-stacked.png" 
+                                 alt="Roundtable" 
+                                 width="150" 
+                                 style="display: block; margin: 0 auto;">
+                        </td>
+                    </tr>
+                    
+                    <!-- Alert Banner -->
+                    <tr>
+                        <td style="background-color: #6366f1; color: #ffffff; padding: 20px; text-align: center;">
+                            <h2 style="margin: 0; font-size: 20px; font-weight: 600;">
+                                🎉 Transfer Complete
+                            </h2>
+                        </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            
+                            <!-- Greeting -->
+                            <p style="font-size: 16px; color: #333333; margin: 0 0 20px 0;">
+                                Hello {{user.name}},
+                            </p>
+                            
+                            <p style="font-size: 16px; color: #333333; margin: 0 0 30px 0;">
+                                Excellent news! The vehicle transfer has been successfully completed and the vehicle has arrived at its destination.
+                            </p>
+                            
+                            <!-- Vehicle Details Card -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td style="background-color: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                                        
+                                        <!-- Vehicle Image -->
+                                        {{#if vehicle.image_link1}}
+                                        <div style="margin-bottom: 20px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);">
+                                            <img src="{{vehicle.image_link1}}" 
+                                                 alt="{{vehicle.year}} {{vehicle.make}} {{vehicle.model}}" 
+                                                 class="vehicle-image"
+                                                 style="width: 100%; max-width: 540px; height: auto; display: block;">
+                                        </div>
+                                        {{/if}}
+                                        
+                                        <!-- Vehicle Info -->
+                                        <h3 style="margin: 0 0 15px 0; color: #0a0a0a; font-size: 22px;">
+                                            {{vehicle.year}} {{vehicle.make}} {{vehicle.model}}
+                                        </h3>
+                                        
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                            <tr>
+                                                <td width="50%" style="padding: 5px 0;">
+                                                    <strong style="color: #6b7280;">Stock #:</strong>
+                                                    <span style="color: #333333;">{{vehicle.stock_number}}</span>
+                                                </td>
+                                                <td width="50%" style="padding: 5px 0;">
+                                                    <strong style="color: #6b7280;">VIN:</strong>
+                                                    <span style="color: #333333; font-size: 14px;">{{vehicle.vin}}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td width="50%" style="padding: 5px 0;">
+                                                    <strong style="color: #6b7280;">Price:</strong>
+                                                    <span style="color: #333333; font-weight: 600;">{{vehicle.price}}</span>
+                                                </td>
+                                                <td width="50%" style="padding: 5px 0;">
+                                                    <strong style="color: #6b7280;">Mileage:</strong>
+                                                    <span style="color: #333333;">{{vehicle.mileage}} miles</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Delivery Details -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td style="border-left: 4px solid #6366f1; padding-left: 20px;">
+                                        <h4 style="margin: 0 0 15px 0; color: #0a0a0a; font-size: 18px;">
+                                            Delivery Confirmation
+                                        </h4>
+                                        
+                                        <table border="0" cellpadding="5" cellspacing="0">
+                                            <tr>
+                                                <td style="color: #6b7280; padding-right: 15px;">Transferred from:</td>
+                                                <td style="color: #333333; font-weight: 600;">{{transfer.from_location.name}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: #6b7280; padding-right: 15px;">Delivered to:</td>
+                                                <td style="color: #333333; font-weight: 600;">{{transfer.to_location.name}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: #6b7280; padding-right: 15px;">Delivery Date:</td>
+                                                <td style="color: #333333;">{{system.date}}</td>
+                                            </tr>
+                                            {{#if transport.company}}
+                                            <tr>
+                                                <td style="color: #6b7280; padding-right: 15px;">Transport Company:</td>
+                                                <td style="color: #333333;">{{transport.company}}</td>
+                                            </tr>
+                                            {{/if}}
+                                            <tr>
+                                                <td style="color: #6b7280; padding-right: 15px;">Status:</td>
+                                                <td>
+                                                    <span style="background-color: #e0e7ff; color: #4338ca; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
+                                                        DELIVERED
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        
+                                        {{#if transfer.notes}}
+                                        <div style="margin-top: 15px; padding: 15px; background-color: #f3f4f6; border-radius: 6px;">
+                                            <strong style="color: #374151;">Delivery Notes:</strong>
+                                            <p style="margin: 5px 0 0 0; color: #374151;">{{transfer.notes}}</p>
+                                        </div>
+                                        {{/if}}
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Summary Stats -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td>
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                            <tr>
+                                                <td width="33%" style="text-align: center; padding: 15px; background-color: #eff6ff; border-radius: 8px;">
+                                                    <div style="font-size: 24px; font-weight: 700; color: #6366f1;">✓</div>
+                                                    <div style="font-size: 14px; color: #4f46e5; margin-top: 5px;">Delivered</div>
+                                                </td>
+                                                <td width="34%" style="text-align: center;">
+                                                    <!-- Spacer -->
+                                                </td>
+                                                <td width="33%" style="text-align: center; padding: 15px; background-color: #f0fdf4; border-radius: 8px;">
+                                                    <div style="font-size: 24px; font-weight: 700; color: #10b981;">100%</div>
+                                                    <div style="font-size: 14px; color: #059669; margin-top: 5px;">Complete</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Action Items Section -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td style="background-color: #fef3c7; border-radius: 8px; padding: 20px;">
+                                        <h4 style="margin: 0 0 10px 0; color: #78350f; font-size: 16px;">
+                                            ⚠️ Action Required
+                                        </h4>
+                                        <p style="margin: 0 0 10px 0; color: #92400e;">
+                                            Please complete the following within 24 hours:
+                                        </p>
+                                        <ul style="margin: 0; padding-left: 20px; color: #92400e;">
+                                            <li style="margin-bottom: 8px;">Inspect the vehicle for any damage</li>
+                                            <li style="margin-bottom: 8px;">Update the vehicle location in your inventory system</li>
+                                            <li style="margin-bottom: 8px;">Confirm receipt in the Round Table system</li>
+                                            <li style="margin: 0;">Process any required paperwork</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Action Button -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{link.view_transfer}}" 
+                                           style="display: inline-block; padding: 16px 40px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                                            Confirm Receipt
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Additional Info -->
+                            <p style="font-size: 14px; color: #6b7280; margin: 0 0 10px 0; text-align: center;">
+                                Thank you for using Round Table for your vehicle transfers.
+                            </p>
+                            
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">
+                                <a href="{{link.dashboard}}" style="color: #3b82f6; text-decoration: none;">Go to Dashboard</a>
+                            </p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                                © {{system.date}} Round Table. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+                <!-- End Email Container -->
+                
+            </td>
+        </tr>
+    </table>
+    <!-- End Wrapper -->
+    
+</body>
+</html>

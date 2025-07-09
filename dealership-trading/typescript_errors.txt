@@ -1,0 +1,40 @@
+.next/types/app/api/admin/notification-rules/[id]/route.ts(49,7): error TS2344: Type '{ __tag__: "GET"; __param_position__: "second"; __param_type__: { params: { id: string; }; }; }' does not satisfy the constraint 'ParamCheck<RouteContext>'.
+  The types of '__param_type__.params' are incompatible between these types.
+    Type '{ id: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+.next/types/app/api/admin/notification-rules/[id]/route.ts(205,7): error TS2344: Type '{ __tag__: "PUT"; __param_position__: "second"; __param_type__: { params: { id: string; }; }; }' does not satisfy the constraint 'ParamCheck<RouteContext>'.
+  The types of '__param_type__.params' are incompatible between these types.
+    Type '{ id: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+.next/types/app/api/admin/notification-rules/[id]/route.ts(244,7): error TS2344: Type '{ __tag__: "DELETE"; __param_position__: "second"; __param_type__: { params: { id: string; }; }; }' does not satisfy the constraint 'ParamCheck<RouteContext>'.
+  The types of '__param_type__.params' are incompatible between these types.
+    Type '{ id: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+.next/types/app/api/admin/notification-rules/[id]/test/route.ts(166,7): error TS2344: Type '{ __tag__: "POST"; __param_position__: "second"; __param_type__: { params: { id: string; }; }; }' does not satisfy the constraint 'ParamCheck<RouteContext>'.
+  The types of '__param_type__.params' are incompatible between these types.
+    Type '{ id: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+.next/types/app/api/admin/notification-templates/[id]/preview/route.ts(166,7): error TS2344: Type '{ __tag__: "POST"; __param_position__: "second"; __param_type__: { params: { id: string; }; }; }' does not satisfy the constraint 'ParamCheck<RouteContext>'.
+  The types of '__param_type__.params' are incompatible between these types.
+    Type '{ id: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+.next/types/app/api/admin/notification-templates/[id]/route.ts(49,7): error TS2344: Type '{ __tag__: "GET"; __param_position__: "second"; __param_type__: { params: { id: string; }; }; }' does not satisfy the constraint 'ParamCheck<RouteContext>'.
+  The types of '__param_type__.params' are incompatible between these types.
+    Type '{ id: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+.next/types/app/api/admin/notification-templates/[id]/route.ts(205,7): error TS2344: Type '{ __tag__: "PUT"; __param_position__: "second"; __param_type__: { params: { id: string; }; }; }' does not satisfy the constraint 'ParamCheck<RouteContext>'.
+  The types of '__param_type__.params' are incompatible between these types.
+    Type '{ id: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+.next/types/app/api/admin/notification-templates/[id]/route.ts(244,7): error TS2344: Type '{ __tag__: "DELETE"; __param_position__: "second"; __param_type__: { params: { id: string; }; }; }' does not satisfy the constraint 'ParamCheck<RouteContext>'.
+  The types of '__param_type__.params' are incompatible between these types.
+    Type '{ id: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+.next/types/app/api/admin/notification-templates/[id]/test/route.ts(166,7): error TS2344: Type '{ __tag__: "POST"; __param_position__: "second"; __param_type__: { params: { id: string; }; }; }' does not satisfy the constraint 'ParamCheck<RouteContext>'.
+  The types of '__param_type__.params' are incompatible between these types.
+    Type '{ id: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+app/(authenticated)/admin/notifications/analytics/page.tsx(313,65): error TS18048: 'percent' is possibly 'undefined'.
+app/api/admin/notifications/analytics/route.ts(150,27): error TS2339: Property 'name' does not exist on type '{ name: any; category: any; }[]'.
+app/api/admin/notifications/analytics/route.ts(151,31): error TS2339: Property 'category' does not exist on type '{ name: any; category: any; }[]'.
+lib/email/template-service.ts(204,27): error TS2551: Property 'vehicle_id' does not exist on type 'Transfer & { vehicle?: Vehicle | undefined; from_location?: DealershipLocation | undefined; to_location?: DealershipLocation | undefined; requested_by?: { ...; } | undefined; approved_by?: { ...; } | undefined; }'. Did you mean 'vehicle'?
+lib/email/template-service.ts(205,28): error TS2339: Property 'id' does not exist on type 'Transfer & { vehicle?: Vehicle | undefined; from_location?: DealershipLocation | undefined; to_location?: DealershipLocation | undefined; requested_by?: { ...; } | undefined; approved_by?: { ...; } | undefined; }'.
+lib/email/template-service.ts(227,18): error TS2551: Property 'from_location_id' does not exist on type 'Transfer & { vehicle?: Vehicle | undefined; from_location?: DealershipLocation | undefined; to_location?: DealershipLocation | undefined; requested_by?: { ...; } | undefined; approved_by?: { ...; } | undefined; }'. Did you mean 'from_location'?
+lib/email/template-service.ts(228,59): error TS2551: Property 'from_location_id' does not exist on type 'Transfer & { vehicle?: Vehicle | undefined; from_location?: DealershipLocation | undefined; to_location?: DealershipLocation | undefined; requested_by?: { ...; } | undefined; approved_by?: { ...; } | undefined; }'. Did you mean 'from_location'?
+lib/email/template-service.ts(232,18): error TS2551: Property 'to_location_id' does not exist on type 'Transfer & { vehicle?: Vehicle | undefined; from_location?: DealershipLocation | undefined; to_location?: DealershipLocation | undefined; requested_by?: { ...; } | undefined; approved_by?: { ...; } | undefined; }'. Did you mean 'to_location'?
+lib/email/template-service.ts(233,57): error TS2551: Property 'to_location_id' does not exist on type 'Transfer & { vehicle?: Vehicle | undefined; from_location?: DealershipLocation | undefined; to_location?: DealershipLocation | undefined; requested_by?: { ...; } | undefined; approved_by?: { ...; } | undefined; }'. Did you mean 'to_location'?
+lib/email/template-service.ts(267,31): error TS2339: Property 'id' does not exist on type 'Transfer & { vehicle?: Vehicle | undefined; from_location?: DealershipLocation | undefined; to_location?: DealershipLocation | undefined; requested_by?: { ...; } | undefined; approved_by?: { ...; } | undefined; }'.
+lib/email/template-service.ts(270,32): error TS2339: Property 'id' does not exist on type 'Transfer & { vehicle?: Vehicle | undefined; from_location?: DealershipLocation | undefined; to_location?: DealershipLocation | undefined; requested_by?: { ...; } | undefined; approved_by?: { ...; } | undefined; }'.
+lib/email/template-service.ts(287,31): error TS2339: Property 'id' does not exist on type 'Transfer & { vehicle?: Vehicle | undefined; from_location?: DealershipLocation | undefined; to_location?: DealershipLocation | undefined; requested_by?: { ...; } | undefined; approved_by?: { ...; } | undefined; }'.
+lib/email/template-service.ts(289,32): error TS2339: Property 'id' does not exist on type 'Transfer & { vehicle?: Vehicle | undefined; from_location?: DealershipLocation | undefined; to_location?: DealershipLocation | undefined; requested_by?: { ...; } | undefined; approved_by?: { ...; } | undefined; }'.

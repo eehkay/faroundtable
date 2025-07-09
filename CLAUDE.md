@@ -14,6 +14,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Round Table** - An internal inventory management platform for a 5-store dealership network. The system enables stores to claim vehicles from each other, track transfers, and communicate about trades.
 
+**Repository**: `https://github.com/eehkay/faroundtable.git`
+
 ## Development Commands
 
 ```bash
@@ -28,6 +30,11 @@ npm run start        # Start production server
 npm run lint         # Run ESLint
 npm run type-check   # TypeScript validation
 npm run test         # Combined type-check + lint + build
+
+# Database
+npm run db:migrate   # Run database migrations
+npm run db:seed      # Seed initial data
+npm run db:reset     # Reset database (careful!)
 ```
 
 ## Architecture
@@ -64,6 +71,13 @@ dealership_locations (id, name, code, csv_file_name)
     ├── users (location_id)
     ├── vehicles (location_id, original_location_id)
     └── transfers (from_location_id, to_location_id)
+    
+Store Codes:
+- MP18527 - Store 1
+- MP18528 - Store 2
+- MP18529 - Store 3
+- MP18530 - Store 4
+- MP18531 - Store 5
 
 vehicles (id, vin, stock_number, status)
     ├── transfers (vehicle_id)
@@ -96,12 +110,15 @@ transfers (id, vehicle_id, status, from/to_location_id)
 - `/api/transfer/[id]/approve` - Manager/admin approval
 - `/api/transfer/[id]/status` - Update transfer status
 - Vehicles retain transfer state during imports
+- Features: Priority levels, customer waiting flags, automated notifications
 
 **CSV Import** (`/netlify/functions/scheduled-import.ts`)
 - Parses non-standard CSV with dynamic headers
 - Validates: VIN (17 chars), year, price
 - Preserves active transfer vehicles
 - Updates only 'available' status vehicles
+- Required columns: id (stock#), VIN, brand, model, year, price, mileage, condition
+- Optional: Multiple image URLs (image1, image2, etc.)
 
 **Permissions** (`/lib/permissions.ts`)
 - Hierarchy: admin > manager > sales/transport
@@ -161,8 +178,14 @@ const channel = supabase
 
 **Services**
 - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
-- `AUTODEALERDATA_API_KEY_ID`, `AUTODEALERDATA_API_KEY`
+- `AUTODEALERDATA_API_KEY_ID`, `AUTODEALERDATA_API_KEY` (for inventory data)
 - SFTP credentials for CSV imports
+- NHTSA API for VIN decoding (no key required)
+
+**Analytics** (optional)
+- `ENABLE_ADVANCED_ANALYTICS` (set to 'true' to enable)
+- `MARKETCHECK_API_KEY`
+- `DATAFORSEO_EMAIL`, `DATAFORSEO_API_KEY`
 
 ## Development Guidelines
 
@@ -170,6 +193,7 @@ const channel = supabase
 - `/app` - Next.js App Router pages and API routes
 - `/components` - React components organized by feature
 - `/lib` - Utilities, queries, and shared logic
+  - `/lib/analytics` - Analytics API clients and utilities
 - `/types` - TypeScript type definitions
 - `/public` - Static assets
 
@@ -208,6 +232,22 @@ const channel = supabase
 2. Update TypeScript types
 3. Update relevant queries
 4. Test with local Supabase
+
+## Analytics Feature
+
+**Status**: Foundation implemented, UI components in development
+
+The analytics feature provides market intelligence using Market Check and DataForSEO APIs:
+- **Vehicle Analysis**: Market pricing, demand metrics, and recommendations
+- **Regional Insights**: Popular vehicles, trends, and opportunities
+- **Caching**: 24-hour TTL to minimize API costs
+- **Usage Tracking**: Monitor API calls and performance
+
+To enable analytics:
+1. Set `ENABLE_ADVANCED_ANALYTICS=true` in `.env.local`
+2. Add API keys for Market Check and DataForSEO
+3. Run the analytics database migration
+4. See `/dealership-trading/docs/ANALYTICS_SETUP.md` for detailed setup
 
 ### Deployment
 

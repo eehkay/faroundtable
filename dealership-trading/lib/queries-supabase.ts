@@ -45,7 +45,7 @@ export async function getVehicleByStockNumber(stockNumber: string) {
       requested_by:requested_by_id(id, name, email)
     `)
     .eq('vehicle_id', data.id)
-    .eq('status', 'requested')
+    .in('status', ['requested', 'approved', 'in-transit'])
 
   if (error) {
     console.error('Error fetching vehicle:', error)

@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { canApproveTransfers, canApproveTransferForLocation } from '@/lib/permissions';
-import { sendTransferApprovedNotification } from '@/lib/email/service';
+import { sendNotificationsByRules } from '@/lib/notifications/multi-channel-sender';
 
 export async function PUT(
   request: NextRequest,
@@ -169,51 +169,20 @@ export async function PUT(
         }
       });
 
-    // Send email notification
+    // Send notification using the rules system
     try {
-      await sendTransferApprovedNotification({
-        transfer: {
-          ...transfer,
-          _id: transfer.id,
-          status: 'approved',
-          fromStore: {
-            _id: transfer.from_location.id,
-            _type: 'dealershipLocation' as const,
-            name: transfer.from_location.name,
-            code: transfer.from_location.code,
-            email: transfer.from_location.email,
-            active: true
-          },
-          toStore: {
-            _id: transfer.to_location.id,
-            _type: 'dealershipLocation' as const,
-            name: transfer.to_location.name,
-            code: transfer.to_location.code,
-            email: transfer.to_location.email,
-            active: true
-          }
-        },
-        vehicle: {
-          _id: transfer.vehicle.id,
-          vin: transfer.vehicle.vin,
-          year: transfer.vehicle.year,
-          make: transfer.vehicle.make,
-          model: transfer.vehicle.model,
-          stockNumber: transfer.vehicle.stock_number,
-          price: transfer.vehicle.price,
-          imageUrls: transfer.vehicle.image_urls || [],
-          condition: transfer.vehicle.condition,
-          status: transfer.vehicle.status,
-          storeCode: transfer.vehicle.store_code
-        },
-        approver: {
-          name: session.user.name || session.user.email || 'Unknown',
-          email: session.user.email || ''
+      await sendNotificationsByRules({
+        event: 'transfer_approved',
+        transferId: transferId,
+        vehicleId: transfer.vehicle_id,
+        userId: session.user.id,
+        additionalData: {
+          autoRejectedCount: otherPendingTransfers?.length || 0
         }
       });
-    } catch (emailError) {
-      console.error('Failed to send approval notification:', emailError);
-      // Don't fail the request if email fails
+    } catch (notificationError) {
+      console.error('Failed to send approval notification:', notificationError);
+      // Don't fail the request if notification fails
     }
 
     return NextResponse.json({

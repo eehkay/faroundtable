@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { canUpdateTransferStatus, canMarkTransferAsDelivered } from '@/lib/permissions';
-import { sendTransferStatusUpdateNotification } from '@/lib/email/service';
+import { sendNotificationsByRules } from '@/lib/notifications/multi-channel-sender';
 
 export async function PUT(
   request: NextRequest,
@@ -181,52 +181,22 @@ export async function PUT(
         }
       });
 
-    // Send email notification
+    // Send notification using the rules system
     try {
-      await sendTransferStatusUpdateNotification({
-        transfer: {
-          ...transfer,
-          _id: transfer.id,
-          status: status as 'in-transit' | 'delivered',
-          fromStore: {
-            _id: transfer.from_location.id,
-            _type: 'dealershipLocation' as const,
-            name: transfer.from_location.name,
-            code: transfer.from_location.code,
-            email: transfer.from_location.email,
-            active: true
-          },
-          toStore: {
-            _id: transfer.to_location.id,
-            _type: 'dealershipLocation' as const,
-            name: transfer.to_location.name,
-            code: transfer.to_location.code,
-            email: transfer.to_location.email,
-            active: true
-          }
-        },
-        vehicle: {
-          _id: transfer.vehicle.id,
-          vin: transfer.vehicle.vin,
-          year: transfer.vehicle.year,
-          make: transfer.vehicle.make,
-          model: transfer.vehicle.model,
-          stockNumber: transfer.vehicle.stock_number,
-          price: transfer.vehicle.price,
-          imageUrls: transfer.vehicle.image_urls || [],
-          condition: transfer.vehicle.condition,
-          status: transfer.vehicle.status,
-          storeCode: transfer.vehicle.store_code
-        },
-        status: status as 'in-transit' | 'delivered',
-        updater: {
-          name: session.user.name || session.user.email || 'Unknown',
-          email: session.user.email || ''
+      const event = status === 'in-transit' ? 'transfer_in_transit' : 'transfer_delivered';
+      await sendNotificationsByRules({
+        event,
+        transferId: transferId,
+        vehicleId: transfer.vehicle_id,
+        userId: session.user.id,
+        additionalData: {
+          previousStatus: transfer.status,
+          newStatus: status
         }
       });
-    } catch (emailError) {
-      console.error('Failed to send status update notification:', emailError);
-      // Don't fail the request if email fails
+    } catch (notificationError) {
+      console.error('Failed to send status update notification:', notificationError);
+      // Don't fail the request if notification fails
     }
 
     return NextResponse.json({

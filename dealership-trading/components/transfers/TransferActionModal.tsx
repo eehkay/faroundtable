@@ -9,9 +9,10 @@ interface TransferActionModalProps {
   actionType: 'approve' | 'status' | 'cancel';
   onClose: () => void;
   onTransferUpdate?: (updatedTransfer: any) => void;
+  isRequester?: boolean;
 }
 
-export default function TransferActionModal({ transfer, actionType, onClose, onTransferUpdate }: TransferActionModalProps) {
+export default function TransferActionModal({ transfer, actionType, onClose, onTransferUpdate, isRequester = false }: TransferActionModalProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
@@ -24,7 +25,7 @@ export default function TransferActionModal({ transfer, actionType, onClose, onT
       case 'status':
         return transfer.status === 'approved' ? 'Mark as In Transit' : 'Mark as Delivered';
       case 'cancel':
-        return 'Cancel Transfer';
+        return isRequester ? 'Cancel Transfer' : 'Deny Transfer';
       default:
         return '';
     }
@@ -41,7 +42,9 @@ export default function TransferActionModal({ transfer, actionType, onClose, onT
           return `Confirm that the vehicle has been delivered to ${transfer.toLocation.name}?`;
         }
       case 'cancel':
-        return `Cancel the transfer request for ${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}?`;
+        return isRequester 
+          ? `Cancel the transfer request for ${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}?`
+          : `Deny the transfer request for ${transfer.vehicle.year} ${transfer.vehicle.make} ${transfer.vehicle.model}?`;
       default:
         return '';
     }
@@ -126,14 +129,14 @@ export default function TransferActionModal({ transfer, actionType, onClose, onT
         {actionType === 'cancel' && (
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-400 mb-2">
-              Cancellation Reason (Optional)
+              {isRequester ? 'Cancellation' : 'Denial'} Reason (Optional)
             </label>
             <textarea
               value={cancellationReason}
               onChange={(e) => setCancellationReason(e.target.value)}
               className="w-full bg-[#2a2a2a] border border-[#333333] text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               rows={3}
-              placeholder="Enter reason for cancellation..."
+              placeholder={isRequester ? "Enter reason for cancellation..." : "Enter reason for denial..."}
             />
           </div>
         )}

@@ -2,17 +2,15 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { isAdmin } from "@/lib/permissions";
-import EmailSettingsForm from "@/components/admin/notifications/EmailSettingsForm";
-import EmailTemplateEditor from "@/components/admin/notifications/EmailTemplateEditor";
-import NotificationPreview from "@/components/admin/notifications/NotificationPreview";
-import { Mail, Settings, Eye } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileText, Filter, BarChart3, Activity, ArrowRight, Mail, MessageSquare, Settings } from "lucide-react";
+import Link from "next/link";
 
 export default function NotificationsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'settings' | 'templates' | 'preview'>('settings');
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -37,65 +35,130 @@ export default function NotificationsPage() {
     return null;
   }
 
+  const navigationCards = [
+    {
+      title: "Settings",
+      description: "Configure global email settings and sender information",
+      icon: Settings,
+      href: "/admin/notifications/settings",
+      color: "bg-gray-600",
+      stats: "From address, footer, compliance settings"
+    },
+    {
+      title: "Templates",
+      description: "Create and manage notification templates for email and SMS",
+      icon: FileText,
+      href: "/admin/notifications/templates",
+      color: "bg-blue-600",
+      stats: "Email & SMS templates with merge tags"
+    },
+    {
+      title: "Rules",
+      description: "Configure who receives notifications and when",
+      icon: Filter,
+      href: "/admin/notifications/rules",
+      color: "bg-indigo-600",
+      stats: "Condition-based recipient targeting"
+    },
+    {
+      title: "Analytics",
+      description: "Monitor notification performance and delivery metrics",
+      icon: BarChart3,
+      href: "/admin/notifications/analytics",
+      color: "bg-purple-600",
+      stats: "Delivery rates, open rates, and trends"
+    },
+    {
+      title: "Activity Log",
+      description: "Track all notification delivery attempts and status",
+      icon: Activity,
+      href: "/admin/notifications/activity",
+      color: "bg-green-600",
+      stats: "Real-time delivery tracking"
+    }
+  ];
+
+  const features = [
+    {
+      icon: Mail,
+      title: "Multi-Channel Support",
+      description: "Send notifications via email and SMS with channel-specific templates"
+    },
+    {
+      icon: MessageSquare,
+      title: "Smart Targeting",
+      description: "Use rules to automatically determine recipients based on conditions"
+    }
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white">Notification Settings</h1>
+        <h1 className="text-3xl font-bold text-white">Notification System</h1>
         <p className="mt-2 text-gray-400">
-          Configure email templates and notification preferences
+          Manage templates, configure rules, and monitor notification delivery
         </p>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="border-b border-[#2a2a2a]">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'settings'
-                ? 'border-blue-500 text-blue-500'
-                : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              General Settings
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('templates')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'templates'
-                ? 'border-blue-500 text-blue-500'
-                : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email Templates
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('preview')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'preview'
-                ? 'border-blue-500 text-blue-500'
-                : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              Preview
-            </span>
-          </button>
-        </nav>
+      {/* Navigation Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {navigationCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Link key={card.href} href={card.href}>
+              <Card className="hover:border-gray-700 transition-all cursor-pointer h-full">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className={`p-3 rounded-lg ${card.color}`}>
+                      <Icon className="h-6 w-6 text-white" />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-gray-500" />
+                  </div>
+                  <CardTitle className="mt-4">{card.title}</CardTitle>
+                  <CardDescription>{card.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-500">{card.stats}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
 
-      {/* Tab Content */}
+      {/* Features Section */}
       <div>
-        {activeTab === 'settings' && <EmailSettingsForm />}
-        {activeTab === 'templates' && <EmailTemplateEditor />}
-        {activeTab === 'preview' && <NotificationPreview />}
+        <h2 className="text-xl font-semibold mb-4">Key Features</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {features.map((feature, index) => {
+            const Icon = feature.icon;
+            return (
+              <div key={index} className="flex gap-4 p-4 border border-gray-800 rounded-lg">
+                <div className="flex-shrink-0">
+                  <Icon className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-white">{feature.title}</h3>
+                  <p className="text-sm text-gray-400 mt-1">{feature.description}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Quick Links */}
+      <div className="border-t border-gray-800 pt-6">
+        <p className="text-sm text-gray-500">
+          Need help? Check out the{" "}
+          <Link href="/docs/NOTIFICATION_TEMPLATE_VARIABLES.md" className="text-blue-500 hover:underline">
+            template variables reference
+          </Link>{" "}
+          or view the{" "}
+          <Link href="/docs/NOTIFICATION_SYSTEM_ROADMAP.md" className="text-blue-500 hover:underline">
+            system roadmap
+          </Link>.
+        </p>
       </div>
     </div>
   );

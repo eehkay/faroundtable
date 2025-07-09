@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transfer Approved - {{vehicle.year}} {{vehicle.make}} {{vehicle.model}}</title>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+        /* Reset styles */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; }
+
+        /* Remove default styling */
+        img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        table { border-collapse: collapse !important; }
+        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+
+        /* Mobile styles */
+        @media screen and (max-width: 600px) {
+            .mobile-hide { display: none !important; }
+            .mobile-center { text-align: center !important; }
+            .container { padding: 0 10px !important; width: 100% !important; }
+            .content-table { width: 100% !important; }
+            .vehicle-image { width: 100% !important; height: auto !important; }
+            .button { width: 100% !important; max-width: 300px !important; }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .darkmode-bg { background-color: #0a0a0a !important; }
+            .darkmode-text { color: #ffffff !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #e5e7eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    
+    <!-- Wrapper -->
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #e5e7eb;">
+        <tr>
+            <td align="center" style="padding: 40px 0; background-color: #e5e7eb;">
+                
+                <!-- Email Container -->
+                <table class="container" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="padding: 40px 20px; background-color: #0a0a0a; border-radius: 12px 12px 0 0;">
+                            <img src="https://vchtbaawxxruwtvebxlg.supabase.co/storage/v1/object/public/logos//roundtable-logo-stacked.png" 
+                                 alt="Roundtable" 
+                                 width="150" 
+                                 style="display: block; margin: 0 auto;">
+                        </td>
+                    </tr>
+                    
+                    <!-- Alert Banner -->
+                    <tr>
+                        <td style="background-color: #10b981; color: #ffffff; padding: 20px; text-align: center;">
+                            <h2 style="margin: 0; font-size: 20px; font-weight: 600;">
+                                ✅ Transfer Approved
+                            </h2>
+                        </td>
+                    </tr>
+                    
+                    <!-- Main Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            
+                            <!-- Greeting -->
+                            <p style="font-size: 16px; color: #333333; margin: 0 0 20px 0;">
+                                Hello {{user.name}},
+                            </p>
+                            
+                            <p style="font-size: 16px; color: #333333; margin: 0 0 30px 0;">
+                                Your transfer request has been approved! You can now arrange transportation for this vehicle.
+                            </p>
+                            
+                            <!-- Vehicle Details Card -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td style="background-color: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px;">
+                                        
+                                        <!-- Vehicle Image -->
+                                        {{#if vehicle.image_link1}}
+                                        <div style="margin-bottom: 20px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);">
+                                            <img src="{{vehicle.image_link1}}" 
+                                                 alt="{{vehicle.year}} {{vehicle.make}} {{vehicle.model}}" 
+                                                 class="vehicle-image"
+                                                 style="width: 100%; max-width: 540px; height: auto; display: block;">
+                                        </div>
+                                        {{/if}}
+                                        
+                                        <!-- Vehicle Info -->
+                                        <h3 style="margin: 0 0 15px 0; color: #0a0a0a; font-size: 22px;">
+                                            {{vehicle.year}} {{vehicle.make}} {{vehicle.model}}
+                                        </h3>
+                                        
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                            <tr>
+                                                <td width="50%" style="padding: 5px 0;">
+                                                    <strong style="color: #6b7280;">Stock #:</strong>
+                                                    <span style="color: #333333;">{{vehicle.stock_number}}</span>
+                                                </td>
+                                                <td width="50%" style="padding: 5px 0;">
+                                                    <strong style="color: #6b7280;">VIN:</strong>
+                                                    <span style="color: #333333; font-size: 14px;">{{vehicle.vin}}</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td width="50%" style="padding: 5px 0;">
+                                                    <strong style="color: #6b7280;">Price:</strong>
+                                                    <span style="color: #333333; font-weight: 600;">{{vehicle.price}}</span>
+                                                </td>
+                                                <td width="50%" style="padding: 5px 0;">
+                                                    <strong style="color: #6b7280;">Mileage:</strong>
+                                                    <span style="color: #333333;">{{vehicle.mileage}} miles</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Approval Details -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td style="border-left: 4px solid #10b981; padding-left: 20px;">
+                                        <h4 style="margin: 0 0 15px 0; color: #0a0a0a; font-size: 18px;">
+                                            Approval Details
+                                        </h4>
+                                        
+                                        <table border="0" cellpadding="5" cellspacing="0">
+                                            <tr>
+                                                <td style="color: #6b7280; padding-right: 15px;">From:</td>
+                                                <td style="color: #333333; font-weight: 600;">{{transfer.from_location.name}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: #6b7280; padding-right: 15px;">To:</td>
+                                                <td style="color: #333333; font-weight: 600;">{{transfer.to_location.name}}</td>
+                                            </tr>
+                                            {{#if transfer.approved_by.name}}
+                                            <tr>
+                                                <td style="color: #6b7280; padding-right: 15px;">Approved by:</td>
+                                                <td style="color: #333333;">{{transfer.approved_by.name}}</td>
+                                            </tr>
+                                            {{/if}}
+                                            <tr>
+                                                <td style="color: #6b7280; padding-right: 15px;">Approval Date:</td>
+                                                <td style="color: #333333;">{{system.date}}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: #6b7280; padding-right: 15px;">Status:</td>
+                                                <td>
+                                                    <span style="background-color: #d1fae5; color: #065f46; padding: 3px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
+                                                        APPROVED
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        
+                                        {{#if transfer.notes}}
+                                        <div style="margin-top: 15px; padding: 15px; background-color: #f3f4f6; border-radius: 6px;">
+                                            <strong style="color: #374151;">Notes:</strong>
+                                            <p style="margin: 5px 0 0 0; color: #374151;">{{transfer.notes}}</p>
+                                        </div>
+                                        {{/if}}
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Next Steps Section -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td style="background-color: #f0fdf4; border-radius: 8px; padding: 20px;">
+                                        <h4 style="margin: 0 0 10px 0; color: #14532d; font-size: 16px;">
+                                            ✅ Next Steps
+                                        </h4>
+                                        <ul style="margin: 0; padding-left: 20px; color: #14532d;">
+                                            <li style="margin-bottom: 8px;">Contact your preferred transport company</li>
+                                            <li style="margin-bottom: 8px;">Schedule pickup from {{transfer.from_location.name}}</li>
+                                            <li style="margin-bottom: 8px;">Update the transfer status to "In Transit" once pickup is scheduled</li>
+                                            <li style="margin: 0;">The sending location will be notified of your arrangements</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Action Button -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{link.view_transfer}}" 
+                                           style="display: inline-block; padding: 16px 40px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 16px;">
+                                            Manage Transfer
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Additional Info -->
+                            <p style="font-size: 14px; color: #6b7280; margin: 0 0 10px 0; text-align: center;">
+                                Please arrange transportation within 48 hours to ensure timely delivery.
+                            </p>
+                            
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0 0 10px 0; color: #6b7280; font-size: 14px;">
+                                <a href="{{link.dashboard}}" style="color: #3b82f6; text-decoration: none;">Go to Dashboard</a>
+                            </p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                                © {{system.date}} Round Table. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+                <!-- End Email Container -->
+                
+            </td>
+        </tr>
+    </table>
+    <!-- End Wrapper -->
+    
+</body>
+</html>

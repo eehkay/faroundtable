@@ -137,6 +137,7 @@ export default function TransferList({ transfers, userRole, currentUserId, userL
       case 'cancel':
         return (
           transfer.status !== 'delivered' &&
+          transfer.status !== 'cancelled' &&
           (transfer.requestedBy._id === currentUserId || userRole === 'admin' || userRole === 'manager')
         );
       default:
@@ -274,7 +275,7 @@ export default function TransferList({ transfers, userRole, currentUserId, userL
                     onClick={() => handleAction(transfer, 'cancel')}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
                   >
-                    Cancel
+                    {transfer.requestedBy._id === currentUserId ? 'Cancel' : 'Deny'}
                   </button>
                 )}
               </div>
@@ -292,6 +293,7 @@ export default function TransferList({ transfers, userRole, currentUserId, userL
             setActionType(null);
           }}
           onTransferUpdate={onTransferUpdate}
+          isRequester={selectedTransfer.requestedBy._id === currentUserId}
         />
       )}
     </>

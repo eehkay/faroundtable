@@ -179,8 +179,7 @@ export default function TransferFilters({ filters, onFilterChange }: TransferFil
               <option value="approved">Approved</option>
               <option value="in-transit">In Transit</option>
               <option value="delivered">Delivered</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="rejected">Rejected</option>
+              <option value="cancelled">Cancelled/Denied</option>
             </select>
           </div>
 

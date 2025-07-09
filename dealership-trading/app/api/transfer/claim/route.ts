@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-server';
 import { canClaimVehicle } from '@/lib/permissions';
-import { sendTransferRequestedNotification } from '@/lib/email/service';
+import { sendNotificationsByRules } from '@/lib/notifications/multi-channel-sender';
 import type { DealershipLocation } from '@/types/vehicle';
 
 export async function POST(request: NextRequest) {
@@ -120,57 +120,24 @@ export async function POST(request: NextRequest) {
         }
       });
     
-    // Send email notification
+    // Send notification using the rules system
     try {
-      await sendTransferRequestedNotification({
-        transfer: {
-          _id: transfer.id,
-          _type: 'transfer' as const,
-          status: 'requested',
-          fromStore: {
-            _id: vehicle.location.id,
-            _type: 'dealershipLocation' as const,
-            name: vehicle.location.name,
-            code: vehicle.location.code,
-            email: vehicle.location.email,
-            active: true
-          } as DealershipLocation,
-          toStore: {
-            _id: session.user.location.id,
-            _type: 'dealershipLocation' as const,
-            name: session.user.location.name,
-            code: session.user.location.code || '',
-            email: '', // Session location doesn't include email
-            active: true
-          } as DealershipLocation,
-          requestedBy: { _ref: session.user.id },
-          vehicle: {
-            _id: vehicle.id,
-            vin: vehicle.vin,
-            year: vehicle.year,
-            make: vehicle.make,
-            model: vehicle.model,
-            stockNumber: vehicle.stock_number,
-            price: vehicle.price,
-            imageUrls: vehicle.image_urls || [],
-            condition: vehicle.condition,
-            status: vehicle.status,
-            storeCode: vehicle.store_code,
-            location: vehicle.location
-          },
+      await sendNotificationsByRules({
+        event: 'transfer_requested',
+        transferId: transfer.id,
+        vehicleId: vehicleId,
+        userId: session.user.id,
+        additionalData: {
+          reason,
           customerWaiting: customerWaiting || false,
-          priority: priority === 'urgent',
-          createdAt: transfer.created_at
-        },
-        vehicle: vehicle,
-        requester: {
-          name: session.user.name || session.user.email || 'Unknown',
-          email: session.user.email || ''
+          priority: priority || 'normal',
+          moneyOffer,
+          competingRequests: competingRequestsCount
         }
       });
-    } catch (emailError) {
-      console.error('Failed to send transfer request notification:', emailError);
-      // Don't fail the request if email fails
+    } catch (notificationError) {
+      console.error('Failed to send transfer request notification:', notificationError);
+      // Don't fail the request if notification fails
     }
     
     return NextResponse.json({ success: true, transferId: transfer.id });

@@ -80,11 +80,13 @@ export function canApproveTransferForLocation(
   // Admins can approve any transfer
   if (role === 'admin') return true
   
-  // Transport users can approve any transfer
-  if (role === 'transport') return true
-  
   // Managers can only approve transfers for vehicles FROM their own dealership
   if (role === 'manager' && userLocationId) {
+    return userLocationId === vehicleFromLocationId
+  }
+  
+  // Transport users can only approve transfers for vehicles FROM their own dealership
+  if (role === 'transport' && userLocationId) {
     return userLocationId === vehicleFromLocationId
   }
   
@@ -96,7 +98,7 @@ export function canRejectTransferForLocation(
   userLocationId: string | null, 
   vehicleFromLocationId: string
 ): boolean {
-  // Same logic as approval - only the owning dealership (or admin/transport) can reject
+  // Same logic as approval - only the owning dealership (or admin) can reject
   return canApproveTransferForLocation(role, userLocationId, vehicleFromLocationId)
 }
 

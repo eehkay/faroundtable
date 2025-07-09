@@ -75,7 +75,7 @@ export default async function VehicleDetailPage({ params }: PageProps) {
               vehicleId={vehicle._id}
               vehicleStatus={vehicle.status}
               vehicleLocation={vehicle.location?._id}
-              activeTransferRequests={vehicle.activeTransferRequests?.filter((t: any) => t.status === 'requested').length || 0}
+              activeTransferRequests={vehicle.activeTransferRequests?.length || 0}
               className="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-semibold py-3 px-6 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl"
             />
           </div>

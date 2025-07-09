@@ -10,7 +10,8 @@ import { Session } from 'next-auth'
 import TransferTimeline from '@/components/transfers/TransferTimeline'
 import TransferActivities from '@/components/transfers/TransferActivities'
 import VehicleGallery from '@/components/vehicle/VehicleGallery'
-import { canEditTransportInfo } from '@/lib/permissions'
+import TransferActionModal from '@/components/transfers/TransferActionModal'
+import { canEditTransportInfo, canApproveTransferForLocation, canUpdateTransferStatus, canMarkTransferAsDelivered } from '@/lib/permissions'
 
 interface TransferDetailClientProps {
   transfer: TransferWithRelations
@@ -36,11 +37,37 @@ export default function TransferDetailClient({
     expected_arrival_date: transfer.expected_arrival_date || '',
     transport_notes: transfer.transport_notes || ''
   })
+  const [selectedAction, setSelectedAction] = useState<'approve' | 'status' | 'cancel' | null>(null)
+  const [showActionModal, setShowActionModal] = useState(false)
 
   const canEdit = canEditTransportInfo(currentUser, transfer)
 
+  // Permission checks for status actions
+  const canApprove = transfer.status === 'requested' && 
+    canApproveTransferForLocation(currentUser.role, currentUser.location?.id || null, transfer.from_location_id)
+  
+  const canMarkInTransit = transfer.status === 'approved' && 
+    canUpdateTransferStatus(currentUser.role)
+  
+  const canMarkDelivered = transfer.status === 'in-transit' && 
+    canMarkTransferAsDelivered(currentUser.role, currentUser.location?.id || null, transfer.to_location_id)
+  
+  const canCancel = transfer.status !== 'delivered' && 
+    transfer.status !== 'cancelled' &&
+    (transfer.requested_by_id === currentUser.id || currentUser.role === 'admin' || currentUser.role === 'manager')
+
   const handlePrintPDF = () => {
     window.print()
+  }
+
+  const handleAction = (action: 'approve' | 'status' | 'cancel') => {
+    setSelectedAction(action)
+    setShowActionModal(true)
+  }
+
+  const handleTransferUpdate = (updatedTransfer: any) => {
+    setTransfer(prev => ({ ...prev, ...updatedTransfer }))
+    router.refresh()
   }
 
   useEffect(() => {
@@ -379,6 +406,40 @@ export default function TransferDetailClient({
           </button>
           
           <div className="flex items-center gap-4">
+            {/* Status Action Buttons */}
+            {canApprove && (
+              <button
+                onClick={() => handleAction('approve')}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors print:hidden"
+              >
+                Approve
+              </button>
+            )}
+            {canMarkInTransit && (
+              <button
+                onClick={() => handleAction('status')}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors print:hidden"
+              >
+                Mark In Transit
+              </button>
+            )}
+            {canMarkDelivered && (
+              <button
+                onClick={() => handleAction('status')}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors print:hidden"
+              >
+                Mark Delivered
+              </button>
+            )}
+            {canCancel && (
+              <button
+                onClick={() => handleAction('cancel')}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors print:hidden"
+              >
+                {transfer.requested_by_id === currentUser.id ? 'Cancel' : 'Deny'}
+              </button>
+            )}
+            
             <button
               onClick={handlePrintPDF}
               className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors print:hidden"
@@ -683,6 +744,45 @@ export default function TransferDetailClient({
         </div>
       </div>
     </div>
+
+    {/* Transfer Action Modal */}
+    {showActionModal && selectedAction && (
+      <TransferActionModal
+        transfer={{
+          _id: transfer.id,
+          status: transfer.status,
+          vehicle: {
+            _id: transfer.vehicle?.id || '',
+            year: transfer.vehicle?.year || 0,
+            make: transfer.vehicle?.make || '',
+            model: transfer.vehicle?.model || '',
+            trim: transfer.vehicle?.trim
+          },
+          fromLocation: {
+            _id: transfer.from_location?.id || '',
+            name: transfer.from_location?.name || '',
+            code: transfer.from_location?.code || ''
+          },
+          toLocation: {
+            _id: transfer.to_location?.id || '',
+            name: transfer.to_location?.name || '',
+            code: transfer.to_location?.code || ''
+          },
+          requestedBy: {
+            _id: transfer.requested_by?.id || '',
+            name: transfer.requested_by?.name || '',
+            email: transfer.requested_by?.email || ''
+          }
+        }}
+        actionType={selectedAction}
+        onClose={() => {
+          setShowActionModal(false)
+          setSelectedAction(null)
+        }}
+        onTransferUpdate={handleTransferUpdate}
+        isRequester={transfer.requested_by_id === currentUser.id}
+      />
+    )}
     </>
   )
 }

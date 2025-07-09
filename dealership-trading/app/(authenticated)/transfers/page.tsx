@@ -194,8 +194,8 @@ export default function TransfersPage() {
         if (filters.status !== 'all') {
           query = query.eq('status', filters.status);
         } else {
-          // When showing "all", exclude delivered transfers by default
-          query = query.not('status', 'eq', 'delivered');
+          // When showing "all", exclude delivered and cancelled transfers by default
+          query = query.not('status', 'in', '("delivered","cancelled")');
         }
         
         // Handle multi-select locations
