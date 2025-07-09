@@ -4,8 +4,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
-import { Car, TruckIcon, LayoutDashboard, ChevronDown, LogOut, User, Shield, Moon, Sun, BarChart3 } from 'lucide-react'
+import { Car, TruckIcon, LayoutDashboard, ChevronDown, LogOut, User, Shield, Moon, Sun, BarChart3, Bug } from 'lucide-react'
 import { useState } from 'react'
+import BugReportModal from '@/components/BugReportModal'
 import { canViewAllTransfers, canManageUsers, isAdmin, isManager } from '@/lib/permissions'
 import { useTheme } from 'next-themes'
 import {
@@ -23,6 +24,7 @@ export default function Navigation() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [imageError, setImageError] = useState(false)
+  const [bugReportOpen, setBugReportOpen] = useState(false)
   const { theme, setTheme } = useTheme()
 
   const isActive = (path: string) => {
@@ -114,6 +116,17 @@ export default function Navigation() {
 
           {/* User menu */}
           <div className="flex items-center">
+            {/* Bug Report Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setBugReportOpen(true)}
+              className="mr-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              title="Report a bug"
+            >
+              <Bug className="h-5 w-5" />
+            </Button>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative ml-3 h-auto p-0">
@@ -228,6 +241,9 @@ export default function Navigation() {
           </div>
         </div>
       </div>
+      
+      {/* Bug Report Modal */}
+      <BugReportModal open={bugReportOpen} onOpenChange={setBugReportOpen} />
     </nav>
   )
 }
