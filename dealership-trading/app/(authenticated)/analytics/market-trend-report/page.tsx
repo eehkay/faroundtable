@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, TrendingUp, TrendingDown, Minus, Loader2, FileText, DollarSign, Package, Clock, Target, Zap, TrendingUpIcon, Users, BarChart3, Search } from 'lucide-react'
+import { AlertCircle, TrendingUp, TrendingDown, Minus, Loader2, FileText, DollarSign, Package, Clock, Target, Zap, TrendingUpIcon, Users, BarChart3, Search, Settings2, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import VehicleSearchInput from '@/components/analytics/VehicleSearchInput'
 import { useDealershipLocations } from '@/lib/hooks/useDealershipLocations'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -99,22 +99,71 @@ export default function MarketTrendReportPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [report, setReport] = useState<MarketTrendReport | null>(null)
+  const [showManualOverride, setShowManualOverride] = useState(false)
+  const [manualVin, setManualVin] = useState('')
+  const [overrideFields, setOverrideFields] = useState({
+    // Vehicle overrides
+    year: '',
+    make: '',
+    model: '',
+    trim: '',
+    mileage: '',
+    currentPrice: '',
+    // Location overrides
+    zipCode: '',
+    latitude: '',
+    longitude: '',
+    cityState: '',
+    dataforseoLocationCode: '',
+    // Search parameters
+    searchRadius: '100'
+  })
 
   const generateReport = async () => {
-    if (!selectedVehicle) return
+    // Check if we have either a selected vehicle or manual VIN
+    if (!selectedVehicle && !manualVin) {
+      setError('Please select a vehicle or enter a VIN manually')
+      return
+    }
 
     setLoading(true)
     setError(null)
     
     try {
+      // Build request body with overrides
+      const requestBody: any = {
+        vin: manualVin || selectedVehicle?.vin,
+        currentPrice: overrideFields.currentPrice ? parseFloat(overrideFields.currentPrice) : selectedVehicle?.price,
+        locationId: selectedVehicle?.locationId
+      }
+
+      // Add overrides if manual override is enabled
+      if (showManualOverride) {
+        requestBody.overrides = {
+          vehicle: {},
+          location: {},
+          searchRadius: parseInt(overrideFields.searchRadius) || 100
+        }
+
+        // Vehicle overrides
+        if (overrideFields.year) requestBody.overrides.vehicle.year = parseInt(overrideFields.year)
+        if (overrideFields.make) requestBody.overrides.vehicle.make = overrideFields.make
+        if (overrideFields.model) requestBody.overrides.vehicle.model = overrideFields.model
+        if (overrideFields.trim) requestBody.overrides.vehicle.trim = overrideFields.trim
+        if (overrideFields.mileage) requestBody.overrides.vehicle.mileage = parseInt(overrideFields.mileage)
+
+        // Location overrides
+        if (overrideFields.zipCode) requestBody.overrides.location.zip = overrideFields.zipCode
+        if (overrideFields.latitude) requestBody.overrides.location.latitude = parseFloat(overrideFields.latitude)
+        if (overrideFields.longitude) requestBody.overrides.location.longitude = parseFloat(overrideFields.longitude)
+        if (overrideFields.cityState) requestBody.overrides.location.cityState = overrideFields.cityState
+        if (overrideFields.dataforseoLocationCode) requestBody.overrides.location.dataforseoLocationCode = parseInt(overrideFields.dataforseoLocationCode)
+      }
+
       const response = await fetch('/api/analytics/market-trend-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          vin: selectedVehicle.vin,
-          currentPrice: selectedVehicle.price,
-          locationId: selectedVehicle.locationId
-        })
+        body: JSON.stringify(requestBody)
       })
 
       const result = await response.json()
@@ -151,15 +200,34 @@ export default function MarketTrendReportPage() {
     return <Minus className="h-4 w-4 text-gray-500" />
   }
 
+  const resetOverrides = () => {
+    setOverrideFields({
+      year: '',
+      make: '',
+      model: '',
+      trim: '',
+      mileage: '',
+      currentPrice: '',
+      zipCode: '',
+      latitude: '',
+      longitude: '',
+      cityState: '',
+      dataforseoLocationCode: '',
+      searchRadius: '100'
+    })
+    setManualVin('')
+  }
+
   return (
-    <div className="space-y-4 min-h-screen bg-[#141414]">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">Market Trend Report</h1>
-        <p className="text-gray-400 mt-2">
-          Comprehensive market analysis using real-time data from Market Check
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#141414]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-white">Market Trend Report</h1>
+          <p className="text-gray-400 mt-2">
+            Comprehensive market analysis using real-time data from Market Check
+          </p>
+        </div>
 
       {/* Vehicle Selection */}
       <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]/50">
@@ -200,9 +268,211 @@ export default function MarketTrendReportPage() {
             </div>
           )}
 
+          {/* Manual Override Toggle */}
+          <div className="flex items-center justify-between p-3 bg-[#141414] rounded-lg border border-[#2a2a2a]">
+            <div className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4 text-[#3b82f6]" />
+              <span className="text-sm font-medium text-white">Manual Override</span>
+              <Badge variant="outline" className="text-xs">Advanced</Badge>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowManualOverride(!showManualOverride)}
+              className="text-[#3b82f6] hover:text-[#2563eb]"
+            >
+              {showManualOverride ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {/* Manual Override Form */}
+          {showManualOverride && (
+            <div className="space-y-4 p-4 bg-[#141414] rounded-lg border border-[#2a2a2a]">
+              {/* Manual VIN Entry */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-white">Manual VIN Entry</label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetOverrides}
+                    className="text-[#737373] hover:text-white"
+                  >
+                    <RotateCcw className="h-3 w-3 mr-1" />
+                    Reset All
+                  </Button>
+                </div>
+                <input
+                  type="text"
+                  value={manualVin}
+                  onChange={(e) => setManualVin(e.target.value.toUpperCase())}
+                  placeholder="Enter any VIN (e.g., 1HGCM82633A123456)"
+                  className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                />
+                <p className="text-xs text-[#737373]">Override selected vehicle with any VIN, even if not in inventory</p>
+              </div>
+
+              {/* Vehicle Information Overrides */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                  Vehicle Information
+                  <span className="text-xs text-[#737373] font-normal">Leave blank to use defaults</span>
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">Year</label>
+                    <input
+                      type="text"
+                      value={overrideFields.year}
+                      onChange={(e) => setOverrideFields({...overrideFields, year: e.target.value})}
+                      placeholder="e.g., 2023"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">Make</label>
+                    <input
+                      type="text"
+                      value={overrideFields.make}
+                      onChange={(e) => setOverrideFields({...overrideFields, make: e.target.value})}
+                      placeholder="e.g., Toyota"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">Model</label>
+                    <input
+                      type="text"
+                      value={overrideFields.model}
+                      onChange={(e) => setOverrideFields({...overrideFields, model: e.target.value})}
+                      placeholder="e.g., Camry"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">Trim</label>
+                    <input
+                      type="text"
+                      value={overrideFields.trim}
+                      onChange={(e) => setOverrideFields({...overrideFields, trim: e.target.value})}
+                      placeholder="e.g., LE"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">Mileage</label>
+                    <input
+                      type="text"
+                      value={overrideFields.mileage}
+                      onChange={(e) => setOverrideFields({...overrideFields, mileage: e.target.value})}
+                      placeholder="e.g., 25000"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">Current Price</label>
+                    <input
+                      type="text"
+                      value={overrideFields.currentPrice}
+                      onChange={(e) => setOverrideFields({...overrideFields, currentPrice: e.target.value})}
+                      placeholder="e.g., 25000"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Location Overrides */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                  Location Settings
+                  <span className="text-xs text-[#737373] font-normal">Override market analysis location</span>
+                </h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">ZIP Code</label>
+                    <input
+                      type="text"
+                      value={overrideFields.zipCode}
+                      onChange={(e) => setOverrideFields({...overrideFields, zipCode: e.target.value})}
+                      placeholder="e.g., 89101"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">City, State</label>
+                    <input
+                      type="text"
+                      value={overrideFields.cityState}
+                      onChange={(e) => setOverrideFields({...overrideFields, cityState: e.target.value})}
+                      placeholder="e.g., Las Vegas, NV"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">Latitude</label>
+                    <input
+                      type="text"
+                      value={overrideFields.latitude}
+                      onChange={(e) => setOverrideFields({...overrideFields, latitude: e.target.value})}
+                      placeholder="e.g., 36.1699"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">Longitude</label>
+                    <input
+                      type="text"
+                      value={overrideFields.longitude}
+                      onChange={(e) => setOverrideFields({...overrideFields, longitude: e.target.value})}
+                      placeholder="e.g., -115.1398"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">DataForSEO Location Code</label>
+                    <input
+                      type="text"
+                      value={overrideFields.dataforseoLocationCode}
+                      onChange={(e) => setOverrideFields({...overrideFields, dataforseoLocationCode: e.target.value})}
+                      placeholder="e.g., 9057131"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#737373] mb-1 block">Search Radius (miles)</label>
+                    <input
+                      type="text"
+                      value={overrideFields.searchRadius}
+                      onChange={(e) => setOverrideFields({...overrideFields, searchRadius: e.target.value})}
+                      placeholder="e.g., 100"
+                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Override Summary */}
+              {(manualVin || Object.values(overrideFields).some(v => v)) && (
+                <div className="p-3 bg-[#0a0a0a] rounded-lg border border-[#3b82f6]/20">
+                  <p className="text-xs text-[#3b82f6] font-medium mb-1">Active Overrides:</p>
+                  <div className="text-xs text-[#737373] space-y-0.5">
+                    {manualVin && <p>• Manual VIN: {manualVin}</p>}
+                    {overrideFields.year && <p>• Year: {overrideFields.year}</p>}
+                    {overrideFields.make && <p>• Make: {overrideFields.make}</p>}
+                    {overrideFields.model && <p>• Model: {overrideFields.model}</p>}
+                    {overrideFields.currentPrice && <p>• Price: ${overrideFields.currentPrice}</p>}
+                    {overrideFields.zipCode && <p>• ZIP: {overrideFields.zipCode}</p>}
+                    {overrideFields.cityState && <p>• Location: {overrideFields.cityState}</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <Button 
             onClick={generateReport}
-            disabled={!selectedVehicle || loading}
+            disabled={(!selectedVehicle && !manualVin) || loading}
             className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white transition-all duration-200 ease hover:transform hover:-translate-y-0.5 hover:shadow-lg"
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -623,6 +893,7 @@ export default function MarketTrendReportPage() {
           )}
         </>
       )}
+      </div>
     </div>
   )
 }

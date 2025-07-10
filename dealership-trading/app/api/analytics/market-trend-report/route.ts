@@ -9,7 +9,24 @@ import { getLocationCodesForDealership, generateLocationKeywords, getLocationNam
 interface MarketTrendReportRequest {
   vin: string
   currentPrice?: number
-  locationId: string
+  locationId?: string  // Now optional when using overrides
+  overrides?: {
+    vehicle?: {
+      year?: number
+      make?: string
+      model?: string
+      trim?: string
+      mileage?: number
+    }
+    location?: {
+      zip?: string
+      latitude?: number
+      longitude?: number
+      cityState?: string
+      dataforseoLocationCode?: number
+    }
+    searchRadius?: number
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -25,48 +42,142 @@ export async function POST(request: NextRequest) {
 
     // Get request body
     const body: MarketTrendReportRequest = await request.json()
-    const { vin, currentPrice, locationId } = body
+    const { vin, currentPrice, locationId, overrides } = body
 
     // Validate required fields
-    if (!vin || !locationId) {
+    if (!vin) {
       return NextResponse.json(
-        { error: 'VIN and locationId are required' },
+        { error: 'VIN is required' },
         { status: 400 }
       )
     }
 
-    // Get dealership location details
-    const { data: location, error: locationError } = await supabaseAdmin
-      .from('dealership_locations')
-      .select('id, name, latitude, longitude, city_state, zip, dataforseo_location_code')
-      .eq('id', locationId)
-      .single()
-
-    if (locationError || !location) {
+    // Either locationId or location overrides are required
+    if (!locationId && (!overrides?.location || (!overrides.location.latitude && !overrides.location.zip))) {
       return NextResponse.json(
-        { error: 'Invalid location' },
+        { error: 'Location ID or location overrides (latitude/longitude or ZIP) are required' },
         { status: 400 }
       )
     }
 
-    if (!location.latitude || !location.longitude) {
+    // Build location data from database or overrides
+    let locationData: any = null
+    
+    if (locationId) {
+      const { data: location, error: locationError } = await supabaseAdmin
+        .from('dealership_locations')
+        .select('id, name, latitude, longitude, city_state, zip, dataforseo_location_code')
+        .eq('id', locationId)
+        .single()
+
+      if (locationError || !location) {
+        return NextResponse.json(
+          { error: 'Invalid location' },
+          { status: 400 }
+        )
+      }
+      
+      locationData = location
+    } else {
+      // Create synthetic location data from overrides
+      locationData = {
+        id: 'manual-override',
+        name: 'Manual Location',
+        latitude: null,
+        longitude: null,
+        city_state: null,
+        zip: null,
+        dataforseo_location_code: null
+      }
+    }
+
+    // Apply location overrides
+    if (overrides?.location) {
+      if (overrides.location.latitude !== undefined) locationData.latitude = overrides.location.latitude
+      if (overrides.location.longitude !== undefined) locationData.longitude = overrides.location.longitude
+      if (overrides.location.cityState) locationData.city_state = overrides.location.cityState
+      if (overrides.location.zip) locationData.zip = overrides.location.zip
+      if (overrides.location.dataforseoLocationCode !== undefined) locationData.dataforseo_location_code = overrides.location.dataforseoLocationCode
+    }
+
+    // Validate final location data
+    if (!locationData.latitude || !locationData.longitude) {
       return NextResponse.json(
-        { error: 'Location missing coordinates' },
+        { error: 'Location missing coordinates. Please provide latitude and longitude.' },
         { status: 400 }
       )
     }
 
-    // Get vehicle details from our inventory
+    // Get vehicle details from inventory or use overrides
+    let vehicleData: any = null
+    
+    // Try to fetch from inventory first
     const { data: vehicle, error: vehicleError } = await supabaseAdmin
       .from('vehicles')
       .select('vin, year, make, model, trim, mileage, price')
       .eq('vin', vin)
       .single()
 
-    if (vehicleError || !vehicle) {
+    if (vehicle) {
+      vehicleData = vehicle
+    } else if (overrides?.vehicle) {
+      // If not in inventory but we have overrides, use them
+      vehicleData = {
+        vin: vin,
+        year: overrides.vehicle.year || null,
+        make: overrides.vehicle.make || null,
+        model: overrides.vehicle.model || null,
+        trim: overrides.vehicle.trim || null,
+        mileage: overrides.vehicle.mileage || null,
+        price: currentPrice || null
+      }
+    } else {
+      // If not in inventory and no overrides, try VIN decoding
+      try {
+        const vinDecodeResponse = await fetch(`${request.nextUrl.origin}/api/analytics/debug/vin-decode`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vin })
+        })
+        
+        if (vinDecodeResponse.ok) {
+          const vinData = await vinDecodeResponse.json()
+          if (vinData.success && vinData.data) {
+            vehicleData = {
+              vin: vin,
+              year: vinData.data.year,
+              make: vinData.data.make,
+              model: vinData.data.model,
+              trim: vinData.data.trim || null,
+              mileage: overrides?.vehicle?.mileage || null,
+              price: currentPrice || null
+            }
+          }
+        }
+      } catch (error) {
+        console.error('VIN decode failed:', error)
+      }
+    }
+
+    // Apply vehicle overrides if provided
+    if (overrides?.vehicle && vehicleData) {
+      if (overrides.vehicle.year !== undefined) vehicleData.year = overrides.vehicle.year
+      if (overrides.vehicle.make) vehicleData.make = overrides.vehicle.make
+      if (overrides.vehicle.model) vehicleData.model = overrides.vehicle.model
+      if (overrides.vehicle.trim !== undefined) vehicleData.trim = overrides.vehicle.trim
+      if (overrides.vehicle.mileage !== undefined) vehicleData.mileage = overrides.vehicle.mileage
+    }
+
+    // Update price if provided
+    if (currentPrice !== undefined) {
+      vehicleData.price = currentPrice
+    }
+
+    // Validate we have minimum vehicle data
+    if (!vehicleData || !vehicleData.year || !vehicleData.make || !vehicleData.model) {
       return NextResponse.json(
-        { error: 'Vehicle not found in inventory' },
-        { status: 404 }
+        { error: 'Unable to determine vehicle details. Please provide year, make, and model in overrides.' },
+        { status: 400 }
       )
     }
 
@@ -96,56 +207,63 @@ export async function POST(request: NextRequest) {
     }
 
     // Get DataForSEO location codes for this dealership
-    const locationCodes = await getLocationCodesForDealership(locationId)
+    const locationCodes = locationData.dataforseo_location_code 
+      ? [locationData.dataforseo_location_code]
+      : locationId 
+        ? await getLocationCodesForDealership(locationId)
+        : [2840] // Default to US if no specific location code
     
     // Generate keywords for search volume
     const baseKeywords = [
-      `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-      `${vehicle.make} ${vehicle.model}`,
-      `${vehicle.make} ${vehicle.model} for sale`,
-      `${vehicle.make} ${vehicle.model} price`,
-      `used ${vehicle.make} ${vehicle.model}`
+      `${vehicleData.year} ${vehicleData.make} ${vehicleData.model}`,
+      `${vehicleData.make} ${vehicleData.model}`,
+      `${vehicleData.make} ${vehicleData.model} for sale`,
+      `${vehicleData.make} ${vehicleData.model} price`,
+      `used ${vehicleData.make} ${vehicleData.model}`
     ]
     
     const locationName = getLocationName(locationCodes[0])
     const localKeywords = generateLocationKeywords(baseKeywords, locationName)
 
+    // Use search radius from overrides or default
+    const searchRadius = overrides?.searchRadius || 100
+
     // Call all APIs in parallel
     const [pricePrediction, marketDaySupply, citywiseSales, similarVehicles, searchVolume] = await Promise.allSettled([
       // Price Prediction
       marketCheckClient.getPricePrediction({
-        vin: vehicle.vin,
-        miles: vehicle.mileage,
-        zip: location.zip || '89101',
+        vin: vehicleData.vin,
+        miles: vehicleData.mileage,
+        zip: locationData.zip || '89101',
         car_type: 'used'
       }),
       
       // Market Day Supply
       marketCheckClient.getMarketDaySupply({
-        vin: vehicle.vin,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        radius: 100,
+        vin: vehicleData.vin,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        radius: searchRadius,
         exact: true,
         debug: false
       }),
       
       // Citywise Sales
       marketCheckClient.getCitywiseSales({
-        vin: vehicle.vin,
-        year: vehicle.year,
-        make: vehicle.make.toLowerCase(),
-        model: vehicle.model.toLowerCase(),
-        trim: vehicle.trim,
-        city_state: location.city_state
+        vin: vehicleData.vin,
+        year: vehicleData.year,
+        make: vehicleData.make.toLowerCase(),
+        model: vehicleData.model.toLowerCase(),
+        trim: vehicleData.trim,
+        city_state: locationData.city_state
       }),
       
       // Similar Vehicles
       marketCheckClient.searchSimilarVehicles({
-        vin: vehicle.vin,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        radius: 100,
+        vin: vehicleData.vin,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        radius: searchRadius,
         rows: 20
       }),
       
@@ -160,21 +278,21 @@ export async function POST(request: NextRequest) {
     // Process results
     const report: any = {
       vehicle: {
-        vin: vehicle.vin,
-        year: vehicle.year,
-        make: vehicle.make,
-        model: vehicle.model,
-        trim: vehicle.trim,
-        mileage: vehicle.mileage,
-        currentPrice: currentPrice || vehicle.price
+        vin: vehicleData.vin,
+        year: vehicleData.year,
+        make: vehicleData.make,
+        model: vehicleData.model,
+        trim: vehicleData.trim,
+        mileage: vehicleData.mileage,
+        currentPrice: currentPrice || vehicleData.price
       },
       location: {
-        dealership: location.name,
+        dealership: locationData.name,
         coordinates: {
-          lat: location.latitude,
-          lng: location.longitude
+          lat: locationData.latitude,
+          lng: locationData.longitude
         },
-        cityState: location.city_state
+        cityState: locationData.city_state
       }
     }
 
@@ -191,9 +309,9 @@ export async function POST(request: NextRequest) {
           lower: lowerBound,
           upper: upperBound
         },
-        currentPrice: currentPrice || vehicle.price,
-        percentile: calculatePricePercentile(currentPrice || vehicle.price, lowerBound, upperBound),
-        recommendation: generatePriceRecommendation(currentPrice || vehicle.price, predictedPrice)
+        currentPrice: currentPrice || vehicleData.price,
+        percentile: calculatePricePercentile(currentPrice || vehicleData.price, lowerBound, upperBound),
+        recommendation: generatePriceRecommendation(currentPrice || vehicleData.price, predictedPrice)
       }
     } else {
       report.marketPosition = {
@@ -226,7 +344,7 @@ export async function POST(request: NextRequest) {
           make: vehicle.make.toLowerCase(),
           model: vehicle.model.toLowerCase(),
           trim: vehicle.trim,
-          city_state: location.city_state
+          city_state: locationData.city_state
         },
         response: salesData
       })
@@ -243,12 +361,12 @@ export async function POST(request: NextRequest) {
         status: citywiseSales.status,
         reason: citywiseSales.reason,
         requestParams: {
-          vin: vehicle.vin,
-          year: vehicle.year,
-          make: vehicle.make.toLowerCase(),
-          model: vehicle.model.toLowerCase(),
-          trim: vehicle.trim,
-          city_state: location.city_state
+          vin: vehicleData.vin,
+          year: vehicleData.year,
+          make: vehicleData.make.toLowerCase(),
+          model: vehicleData.model.toLowerCase(),
+          trim: vehicleData.trim,
+          city_state: locationData.city_state
         }
       })
       
@@ -265,7 +383,7 @@ export async function POST(request: NextRequest) {
             make: vehicle.make.toLowerCase(),
             model: vehicle.model.toLowerCase(),
             trim: vehicle.trim,
-            city_state: location.city_state
+            city_state: locationData.city_state
           },
           errorReason: citywiseSales.reason?.toString(),
           promiseStatus: citywiseSales.status
@@ -298,7 +416,7 @@ export async function POST(request: NextRequest) {
         similarVehicles: competitiveVehicles.slice(0, 10), // Top 10 closest
         totalNearbyInventory: vehicles.length,
         avgCompetitorPrice,
-        pricePosition: determinePricePosition(currentPrice || vehicle.price, avgCompetitorPrice)
+        pricePosition: determinePricePosition(currentPrice || vehicleData.price, avgCompetitorPrice)
       }
     } else {
       report.competitiveLandscape = {

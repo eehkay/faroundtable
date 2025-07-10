@@ -19,12 +19,6 @@ export default function AnalyticsLayout({
       exact: true,
     },
     {
-      href: '/analytics/vehicles',
-      label: 'Vehicles',
-      icon: Car,
-      exact: false,
-    },
-    {
       href: '/analytics/market-trend-report',
       label: 'Market Trends',
       icon: TrendingUp,
@@ -83,7 +77,7 @@ export default function AnalyticsLayout({
       </div>
 
       {/* Page content */}
-      <div className="flex-1 bg-black">
+      <div className="flex-1">
         {children}
       </div>
     </div>
