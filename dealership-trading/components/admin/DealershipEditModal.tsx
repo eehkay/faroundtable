@@ -11,6 +11,7 @@ interface DealershipEditModalProps {
     latitude?: number;
     longitude?: number;
     city_state?: string;
+    dataforseo_location_code?: number;
   }>;
   isCreating: boolean;
   onSave: (dealership: Partial<DealershipLocation & { 
@@ -19,6 +20,7 @@ interface DealershipEditModalProps {
     latitude?: number;
     longitude?: number;
     city_state?: string;
+    dataforseo_location_code?: number;
   }>) => Promise<void>;
   onClose: () => void;
 }
@@ -39,7 +41,8 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
     active: dealership.active !== undefined ? dealership.active : true,
     latitude: dealership.latitude || undefined,
     longitude: dealership.longitude || undefined,
-    city_state: dealership.city_state || ''
+    city_state: dealership.city_state || '',
+    dataforseo_location_code: dealership.dataforseo_location_code || undefined
   });
   const [emailDomainInput, setEmailDomainInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -62,7 +65,8 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
       active: dealership.active !== undefined ? dealership.active : true,
       latitude: dealership.latitude || undefined,
       longitude: dealership.longitude || undefined,
-      city_state: dealership.city_state || ''
+      city_state: dealership.city_state || '',
+      dataforseo_location_code: dealership.dataforseo_location_code || undefined
     });
     setEmailDomainInput('');
     setErrors({}); // Clear any existing errors
@@ -142,7 +146,8 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
         active: formData.active,
         latitude: formData.latitude,
         longitude: formData.longitude,
-        city_state: formData.city_state || undefined
+        city_state: formData.city_state || undefined,
+        dataforseo_location_code: formData.dataforseo_location_code
       });
     } catch (error) {
       setErrors({ general: 'Failed to save dealership' });
@@ -382,6 +387,26 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
                 />
                 {errors.city_state && <p className="mt-1 text-sm text-red-400">{errors.city_state}</p>}
                 <p className="mt-1 text-xs text-gray-500">Used for Market Check citywise sales statistics</p>
+              </div>
+
+              {/* DataForSEO Location Code */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  DataForSEO Location Code
+                </label>
+                <input
+                  type="number"
+                  value={formData.dataforseo_location_code || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, dataforseo_location_code: e.target.value ? parseInt(e.target.value) : undefined }))}
+                  className={`w-full px-3 py-2 bg-[#141414] border rounded-lg text-gray-100 placeholder-gray-400 focus:ring-1 focus:outline-none transition-all duration-200 ${
+                    errors.dataforseo_location_code ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#2a2a2a] focus:border-[#3b82f6] focus:ring-[#3b82f6]/20'
+                  }`}
+                  placeholder="e.g., 9057131 for Las Vegas"
+                />
+                {errors.dataforseo_location_code && <p className="mt-1 text-sm text-red-400">{errors.dataforseo_location_code}</p>}
+                <p className="mt-1 text-xs text-gray-500">
+                  Used for local search volume data. Las Vegas: 9057131, Reno: 9058666 (primary) / 1022620 (secondary)
+                </p>
               </div>
             </div>
           </div>

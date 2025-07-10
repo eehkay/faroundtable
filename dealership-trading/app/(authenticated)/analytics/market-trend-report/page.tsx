@@ -4,11 +4,16 @@ import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, TrendingUp, TrendingDown, Minus, Loader2, FileText, DollarSign, Package, Clock, Target } from 'lucide-react'
+import { AlertCircle, TrendingUp, TrendingDown, Minus, Loader2, FileText, DollarSign, Package, Clock, Target, Zap, TrendingUpIcon, Users, BarChart3, Search } from 'lucide-react'
 import VehicleSearchInput from '@/components/analytics/VehicleSearchInput'
 import { useDealershipLocations } from '@/lib/hooks/useDealershipLocations'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import OpportunityScoreStrip from '@/components/analytics/OpportunityScoreStrip'
+import SummaryDashboardStrip from '@/components/analytics/SummaryDashboardStrip'
+import MetricGauge from '@/components/analytics/MetricGauge'
+import CompetitorCard from '@/components/analytics/CompetitorCard'
+import ActionCard from '@/components/analytics/ActionCard'
 
 interface MarketTrendReport {
   vehicle: {
@@ -147,7 +152,7 @@ export default function MarketTrendReportPage() {
   }
 
   return (
-    <div className="space-y-6 min-h-screen bg-[#141414]">
+    <div className="space-y-4 min-h-screen bg-[#141414]">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white">Market Trend Report</h1>
@@ -157,7 +162,7 @@ export default function MarketTrendReportPage() {
       </div>
 
       {/* Vehicle Selection */}
-      <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#333333] hover:transform hover:-translate-y-0.5 hover:shadow-lg">
+      <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]/50">
         <CardHeader>
           <CardTitle>Select Vehicle for Analysis</CardTitle>
           <CardDescription>
@@ -184,12 +189,14 @@ export default function MarketTrendReportPage() {
           
           {selectedVehicle && (
             <div className="p-4 bg-[#141414] rounded-lg border border-[#2a2a2a] transition-all duration-200 ease">
-              <p className="text-sm text-[#a3a3a3]">Selected Vehicle:</p>
-              <p className="text-white font-medium">
+              <p className="text-xs sm:text-sm text-[#a3a3a3]">Selected Vehicle:</p>
+              <p className="text-sm sm:text-base text-white font-medium">
                 {selectedVehicle.year} {selectedVehicle.make} {selectedVehicle.model} {selectedVehicle.trim || ''}
               </p>
-              <p className="text-sm text-[#737373]">VIN: {selectedVehicle.vin}</p>
-              <p className="text-sm text-[#737373]">Current Price: ${selectedVehicle.price.toLocaleString()}</p>
+              <div className="mt-1 space-y-0.5">
+                <p className="text-xs sm:text-sm text-[#737373]">VIN: {selectedVehicle.vin}</p>
+                <p className="text-xs sm:text-sm text-[#737373]">Current Price: ${selectedVehicle.price.toLocaleString()}</p>
+              </div>
             </div>
           )}
 
@@ -212,176 +219,82 @@ export default function MarketTrendReportPage() {
         </Alert>
       )}
 
+      {/* Loading State */}
+      {loading && !report && (
+        <div className="mt-8 flex flex-col items-center justify-center py-16">
+          <div className="relative">
+            <div className="h-16 w-16 animate-spin rounded-full border-4 border-[#2a2a2a] border-t-[#3b82f6]"></div>
+            <Loader2 className="absolute top-1/2 left-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-[#3b82f6] animate-pulse" />
+          </div>
+          <p className="mt-4 text-lg font-medium text-white">Analyzing Market Data</p>
+          <p className="mt-2 text-sm text-[#737373]">This may take a few moments...</p>
+        </div>
+      )}
+
       {/* Report Display */}
-      {report && (
+      {report && !loading && (
         <>
-          {/* Opportunity Score */}
-          {report.opportunityScore && (
-            <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#333333] hover:transform hover:-translate-y-0.5 hover:shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-[#3b82f6]" />
-                  Opportunity Score
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center mb-6">
-                  <div className={`text-6xl font-bold ${getScoreColor(report.opportunityScore.overall)}`}>
-                    {report.opportunityScore.overall}
-                  </div>
-                  <Badge variant={getScoreBadgeVariant(report.opportunityScore.overall)} className="mt-2">
-                    {report.recommendations?.action}
-                  </Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <p className="text-sm text-[#a3a3a3]">Price Position</p>
-                    <p className="text-2xl font-semibold text-white">
-                      {report.opportunityScore.breakdown.priceCompetitiveness}%
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-[#a3a3a3]">Inventory Scarcity</p>
-                    <p className="text-2xl font-semibold text-white">
-                      {report.opportunityScore.breakdown.inventoryScarcity}%
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-[#a3a3a3]">Regional Demand</p>
-                    <p className="text-2xl font-semibold text-white">
-                      {report.opportunityScore.breakdown.regionalDemand}%
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-[#a3a3a3]">Market Timing</p>
-                    <p className="text-2xl font-semibold text-white">
-                      {report.opportunityScore.breakdown.marketTiming}%
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Metric Explanations */}
-                <div className="mt-6 p-4 bg-[#141414] rounded-lg border border-[#2a2a2a]">
-                  <h4 className="text-sm font-medium text-[#a3a3a3] mb-3">Understanding Your Metrics</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="font-medium text-[#3b82f6]">Price Position:</span>
-                      <span className="text-[#a3a3a3] ml-1">How competitively your vehicle is priced compared to market predictions (50% is optimal)</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-[#3b82f6]">Inventory Scarcity:</span>
-                      <span className="text-[#a3a3a3] ml-1">Market availability of similar vehicles (higher score = lower supply = higher demand)</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-[#3b82f6]">Regional Demand:</span>
-                      <span className="text-[#a3a3a3] ml-1">Local market activity and sales volume for this vehicle type in your area</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-[#3b82f6]">Market Timing:</span>
-                      <span className="text-[#a3a3a3] ml-1">How quickly similar vehicles sell in the market (higher score = faster sales)</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Summary Dashboard */}
+          {report.marketPosition && report.inventoryAnalysis && (
+            <SummaryDashboardStrip
+              currentPrice={report.vehicle.currentPrice}
+              marketPrice={report.marketPosition.predictedPrice}
+              daysOnMarket={report.inventoryAnalysis.marketDaySupply}
+              demandLevel={
+                report.inventoryAnalysis.scarcityScore >= 70 ? 'high' :
+                report.inventoryAnalysis.scarcityScore >= 40 ? 'medium' : 'low'
+              }
+            />
           )}
 
-          {/* Market Analysis Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Opportunity Score */}
+          {report.opportunityScore && (
+            <OpportunityScoreStrip
+              score={report.opportunityScore.overall}
+              breakdown={report.opportunityScore.breakdown}
+              recommendation={report.recommendations?.action || 'REVIEW: Consider current market conditions'}
+            />
+          )}
+
+          {/* Market Analysis Grid - Price Analysis and Regional Performance */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Price Analysis */}
             {report.marketPosition && !report.marketPosition.error && (
-              <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#333333] hover:transform hover:-translate-y-0.5 hover:shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
                     <DollarSign className="h-5 w-5 text-[#3b82f6]" />
                     Price Analysis
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm text-[#a3a3a3]">Predicted Market Price</p>
-                    <p className="text-3xl font-bold text-white">
-                      ${report.marketPosition.predictedPrice.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-[#737373] mt-1">
-                      Range: ${report.marketPosition.priceRange.lower.toLocaleString()} - 
-                      ${report.marketPosition.priceRange.upper.toLocaleString()}
-                    </p>
-                  </div>
-                  
-                  <div className="pt-4 border-t border-[#2a2a2a]">
-                    <p className="text-sm text-[#a3a3a3]">Current Price Position</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-lg font-semibold text-white">
-                        ${report.marketPosition.currentPrice.toLocaleString()}
-                      </span>
-                      <Badge variant={report.marketPosition.percentile > 70 ? 'destructive' : 
-                                     report.marketPosition.percentile < 30 ? 'default' : 'secondary'}>
-                        {report.marketPosition.percentile}th percentile
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-[#737373] mt-2">
-                      {report.marketPosition.recommendation}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Inventory Analysis */}
-            {report.inventoryAnalysis && !report.inventoryAnalysis.error && (
-              <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#333333] hover:transform hover:-translate-y-0.5 hover:shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5 text-[#3b82f6]" />
-                    Inventory Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm text-[#a3a3a3]">Market Day Supply</p>
-                    <p className="text-3xl font-bold text-white">
-                      {report.inventoryAnalysis.marketDaySupply} days
-                    </p>
-                    <div className="mt-2">
-                      <div className="w-full bg-[#1f1f1f] rounded-full h-2">
-                        <div 
-                          className="bg-[#3b82f6] h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${100 - Math.min(100, report.inventoryAnalysis.marketDaySupply)}%` }}
-                        />
-                      </div>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-[#737373] uppercase mb-1">Predicted Market Price</p>
+                      <p className="text-xl sm:text-2xl font-bold text-white">
+                        ${report.marketPosition.predictedPrice.toLocaleString()}
+                      </p>
                       <p className="text-xs text-[#737373] mt-1">
-                        Lower is better (high demand)
+                        ${report.marketPosition.priceRange.lower.toLocaleString()} - 
+                        ${report.marketPosition.priceRange.upper.toLocaleString()}
                       </p>
                     </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#2a2a2a]">
+                    
                     <div>
-                      <p className="text-sm text-[#a3a3a3]">Inventory Count</p>
-                      <p className="text-xl font-semibold text-white">
-                        {report.inventoryAnalysis.inventoryCount}
+                      <p className="text-xs text-[#737373] uppercase mb-1">Current Position</p>
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <span className="text-xl sm:text-2xl font-bold text-white">
+                          ${report.marketPosition.currentPrice.toLocaleString()}
+                        </span>
+                        <Badge variant={report.marketPosition.percentile > 70 ? 'destructive' : 
+                                       report.marketPosition.percentile < 30 ? 'default' : 'secondary'}
+                               className="text-xs">
+                          {report.marketPosition.percentile}th %ile
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-[#737373] mt-1 line-clamp-2">
+                        {report.marketPosition.recommendation}
                       </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-[#a3a3a3]">Recent Sales</p>
-                      <p className="text-xl font-semibold text-white">
-                        {report.inventoryAnalysis.salesCount}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-[#a3a3a3]">Scarcity Score</p>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-2xl font-bold ${getScoreColor(report.inventoryAnalysis.scarcityScore)}`}>
-                        {report.inventoryAnalysis.scarcityScore}%
-                      </span>
-                      <Badge variant={getScoreBadgeVariant(report.inventoryAnalysis.scarcityScore)}>
-                        {report.inventoryAnalysis.scarcityScore >= 70 ? 'High Demand' :
-                         report.inventoryAnalysis.scarcityScore >= 40 ? 'Moderate' : 'Low Demand'}
-                      </Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -390,14 +303,14 @@ export default function MarketTrendReportPage() {
 
             {/* Regional Performance */}
             {report.regionalPerformance && (
-              <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#333333] hover:transform hover:-translate-y-0.5 hover:shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+              <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
                     <Clock className="h-5 w-5 text-[#3b82f6]" />
                     Regional Performance
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                   {report.regionalPerformance.error ? (
                     <div className="py-4">
                       <div className="text-center mb-4">
@@ -427,30 +340,30 @@ export default function MarketTrendReportPage() {
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-[#a3a3a3]">City Sales Volume</p>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
                           <p className="text-2xl font-bold text-white">
-                            {report.regionalPerformance.citySalesCount} units
+                            {report.regionalPerformance.citySalesCount}
                           </p>
+                          <span className="text-sm text-[#737373]">units sold</span>
                         </div>
-                    <div className="flex items-center gap-2">
-                      {getTrendIcon(report.regionalPerformance.salesTrend)}
-                      <span className="text-sm text-[#a3a3a3]">
-                        {report.regionalPerformance.salesTrend}
-                      </span>
-                    </div>
-                  </div>
-                  
-                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#2a2a2a]">
-                        <div>
-                          <p className="text-sm text-[#a3a3a3]">Avg Price</p>
+                        <div className="flex items-center gap-2">
+                          {getTrendIcon(report.regionalPerformance.salesTrend)}
+                          <span className="text-sm text-[#a3a3a3]">
+                            {report.regionalPerformance.salesTrend}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-[#141414] rounded-lg p-3">
+                          <p className="text-xs text-[#737373] uppercase">Avg Price</p>
                           <p className="text-lg font-semibold text-white">
                             ${report.regionalPerformance.avgPrice.toLocaleString()}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-sm text-[#a3a3a3]">Avg Days on Market</p>
+                        <div className="bg-[#141414] rounded-lg p-3">
+                          <p className="text-xs text-[#737373] uppercase">Avg DOM</p>
                           <p className="text-lg font-semibold text-white">
                             {report.regionalPerformance.avgDaysOnMarket} days
                           </p>
@@ -458,11 +371,11 @@ export default function MarketTrendReportPage() {
                       </div>
                       
                       {report.regionalPerformance.topColors && report.regionalPerformance.topColors.length > 0 && (
-                        <div>
-                          <p className="text-sm text-[#a3a3a3] mb-2">Popular Colors</p>
-                          <div className="flex flex-wrap gap-2">
-                            {report.regionalPerformance.topColors.map((color, index) => (
-                              <Badge key={index} variant="outline">
+                        <div className="mt-3">
+                          <p className="text-xs text-[#737373] uppercase mb-2">Popular Colors</p>
+                          <div className="flex flex-wrap gap-1">
+                            {report.regionalPerformance.topColors.slice(0, 3).map((color, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
                                 {color}
                               </Badge>
                             ))}
@@ -474,59 +387,94 @@ export default function MarketTrendReportPage() {
                 </CardContent>
               </Card>
             )}
+          </div>
 
-            {/* Competitive Landscape */}
-            {report.competitiveLandscape && !report.competitiveLandscape.error && (
-              <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#333333] hover:transform hover:-translate-y-0.5 hover:shadow-lg">
-                <CardHeader>
-                  <CardTitle>Competitive Landscape</CardTitle>
-                  <CardDescription>
-                    {report.competitiveLandscape.totalNearbyInventory} similar vehicles within 100 miles
-                  </CardDescription>
+          {/* Inventory and Competitive Landscape Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Inventory Analysis - Takes 1 column */}
+            {report.inventoryAnalysis && !report.inventoryAnalysis.error && (
+              <Card className="md:col-span-1 bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Package className="h-5 w-5 text-[#3b82f6]" />
+                    Inventory
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm text-[#a3a3a3]">Average Competitor Price</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold text-white">
-                        ${report.competitiveLandscape.avgCompetitorPrice.toLocaleString()}
-                      </p>
+                <CardContent>
+                  <div className="flex flex-col items-center">
+                    <MetricGauge
+                      value={report.inventoryAnalysis.scarcityScore}
+                      label="Scarcity Score"
+                      size="md"
+                    />
+                    <Badge 
+                      variant={getScoreBadgeVariant(report.inventoryAnalysis.scarcityScore)}
+                      className="mt-2 text-xs"
+                    >
+                      {report.inventoryAnalysis.scarcityScore >= 70 ? 'High Demand' :
+                       report.inventoryAnalysis.scarcityScore >= 40 ? 'Moderate' : 'Low Demand'}
+                    </Badge>
+                    
+                    <div className="grid grid-cols-2 gap-4 mt-4 w-full text-center">
+                      <div>
+                        <p className="text-xl font-semibold text-white">
+                          {report.inventoryAnalysis.marketDaySupply}
+                        </p>
+                        <p className="text-xs text-[#737373]">Day Supply</p>
+                      </div>
+                      <div>
+                        <p className="text-xl font-semibold text-white">
+                          {report.inventoryAnalysis.inventoryCount}
+                        </p>
+                        <p className="text-xs text-[#737373]">Available</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Competitive Landscape - Takes 2 columns */}
+            {report.competitiveLandscape && !report.competitiveLandscape.error && (
+              <Card className="md:col-span-2 bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center justify-between text-lg">
+                    <span>Competitive Landscape</span>
+                    <Badge variant="outline" className="text-xs font-normal">
+                      {report.competitiveLandscape.totalNearbyInventory} nearby
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-[#737373] uppercase">Avg Competitor Price</p>
                       <Badge variant={
                         report.competitiveLandscape.pricePosition === 'above' ? 'destructive' :
                         report.competitiveLandscape.pricePosition === 'below' ? 'default' : 'secondary'
-                      }>
+                      } className="text-xs">
                         {report.competitiveLandscape.pricePosition} market
                       </Badge>
                     </div>
+                    <p className="text-2xl font-bold text-white">
+                      ${report.competitiveLandscape.avgCompetitorPrice.toLocaleString()}
+                    </p>
                   </div>
                   
                   <div>
-                    <p className="text-sm text-[#a3a3a3] mb-2">Nearby Competitors (Top 5)</p>
-                    <div className="space-y-2">
-                      {report.competitiveLandscape.similarVehicles.slice(0, 5).map((vehicle, index) => (
-                        <div key={index} className="flex items-center justify-between text-sm group">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[#a3a3a3]">
-                              {vehicle.distance}mi - {vehicle.dealer}
-                            </span>
-                            {vehicle.vdpUrl && (
-                              <a 
-                                href={vehicle.vdpUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-[#3b82f6] hover:text-[#60a5fa] transition-colors duration-200"
-                                title="View vehicle details"
-                              >
-                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                </svg>
-                              </a>
-                            )}
-                          </div>
-                          <span className="text-white font-medium">
-                            ${vehicle.price.toLocaleString()}
-                          </span>
-                        </div>
+                    <p className="text-xs text-[#737373] uppercase mb-3">Top Competitors</p>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
+                      {report.competitiveLandscape.similarVehicles.slice(0, 3).map((vehicle, index) => (
+                        <CompetitorCard
+                          key={index}
+                          distance={vehicle.distance}
+                          price={vehicle.price}
+                          dealer={vehicle.dealer}
+                          daysOnMarket={vehicle.daysOnMarket}
+                          vdpUrl={vehicle.vdpUrl}
+                          currentPrice={report.vehicle.currentPrice}
+                          rank={index + 1}
+                        />
                       ))}
                     </div>
                   </div>
@@ -535,36 +483,143 @@ export default function MarketTrendReportPage() {
             )}
           </div>
 
-          {/* Recommendations */}
-          {report.recommendations && (
-            <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#333333] hover:transform hover:-translate-y-0.5 hover:shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-[#3b82f6]" />
-                  Recommendations
+          {/* Demand Analysis - DataForSEO Keywords */}
+          {report.demandAnalysis && (
+            <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Search className="h-5 w-5 text-[#3b82f6]" />
+                  Local Search Demand Analysis
+                  <Badge variant="outline" className="ml-2 text-xs">
+                    {report.demandAnalysis.locationName}
+                  </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 bg-[#141414] rounded-lg border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]">
-                    <p className="text-sm font-medium text-[#3b82f6] mb-1">Pricing Strategy</p>
-                    <p className="text-sm text-[#a3a3a3]">{report.recommendations.pricing}</p>
+              <CardContent>
+                {report.demandAnalysis.error ? (
+                  <div className="py-4 text-center">
+                    <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                    <p className="text-sm text-yellow-400">{report.demandAnalysis.error}</p>
+                    {report.demandAnalysis.note && (
+                      <p className="text-xs text-[#737373] mt-2">{report.demandAnalysis.note}</p>
+                    )}
                   </div>
-                  <div className="p-4 bg-[#141414] rounded-lg border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]">
-                    <p className="text-sm font-medium text-[#3b82f6] mb-1">Inventory Management</p>
-                    <p className="text-sm text-[#a3a3a3]">{report.recommendations.inventory}</p>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Total Search Volume */}
+                    <div className="bg-[#141414] rounded-lg p-4 border border-[#2a2a2a]">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-[#737373] uppercase">Total Monthly Searches</p>
+                        <Badge variant={
+                          report.demandAnalysis.demandLevel === 'high' ? 'default' :
+                          report.demandAnalysis.demandLevel === 'medium' ? 'secondary' : 'outline'
+                        }>
+                          {report.demandAnalysis.demandLevel} demand
+                        </Badge>
+                      </div>
+                      <p className="text-3xl font-bold text-white">
+                        {report.demandAnalysis.totalMonthlySearches.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-[#737373] mt-1">
+                        searches/month in {report.demandAnalysis.locationName}
+                      </p>
+                    </div>
+
+                    {/* Top Keywords */}
+                    {report.demandAnalysis.topKeywords && report.demandAnalysis.topKeywords.length > 0 && (
+                      <div>
+                        <p className="text-xs text-[#737373] uppercase mb-3">Top Search Keywords</p>
+                        <div className="space-y-2">
+                          {report.demandAnalysis.topKeywords.map((keyword, index) => (
+                            <div key={index} className="bg-[#141414] rounded-lg p-3 border border-[#2a2a2a] hover:bg-[#1a1a1a] transition-all duration-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <p className="text-sm text-white font-medium">{keyword.keyword}</p>
+                                  <div className="flex items-center gap-4 mt-1">
+                                    <span className="text-xs text-[#737373]">
+                                      {keyword.monthlySearches.toLocaleString()} searches/mo
+                                    </span>
+                                    <span className="text-xs text-[#737373]">
+                                      Competition: {(keyword.competition * 100).toFixed(0)}%
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <div
+                                      key={i}
+                                      className={`h-1.5 w-1.5 rounded-full ${
+                                        i < Math.ceil(keyword.monthlySearches / 200) 
+                                          ? 'bg-[#3b82f6]' 
+                                          : 'bg-[#2a2a2a]'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Search Trend */}
+                    {report.demandAnalysis.searchTrend && (
+                      <div className="flex items-center justify-between bg-[#141414] rounded-lg p-3 border border-[#2a2a2a]">
+                        <span className="text-xs text-[#737373] uppercase">Search Trend</span>
+                        <div className="flex items-center gap-2">
+                          {getTrendIcon(report.demandAnalysis.searchTrend)}
+                          <span className="text-sm text-[#a3a3a3]">
+                            {report.demandAnalysis.searchTrend}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="p-4 bg-[#141414] rounded-lg border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]">
-                    <p className="text-sm font-medium text-[#3b82f6] mb-1">Market Timing</p>
-                    <p className="text-sm text-[#a3a3a3]">{report.recommendations.timing}</p>
-                  </div>
-                  <div className="p-4 bg-[#141414] rounded-lg border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]">
-                    <p className="text-sm font-medium text-[#3b82f6] mb-1">Action Required</p>
-                    <p className="text-sm text-[#a3a3a3] font-semibold">{report.recommendations.action}</p>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
+          )}
+
+          {/* Recommendations */}
+          {report.recommendations && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#3b82f6]" />
+                Recommended Actions
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <ActionCard
+                  icon={DollarSign}
+                  title="Pricing Strategy"
+                  description={report.recommendations.pricing}
+                  impact={report.opportunityScore?.breakdown.priceCompetitiveness && report.opportunityScore.breakdown.priceCompetitiveness >= 80 ? 'low' : 
+                          report.opportunityScore?.breakdown.priceCompetitiveness && report.opportunityScore.breakdown.priceCompetitiveness >= 50 ? 'medium' : 'high'}
+                  priority={1}
+                />
+                <ActionCard
+                  icon={Package}
+                  title="Inventory Management"
+                  description={report.recommendations.inventory}
+                  impact={report.inventoryAnalysis?.scarcityScore && report.inventoryAnalysis.scarcityScore >= 70 ? 'high' : 'medium'}
+                  priority={2}
+                />
+                <ActionCard
+                  icon={Clock}
+                  title="Market Timing"
+                  description={report.recommendations.timing}
+                  impact={report.opportunityScore?.breakdown.marketTiming && report.opportunityScore.breakdown.marketTiming >= 70 ? 'high' : 'medium'}
+                  priority={3}
+                />
+                <ActionCard
+                  icon={Zap}
+                  title="Next Action"
+                  description={report.recommendations.action}
+                  impact="high"
+                  priority={1}
+                />
+              </div>
+            </div>
           )}
         </>
       )}

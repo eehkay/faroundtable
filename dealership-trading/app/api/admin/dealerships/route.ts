@@ -40,6 +40,7 @@ export async function GET() {
       latitude: dealership.latitude,
       longitude: dealership.longitude,
       city_state: dealership.city_state,
+      dataforseo_location_code: dealership.dataforseo_location_code,
       createdAt: dealership.created_at,
       updatedAt: dealership.updated_at
     })) || [];

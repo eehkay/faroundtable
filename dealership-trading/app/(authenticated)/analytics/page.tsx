@@ -7,16 +7,16 @@ export const metadata: Metadata = {
 
 export default function AnalyticsPage() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
-        <p className="text-gray-400 mt-2">
+        <p className="text-[#a3a3a3] mt-2">
           Market intelligence and insights for your dealership inventory
         </p>
       </div>
 
       {/* Coming Soon Message */}
-      <div className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-12 text-center">
+      <div className="bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg p-12 text-center transition-all duration-200 ease hover:bg-[#333333]">
         <div className="max-w-2xl mx-auto">
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-[#3b82f6]/10 rounded-full mb-4">
@@ -40,7 +40,7 @@ export default function AnalyticsPage() {
             Analytics Features Coming Soon
           </h2>
           
-          <p className="text-gray-400 mb-8">
+          <p className="text-[#a3a3a3] mb-8">
             We&apos;re building powerful analytics tools to help you make data-driven decisions 
             about your inventory. Soon you&apos;ll be able to:
           </p>
@@ -52,7 +52,7 @@ export default function AnalyticsPage() {
               </div>
               <div>
                 <h3 className="font-medium text-white">Vehicle Market Analysis</h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-[#a3a3a3]">
                   Get real-time pricing insights and demand metrics for any vehicle
                 </p>
               </div>
@@ -64,7 +64,7 @@ export default function AnalyticsPage() {
               </div>
               <div>
                 <h3 className="font-medium text-white">Regional Market Insights</h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-[#a3a3a3]">
                   Understand local market trends and competitive positioning
                 </p>
               </div>
@@ -76,7 +76,7 @@ export default function AnalyticsPage() {
               </div>
               <div>
                 <h3 className="font-medium text-white">Transfer Intelligence</h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-[#a3a3a3]">
                   Optimize inter-store transfers based on regional demand data
                 </p>
               </div>
@@ -88,7 +88,7 @@ export default function AnalyticsPage() {
               </div>
               <div>
                 <h3 className="font-medium text-white">Custom Reports</h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-[#a3a3a3]">
                   Create and schedule custom analytics reports for your team
                 </p>
               </div>

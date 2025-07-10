@@ -17,7 +17,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await req.json();
-    const { name, address, city, state, zip, phone, email, csvFileName, emailDomains, enableCsvImport, active, latitude, longitude, city_state } = body;
+    const { name, address, city, state, zip, phone, email, csvFileName, emailDomains, enableCsvImport, active, latitude, longitude, city_state, dataforseo_location_code } = body;
 
     // Validate required fields
     if (!name) {
@@ -59,6 +59,7 @@ export async function PUT(
         latitude: latitude || null,
         longitude: longitude || null,
         city_state: city_state || null,
+        dataforseo_location_code: dataforseo_location_code || null,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -88,6 +89,7 @@ export async function PUT(
       latitude: updatedDealership.latitude,
       longitude: updatedDealership.longitude,
       city_state: updatedDealership.city_state,
+      dataforseo_location_code: updatedDealership.dataforseo_location_code,
       createdAt: updatedDealership.created_at,
       updatedAt: updatedDealership.updated_at
     };

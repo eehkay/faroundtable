@@ -245,6 +245,11 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
                             CSV: {dealership.csvFileName}
                           </span>
                         )}
+                        {(dealership as any).dataforseo_location_code && (
+                          <span className="px-2.5 py-1 bg-[#3b82f6]/20 text-[#3b82f6] rounded-full text-xs">
+                            DataForSEO: {(dealership as any).dataforseo_location_code}
+                          </span>
+                        )}
                       </div>
                       
                       <div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-400">

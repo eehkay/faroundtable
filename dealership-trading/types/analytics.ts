@@ -18,13 +18,32 @@ export interface VehicleAnalysis {
     make: string;
     model: string;
     year: number;
+    trim?: string;
   };
-  marketData: MarketData;
-  demandData: DemandData;
-  competitiveAnalysis: CompetitiveAnalysis;
-  recommendations: Recommendations;
+  marketData: VehicleMarketData;
+  demandData: VehicleDemandData;
+  insights: VehicleInsights;
+  competitiveAnalysis?: CompetitiveAnalysis;
+  recommendations?: Recommendations;
+  priceHistory?: PriceHistoryPoint[];
+  similarVehicles?: SimilarVehicle[];
   analyzedAt: Date;
   cacheExpiry: Date;
+}
+
+export interface VehicleMarketData {
+  averagePrice: number;
+  medianPrice: number;
+  priceRange: PriceRange;
+  inventoryCount: number;
+  daysOnMarket: number;
+  averageDaysOnLot?: number;
+  priceHistory?: PricePoint[];
+  marketTrend: 'increasing' | 'stable' | 'decreasing';
+  yourPrice?: number;
+  pricePercentile?: number;
+  stateInventory?: number;
+  nationalInventory?: number;
 }
 
 export interface MarketData {
@@ -46,6 +65,19 @@ export interface PricePoint {
   date: string;
   price: number;
   count: number;
+}
+
+export interface VehicleDemandData {
+  monthlySearches: number;
+  monthlySearchVolume?: number;
+  yearOverYearGrowth?: number;
+  trendDirection: 'rising' | 'stable' | 'declining';
+  relatedTerms: string[];
+  relatedKeywords?: Keyword[];
+  seasonalPeaks: string[];
+  seasonality?: SeasonalPattern;
+  competitorInventory?: number;
+  marketVelocity?: number;
 }
 
 export interface DemandData {
@@ -214,6 +246,32 @@ export interface AnalyticsApiResponse<T> {
   error?: string;
   cached?: boolean;
   timestamp: string;
+}
+
+// Vehicle analysis specific types
+export interface VehicleInsights {
+  opportunityScore: number;
+  pricePosition: 'below' | 'at' | 'above';
+  demandLevel: 'low' | 'medium' | 'high';
+  recommendations: string[];
+}
+
+export interface PriceHistoryPoint {
+  date: string;
+  averagePrice: number;
+  inventoryCount?: number;
+}
+
+export interface SimilarVehicle {
+  make: string;
+  model: string;
+  year: number;
+  price: number;
+  mileage?: number;
+  distance: number;
+  daysOnMarket: number;
+  dealerName?: string;
+  vdpUrl?: string;
 }
 
 // Chart data types

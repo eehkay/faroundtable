@@ -41,15 +41,243 @@ export interface MarketCheckSearchResponse {
   };
 }
 
+export interface PricePredictionRequest {
+  vin: string;
+  miles?: number;
+  zip?: string;
+  car_type?: 'used' | 'new';
+  base_exterior_color?: string;
+  base_interior_color?: string;
+}
+
+export interface PricePredictionResponse {
+  predicted_price: number;
+  confidence: number;
+  price_range: {
+    low: number;
+    high: number;
+  };
+  market_data?: {
+    average_price: number;
+    listings_count: number;
+  };
+}
+
+export interface MarketDaySupplyRequest {
+  vin: string;
+  latitude: number;
+  longitude: number;
+  radius?: number;
+  exact?: boolean;
+  debug?: boolean;
+}
+
+export interface MarketDaySupplyResponse {
+  mds: number;
+  inventory_count: number;
+  sales_count: number;
+  sales_period_days: number;
+  market_radius: number;
+  similar_vehicles?: {
+    make: string;
+    model: string;
+    year: number;
+    count: number;
+  }[];
+}
+
+export interface CitywiseSalesRequest {
+  ymmt?: string; // year|make|model|trim format
+  year?: number;
+  make?: string;
+  model?: string;
+  trim?: string;
+  city_state: string; // format: city|STATE
+}
+
+export interface CitywiseSalesResponse {
+  count: number;
+  cpo: number;
+  non_cpo: number;
+  inventory_type: string;
+  make: string;
+  model: string;
+  year: number;
+  trim: string;
+  state: string;
+  city: string;
+  dom_stats: {
+    geometric_mean: number;
+    min: number;
+    median: number;
+    population_standard_deviation: number;
+    variance: number;
+    max: number;
+    mean: number;
+    trimmed_mean: number;
+    standard_deviation: number;
+    iqr: number;
+  };
+  price_stats: {
+    geometric_mean: number;
+    min: number;
+    median: number;
+    population_standard_deviation: number;
+    variance: number;
+    max: number;
+    mean: number;
+    trimmed_mean: number;
+    standard_deviation: number;
+    iqr: number;
+  };
+  miles_stats: {
+    geometric_mean: number;
+    min: number;
+    median: number;
+    population_standard_deviation: number;
+    variance: number;
+    max: number;
+    mean: number;
+    trimmed_mean: number;
+    standard_deviation: number;
+    iqr: number;
+  };
+  // Legacy properties for backward compatibility
+  sales_count?: number;
+  average_price?: number;
+  average_miles?: number;
+  average_dom?: number;
+  top_colors?: string[];
+  sales_trend?: 'increasing' | 'stable' | 'decreasing';
+}
+
+export interface SimilarVehiclesRequest {
+  vin: string;
+  latitude: number;
+  longitude: number;
+  radius?: number;
+  rows?: number;
+}
+
+export interface SimilarVehiclesResponse {
+  listings: Array<{
+    id: string;
+    vin: string;
+    year: number;
+    make: string;
+    model: string;
+    trim?: string;
+    price: number;
+    miles: number;
+    distance: number;
+    dealer: {
+      name: string;
+      address: string;
+      city: string;
+      state: string;
+      zip: string;
+      phone?: string;
+    };
+    exterior_color?: string;
+    interior_color?: string;
+    dom: number;
+    media?: {
+      photo_links: string[];
+    };
+  }>;
+  stats?: {
+    mean: number;
+    median: number;
+    min: number;
+    max: number;
+    count: number;
+  };
+}
+
+export interface VinDecodeRequest {
+  vin: string;
+}
+
+export interface VinDecodeResponse {
+  vin: string;
+  year: number;
+  make: string;
+  model: string;
+  trim?: string;
+  body_type?: string;
+  engine?: string;
+  transmission?: string;
+  drivetrain?: string;
+  fuel_type?: string;
+  vehicle_type?: string;
+  series?: string;
+  style?: string;
+  // MarketCheck may return additional fields
+  [key: string]: any;
+}
+
+export interface VinDecodeResult {
+  success: boolean;
+  data?: VinDecodeResponse;
+  error?: string;
+}
+
 export class MarketCheckClient {
   private apiKey: string;
   private baseUrl: string;
   private timeout: number;
 
+  // VIN decoder cache to avoid repeated API calls
+  private vinDecodeCache: Map<string, VinDecodeResult> = new Map();
+
   constructor(config: MarketCheckConfig) {
     this.apiKey = config.apiKey;
     this.baseUrl = config.baseUrl || 'https://mc-api.marketcheck.com/v2';
     this.timeout = config.timeout || 30000;
+  }
+
+  /**
+   * Decode VIN using MarketCheck API to get standardized vehicle information
+   */
+  async decodeVin(vin: string): Promise<VinDecodeResult> {
+    console.log(`🔍 VIN Decode called for: ${vin}`);
+    
+    // Check cache first
+    if (this.vinDecodeCache.has(vin)) {
+      const cached = this.vinDecodeCache.get(vin)!;
+      console.log(`📋 Using cached VIN decode result:`, cached);
+      return cached;
+    }
+
+    try {
+      console.log(`🌐 Making VIN decode API call: /decode/car/${vin}/specs`);
+      const response = await this.request<VinDecodeResponse>(`/decode/car/${vin}/specs`, {
+        api_key: this.apiKey
+      });
+
+      console.log(`✅ VIN decode API response:`, response);
+
+      const result: VinDecodeResult = {
+        success: true,
+        data: response
+      };
+
+      // Cache the result
+      this.vinDecodeCache.set(vin, result);
+      console.log(`💾 Cached VIN decode result for ${vin}`);
+      return result;
+    } catch (error) {
+      console.error(`❌ VIN decode error for ${vin}:`, error);
+      const result: VinDecodeResult = {
+        success: false,
+        error: error instanceof Error ? error.message : 'VIN decode failed'
+      };
+      
+      // Cache failed results for a short time to avoid repeated failures
+      this.vinDecodeCache.set(vin, result);
+      console.log(`💾 Cached VIN decode error for ${vin}`);
+      return result;
+    }
   }
 
   private async request<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
@@ -244,6 +472,307 @@ export class MarketCheckClient {
       };
     } catch (error) {
       console.error('Error getting competitors:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get price prediction for a vehicle
+   * Uses the /v2/predict/car/price endpoint
+   */
+  async getPricePrediction(params: PricePredictionRequest): Promise<PricePredictionResponse> {
+    try {
+      return await this.request<PricePredictionResponse>('/predict/car/price', {
+        api_key: this.apiKey,
+        ...params
+      });
+    } catch (error) {
+      console.error('Error getting price prediction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get Market Day Supply (MDS) for a vehicle
+   * Uses the /v2/mds/car endpoint
+   */
+  async getMarketDaySupply(params: MarketDaySupplyRequest): Promise<MarketDaySupplyResponse> {
+    try {
+      return await this.request<MarketDaySupplyResponse>('/mds/car', {
+        api_key: this.apiKey,
+        ...params
+      });
+    } catch (error) {
+      console.error('Error getting market day supply:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get citywise sales statistics
+   * Uses the /v2/sales/car endpoint
+   */
+  async getCitywiseSales(params: CitywiseSalesRequest & { vin?: string }): Promise<CitywiseSalesResponse> {
+    try {
+      let ymmt = params.ymmt;
+      let vinDecodeResult: VinDecodeResult | null = null;
+      let dataSource = 'provided'; // Track data source for debugging
+
+      // Priority 1: Use provided YMMT if available
+      if (ymmt) {
+        dataSource = 'provided';
+        console.log('Using provided YMMT:', { ymmt, dataSource });
+      }
+      // Priority 2: If we have a VIN, ALWAYS try to decode it first for accurate YMMT
+      else if (params.vin) {
+        console.log('Attempting VIN decode for:', params.vin);
+        vinDecodeResult = await this.decodeVin(params.vin);
+        
+        if (vinDecodeResult.success && vinDecodeResult.data) {
+          const decoded = vinDecodeResult.data;
+          ymmt = `${decoded.year}|${decoded.make.toLowerCase()}|${decoded.model.toLowerCase()}`;
+          if (decoded.trim) {
+            ymmt += `|${decoded.trim.toLowerCase()}`;
+          }
+          dataSource = 'vin-decode';
+          
+          console.log('✅ VIN decode successful - Using decoded YMMT:', {
+            original: {
+              year: params.year,
+              make: params.make,
+              model: params.model,
+              trim: params.trim
+            },
+            decoded: {
+              year: decoded.year,
+              make: decoded.make,
+              model: decoded.model,
+              trim: decoded.trim
+            },
+            ymmt,
+            dataSource
+          });
+        } else {
+          console.log('❌ VIN decode failed:', vinDecodeResult.error);
+          // VIN decode failed, fall through to database values
+        }
+      }
+
+      // Priority 3: Fallback to database values if VIN decode failed or no VIN provided
+      if (!ymmt && params.year && params.make && params.model) {
+        ymmt = `${params.year}|${params.make.toLowerCase()}|${params.model.toLowerCase()}`;
+        if (params.trim) {
+          ymmt += `|${params.trim.toLowerCase()}`;
+        }
+        dataSource = 'database-fallback';
+        
+        console.log('⚠️ Using database YMMT (fallback):', {
+          params: { year: params.year, make: params.make, model: params.model, trim: params.trim },
+          ymmt,
+          dataSource,
+          reason: params.vin ? 'VIN decode failed' : 'No VIN provided'
+        });
+      }
+
+      const requestParams = {
+        api_key: this.apiKey,
+        ymmt,
+        city_state: params.city_state
+      };
+
+      console.log('🚀 Citywise Sales API Request:', {
+        endpoint: '/sales/car',
+        params: requestParams,
+        dataSource,
+        vinDecodeUsed: !!vinDecodeResult?.success,
+        fullUrl: `${this.baseUrl}/sales/car?api_key=${this.apiKey}&ymmt=${encodeURIComponent(ymmt || '')}&city_state=${encodeURIComponent(params.city_state)}`
+      });
+
+      return await this.request<CitywiseSalesResponse>('/sales/car', requestParams);
+    } catch (error) {
+      console.error('Error getting citywise sales:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search inventory with enhanced filtering
+   * Uses the /inventory/search endpoint for more detailed inventory data
+   */
+  async searchInventory(params: {
+    vin?: string;
+    make?: string;
+    model?: string;
+    year?: number;
+    latitude?: number;
+    longitude?: number;
+    radius?: number;
+    price_min?: number;
+    price_max?: number;
+    miles_min?: number;
+    miles_max?: number;
+    rows?: number;
+  }): Promise<MarketCheckSearchResponse> {
+    try {
+      return await this.request<MarketCheckSearchResponse>('/inventory/search', {
+        api_key: this.apiKey,
+        car_type: 'used',
+        ...params
+      });
+    } catch (error) {
+      console.error('Error searching inventory:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get dealer information
+   * Uses the /dealers/search endpoint
+   */
+  async searchDealers(params: {
+    latitude: number;
+    longitude: number;
+    radius?: number;
+    dealer_type?: string;
+  }): Promise<{
+    dealers: Array<{
+      id: string;
+      name: string;
+      street: string;
+      city: string;
+      state: string;
+      zip: string;
+      latitude: number;
+      longitude: number;
+      distance: number;
+      inventory_count?: number;
+    }>;
+    total_count: number;
+  }> {
+    try {
+      return await this.request('/dealers/search', {
+        api_key: this.apiKey,
+        ...params
+      });
+    } catch (error) {
+      console.error('Error searching dealers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get market trends for a specific make/model
+   * Uses the /trends endpoint
+   */
+  async getTrends(params: {
+    make: string;
+    model: string;
+    year?: number;
+    city_state?: string;
+    period?: 'monthly' | 'weekly' | 'daily';
+  }): Promise<{
+    trends: Array<{
+      period: string;
+      average_price: number;
+      listing_count: number;
+      average_miles: number;
+      average_dom: number;
+    }>;
+    summary: {
+      price_trend: 'increasing' | 'stable' | 'decreasing';
+      inventory_trend: 'increasing' | 'stable' | 'decreasing';
+      demand_level: 'high' | 'medium' | 'low';
+    };
+  }> {
+    try {
+      return await this.request('/trends', {
+        api_key: this.apiKey,
+        ...params
+      });
+    } catch (error) {
+      console.error('Error getting trends:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get price history for a specific VIN
+   * Uses the /history endpoint
+   */
+  async getHistory(vin: string): Promise<{
+    history: Array<{
+      date: string;
+      price: number;
+      miles: number;
+      dealer: string;
+      city: string;
+      state: string;
+    }>;
+    price_changes: number;
+    total_days_listed: number;
+  }> {
+    try {
+      return await this.request('/history', {
+        api_key: this.apiKey,
+        vin,
+        car_type: 'used'
+      });
+    } catch (error) {
+      console.error('Error getting history:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search for similar vehicles in a radius
+   * Uses the /search/car/active endpoint
+   */
+  async searchSimilarVehicles(params: SimilarVehiclesRequest): Promise<SimilarVehiclesResponse> {
+    try {
+      const response = await this.request<any>('/search/car/active', {
+        api_key: this.apiKey,
+        car_type: 'used',
+        latitude: params.latitude,
+        longitude: params.longitude,
+        radius: params.radius || 100,
+        vins: params.vin,
+        start: 0,
+        rows: params.rows || 50,
+        sort_by: 'dist',
+        sort_order: 'desc',
+        include_relevant_links: true
+      });
+
+      // Transform the response to our format
+      return {
+        listings: response.listings?.map((listing: any) => ({
+          id: listing.id,
+          vin: listing.vin,
+          year: listing.build.year,
+          make: listing.build.make,
+          model: listing.build.model,
+          trim: listing.build.trim,
+          price: listing.price,
+          miles: listing.miles,
+          distance: listing.dist,
+          dealer: {
+            name: listing.dealer.name,
+            address: listing.dealer.street,
+            city: listing.dealer.city,
+            state: listing.dealer.state,
+            zip: listing.dealer.zip,
+            phone: listing.dealer.phone
+          },
+          exterior_color: listing.exterior_color,
+          interior_color: listing.interior_color,
+          dom: listing.dom,
+          media: listing.media,
+          vdp_url: listing.vdp_url || listing.source_url || listing.url
+        })) || [],
+        stats: response.stats
+      };
+    } catch (error) {
+      console.error('Error searching similar vehicles:', error);
       throw error;
     }
   }

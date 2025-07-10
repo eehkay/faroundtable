@@ -17,7 +17,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Car,
-  Download
+  Download,
+  BarChart3,
+  Bug
 } from "lucide-react";
 import AdminBreadcrumb from "@/components/admin/AdminBreadcrumb";
 
@@ -125,6 +127,12 @@ export default function AdminLayout({
       name: "Notifications",
       href: "/admin/notifications",
       icon: Mail,
+      show: isAdmin(session.user.role)
+    },
+    {
+      name: "Analytics Debug",
+      href: "/admin/analytics/debug",
+      icon: Bug,
       show: isAdmin(session.user.role)
     },
     {

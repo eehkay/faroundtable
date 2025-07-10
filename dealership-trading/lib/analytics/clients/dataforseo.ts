@@ -37,11 +37,19 @@ export class DataForSEOClient {
   private baseUrl: string;
   private timeout: number;
 
-  constructor(config: DataForSEOConfig) {
-    this.email = config.email;
-    this.apiKey = config.apiKey;
-    this.baseUrl = config.baseUrl || 'https://api.dataforseo.com';
-    this.timeout = config.timeout || 30000;
+  constructor(config?: DataForSEOConfig) {
+    if (config) {
+      this.email = config.email;
+      this.apiKey = config.apiKey;
+      this.baseUrl = config.baseUrl || 'https://api.dataforseo.com';
+      this.timeout = config.timeout || 30000;
+    } else {
+      // Use environment variables as fallback
+      this.email = process.env.DATAFORSEO_EMAIL || '';
+      this.apiKey = process.env.DATAFORSEO_API_KEY || '';
+      this.baseUrl = 'https://api.dataforseo.com';
+      this.timeout = 30000;
+    }
   }
 
   private getAuthHeader(): string {
@@ -182,6 +190,92 @@ export class DataForSEOClient {
     }
   }
 
+  /**
+   * Get search volume for multiple location codes and aggregate results
+   * Useful for locations like Reno that have multiple DataForSEO codes
+   */
+  async getSearchVolumeMultiLocation(keywords: string[], locationCodes: number[]): Promise<SearchVolumeResult[]> {
+    try {
+      // Get search volume for each location
+      const allResults = await Promise.all(
+        locationCodes.map(locationCode => this.getSearchVolume(keywords, locationCode))
+      );
+
+      // Aggregate results by keyword
+      const aggregatedMap = new Map<string, SearchVolumeResult>();
+
+      for (const locationResults of allResults) {
+        for (const result of locationResults) {
+          const existing = aggregatedMap.get(result.keyword);
+          
+          if (!existing) {
+            aggregatedMap.set(result.keyword, { ...result });
+          } else {
+            // Sum search volumes and average competition
+            existing.search_volume += result.search_volume;
+            existing.competition = (existing.competition + result.competition) / 2;
+            
+            // Merge monthly searches
+            if (result.monthly_searches.length > 0) {
+              existing.monthly_searches = result.monthly_searches;
+            }
+            
+            // Keep the trend from the location with higher volume
+            if (result.search_volume > 0 && result.trend.length > 0) {
+              existing.trend = result.trend;
+            }
+          }
+        }
+      }
+
+      return Array.from(aggregatedMap.values());
+    } catch (error) {
+      console.error('Error getting multi-location search volume:', error);
+      return keywords.map(keyword => ({
+        keyword,
+        search_volume: 0,
+        competition: 0,
+        trend: [],
+        monthly_searches: [],
+      }));
+    }
+  }
+
+  /**
+   * Get search volume with debug information for testing
+   */
+  async getSearchVolumeWithDebug(keywords: string[], locationCode: number = 2840): Promise<{
+    results: SearchVolumeResult[];
+    debug: {
+      locationCode: number;
+      keywordsCount: number;
+      resultsCount: number;
+      apiUrl: string;
+      requestBody: any;
+    };
+  }> {
+    const requestData = {
+      keywords: keywords,
+      location_code: locationCode,
+      language_code: 'en',
+      sort_by: 'relevance',
+      limit: 1000,
+    };
+
+    const results = await this.getSearchVolume(keywords, locationCode);
+
+    return {
+      results,
+      debug: {
+        locationCode,
+        keywordsCount: keywords.length,
+        resultsCount: results.length,
+        apiUrl: '/v3/keywords_data/google_ads/keywords_for_keywords/live',
+        requestBody: requestData,
+      },
+    };
+  }
+
   async getKeywordSuggestions(seed: string, locationCode: number = 2840): Promise<KeywordSuggestion[]> {
     try {
       const data = {
@@ -216,7 +310,7 @@ export class DataForSEOClient {
     }
   }
 
-  async getDemandData(vehicle: VehicleAnalysisRequest): Promise<DemandData> {
+  async getDemandData(vehicle: VehicleAnalysisRequest, locationCodes?: number[]): Promise<DemandData> {
     try {
       // Create search keywords based on vehicle
       const baseKeyword = `${vehicle.make} ${vehicle.model}`;
@@ -230,12 +324,16 @@ export class DataForSEOClient {
       ].filter(Boolean);
 
       // Get search volume data
-      // TODO: Convert lat/lng to location code - for now use US default
-      const locationCode = 2840; // United States
-      const volumeResults = await this.getSearchVolume(keywords, locationCode);
+      // Use provided location codes or default to US
+      const codes = locationCodes && locationCodes.length > 0 ? locationCodes : [2840];
       
-      // Get related keywords
-      const suggestions = await this.getKeywordSuggestions(baseKeyword, locationCode);
+      // Use multi-location search if multiple codes provided
+      const volumeResults = codes.length > 1 
+        ? await this.getSearchVolumeMultiLocation(keywords, codes)
+        : await this.getSearchVolume(keywords, codes[0]);
+      
+      // Get related keywords (use first location code for suggestions)
+      const suggestions = await this.getKeywordSuggestions(baseKeyword, codes[0]);
 
       // Calculate total monthly search volume
       const monthlySearchVolume = volumeResults.reduce(

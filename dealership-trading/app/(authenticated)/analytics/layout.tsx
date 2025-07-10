@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, Car, MapPin, FileText } from 'lucide-react';
+import { BarChart3, Car, MapPin, FileText, TrendingUp } from 'lucide-react';
 
 export default function AnalyticsLayout({
   children,
@@ -22,6 +22,12 @@ export default function AnalyticsLayout({
       href: '/analytics/vehicles',
       label: 'Vehicles',
       icon: Car,
+      exact: false,
+    },
+    {
+      href: '/analytics/market-trend-report',
+      label: 'Market Trends',
+      icon: TrendingUp,
       exact: false,
     },
     {
@@ -48,7 +54,7 @@ export default function AnalyticsLayout({
   return (
     <div className="flex flex-col h-full">
       {/* Sub-navigation */}
-      <div className="bg-[#0a0a0a] border-b border-[#2a2a2a]">
+      <div className="bg-[#141414] border-b border-[#2a2a2a]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
             {subNavItems.map((item) => {
@@ -63,7 +69,7 @@ export default function AnalyticsLayout({
                     inline-flex items-center px-1 pt-4 pb-3 border-b-2 text-sm font-medium transition-all duration-200
                     ${active 
                       ? 'border-[#3b82f6] text-[#3b82f6]' 
-                      : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
+                      : 'border-transparent text-[#a3a3a3] hover:text-white hover:border-[#333333]'
                     }
                   `}
                 >
