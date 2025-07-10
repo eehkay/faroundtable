@@ -102,7 +102,7 @@ export default function VehiclePricing({
                   ) : (
                     <>
                       <TrendingUp className="h-5 w-5" />
-                      <span>Market Insights</span>
+                      <span>Market Analysis</span>
                     </>
                   )}
                 </button>

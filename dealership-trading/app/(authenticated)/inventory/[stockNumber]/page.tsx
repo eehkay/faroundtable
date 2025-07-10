@@ -101,6 +101,7 @@ export default async function VehicleDetailPage({ params }: PageProps) {
               model: vehicle.model,
               year: vehicle.year,
               vin: vehicle.vin,
+              locationId: vehicle.location?._id,
             }}
           />
 

@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import VehiclePricing from './VehiclePricing';
-import MarketInsights from './MarketInsights';
-import type { MarketInsightsData } from './MarketInsights';
+import MarketTrendReportCard from './MarketTrendReportCard';
 import VinDecodeInfo from './VinDecodeInfo';
 
 interface VinDecodeResponse {
@@ -25,6 +24,7 @@ interface MarketInsightsWrapperProps {
     model?: string;
     year?: string;
     vin?: string;
+    locationId?: string;
   };
 }
 
@@ -34,41 +34,42 @@ export default function MarketInsightsWrapper({
   msrp, 
   vehicleInfo 
 }: MarketInsightsWrapperProps) {
-  const [marketInsights, setMarketInsights] = useState<MarketInsightsData | null>(null);
+  const [marketTrendReport, setMarketTrendReport] = useState<any>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [vinDecodeData, setVinDecodeData] = useState<VinDecodeResponse | null>(null);
   const [isLoadingVinDecode, setIsLoadingVinDecode] = useState(false);
 
   const fetchMarketInsights = async () => {
-    if (!vehicleInfo.vin) {
-      console.error('VIN is required for market insights');
+    if (!vehicleInfo.vin || !vehicleInfo.locationId) {
+      console.error('VIN and location ID are required for market analysis');
       return;
     }
     
     try {
       setIsLoadingInsights(true);
       
-      const response = await fetch('/api/market-insights', {
+      const response = await fetch('/api/analytics/market-trend-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           vin: vehicleInfo.vin,
-          zipCode: '89104', // Default ZIP code, could be made configurable
+          currentPrice: salePrice || price,
+          locationId: vehicleInfo.locationId,
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Market insights API error:', response.status, errorText);
-        throw new Error(`Failed to fetch market insights: ${response.status}`);
+        console.error('Market trend report API error:', response.status, errorText);
+        throw new Error(`Failed to fetch market analysis: ${response.status}`);
       }
 
-      const data = await response.json();
-      setMarketInsights(data);
+      const result = await response.json();
+      setMarketTrendReport(result.data);
     } catch (error) {
-      console.error('Error fetching market insights:', error);
+      console.error('Error fetching market analysis:', error);
     } finally {
       setIsLoadingInsights(false);
     }
@@ -122,9 +123,9 @@ export default function MarketInsightsWrapper({
         isLoadingVinDecode={isLoadingVinDecode}
       />
       
-      {marketInsights && (
-        <MarketInsights 
-          data={marketInsights}
+      {marketTrendReport && (
+        <MarketTrendReportCard 
+          data={marketTrendReport}
           currentPrice={salePrice || price || 0}
           vehicleInfo={vehicleInfo}
         />
