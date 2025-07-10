@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { TrendingUp, TrendingDown, Minus, DollarSign, Package, Search, MapPin, ExternalLink, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, DollarSign, Package, Search, MapPin, ExternalLink, AlertCircle, Target } from 'lucide-react';
 
 interface MarketTrendReportCardProps {
   data: any; // We'll use the full Market Trend Report data structure
@@ -49,50 +49,129 @@ export default function MarketTrendReportCard({ data, currentPrice, vehicleInfo 
     const params = new URLSearchParams({
       vin: vehicleInfo.vin || '',
       price: currentPrice.toString(),
-      locationId: vehicleInfo.locationId || ''
+      locationId: vehicleInfo.locationId || '',
+      autoRun: 'true'
     });
     window.open(`/analytics/market-trend-report?${params.toString()}`, '_blank');
   };
 
   return (
-    <div className="bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg shadow-sm p-6 transition-all duration-200 space-y-6">
+    <div className="bg-gradient-to-br from-[#0a0a0a] to-[#141414] border border-[#2a2a2a] rounded-xl shadow-xl p-8 transition-all duration-200 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Market Analysis</h2>
+      <div className="flex items-center justify-between border-b border-[#2a2a2a] pb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Market Analysis</h2>
+          <p className="text-sm text-[#737373] mt-1">Real-time market intelligence and pricing insights</p>
+        </div>
         <button
           onClick={openFullReport}
-          className="flex items-center gap-1 text-sm text-[#3b82f6] hover:text-[#2563eb] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#3b82f6] hover:bg-[#2563eb] text-white rounded-lg transition-colors text-sm font-medium shadow-lg hover:shadow-xl"
         >
           View Full Report
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className="h-4 w-4" />
         </button>
       </div>
 
       {/* Opportunity Score */}
       {data.opportunityScore && (
-        <div className="bg-[#141414] rounded-lg p-4 border border-[#2a2a2a]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-[#737373] uppercase">Opportunity Score</span>
-            <span className={`text-2xl font-bold ${getScoreColor(data.opportunityScore.overall)}`}>
-              {data.opportunityScore.overall}%
-            </span>
+        <div className="bg-[#141414] rounded-lg p-6 border border-[#2a2a2a]">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-sm text-[#737373] uppercase tracking-wider">Opportunity Score</h3>
+              <p className="text-xs text-[#525252] mt-1">Overall market opportunity assessment</p>
+            </div>
+            <div className="text-right">
+              <span className={`text-4xl font-bold ${getScoreColor(data.opportunityScore.overall)}`}>
+                {data.opportunityScore.overall}
+              </span>
+              <span className="text-xl text-[#737373] ml-1">%</span>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex justify-between">
-              <span className="text-[#737373]">Price Position:</span>
-              <span className="text-white">{data.opportunityScore.breakdown.priceCompetitiveness}%</span>
+          
+          {/* Score Breakdown with Progress Bars */}
+          <div className="space-y-4">
+            {/* Price Position */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#a3a3a3] flex items-center gap-2">
+                  <DollarSign className="h-3 w-3 text-[#3b82f6]" />
+                  Price Position
+                </span>
+                <span className="text-white font-medium">{data.opportunityScore.breakdown.priceCompetitiveness}%</span>
+              </div>
+              <div className="w-full bg-[#2a2a2a] rounded-full h-2 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    data.opportunityScore.breakdown.priceCompetitiveness >= 80 ? 'bg-green-500' :
+                    data.opportunityScore.breakdown.priceCompetitiveness >= 60 ? 'bg-blue-500' :
+                    data.opportunityScore.breakdown.priceCompetitiveness >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${data.opportunityScore.breakdown.priceCompetitiveness}%` }}
+                />
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[#737373]">Inventory:</span>
-              <span className="text-white">{data.opportunityScore.breakdown.inventoryScarcity}%</span>
+
+            {/* Inventory */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#a3a3a3] flex items-center gap-2">
+                  <Package className="h-3 w-3 text-[#3b82f6]" />
+                  Inventory Scarcity
+                </span>
+                <span className="text-white font-medium">{data.opportunityScore.breakdown.inventoryScarcity}%</span>
+              </div>
+              <div className="w-full bg-[#2a2a2a] rounded-full h-2 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    data.opportunityScore.breakdown.inventoryScarcity >= 80 ? 'bg-green-500' :
+                    data.opportunityScore.breakdown.inventoryScarcity >= 60 ? 'bg-blue-500' :
+                    data.opportunityScore.breakdown.inventoryScarcity >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${data.opportunityScore.breakdown.inventoryScarcity}%` }}
+                />
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[#737373]">Regional Demand:</span>
-              <span className="text-white">{data.opportunityScore.breakdown.regionalDemand}%</span>
+
+            {/* Regional Demand */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#a3a3a3] flex items-center gap-2">
+                  <Search className="h-3 w-3 text-[#3b82f6]" />
+                  Regional Demand
+                </span>
+                <span className="text-white font-medium">{data.opportunityScore.breakdown.regionalDemand}%</span>
+              </div>
+              <div className="w-full bg-[#2a2a2a] rounded-full h-2 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    data.opportunityScore.breakdown.regionalDemand >= 80 ? 'bg-green-500' :
+                    data.opportunityScore.breakdown.regionalDemand >= 60 ? 'bg-blue-500' :
+                    data.opportunityScore.breakdown.regionalDemand >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${data.opportunityScore.breakdown.regionalDemand}%` }}
+                />
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[#737373]">Market Timing:</span>
-              <span className="text-white">{data.opportunityScore.breakdown.marketTiming}%</span>
+
+            {/* Market Timing */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#a3a3a3] flex items-center gap-2">
+                  <TrendingUp className="h-3 w-3 text-[#3b82f6]" />
+                  Market Timing
+                </span>
+                <span className="text-white font-medium">{data.opportunityScore.breakdown.marketTiming}%</span>
+              </div>
+              <div className="w-full bg-[#2a2a2a] rounded-full h-2 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    data.opportunityScore.breakdown.marketTiming >= 80 ? 'bg-green-500' :
+                    data.opportunityScore.breakdown.marketTiming >= 60 ? 'bg-blue-500' :
+                    data.opportunityScore.breakdown.marketTiming >= 40 ? 'bg-yellow-500' : 'bg-red-500'
+                  }`}
+                  style={{ width: `${data.opportunityScore.breakdown.marketTiming}%` }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -100,32 +179,54 @@ export default function MarketTrendReportCard({ data, currentPrice, vehicleInfo 
 
       {/* Price Analysis */}
       {data.marketPosition && !data.marketPosition.error && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-white flex items-center gap-2">
+        <div className="bg-[#141414] rounded-lg p-5 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all duration-200">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2 mb-4">
             <DollarSign className="h-4 w-4 text-[#3b82f6]" />
             Price Analysis
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <p className="text-xs text-[#737373] uppercase mb-1">Market Price</p>
-              <p className="text-lg font-semibold text-white">
+              <p className="text-xs text-[#737373] uppercase mb-2">Market Price</p>
+              <p className="text-2xl font-bold text-white">
                 {formatPrice(data.marketPosition.predictedPrice)}
               </p>
-              <p className="text-xs text-[#737373]">
-                {formatPrice(data.marketPosition.priceRange.lower)} - {formatPrice(data.marketPosition.priceRange.upper)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-[#737373] uppercase mb-1">Current Position</p>
-              <div className="flex items-center gap-2">
-                {getTrendIcon(data.competitiveLandscape?.pricePosition)}
-                <span className="text-lg font-semibold text-white">
-                  {data.marketPosition.percentile}th %ile
+              <div className="mt-2 text-xs text-[#525252]">
+                <span className="inline-block px-2 py-1 bg-[#2a2a2a] rounded">
+                  {formatPrice(data.marketPosition.priceRange.lower)} - {formatPrice(data.marketPosition.priceRange.upper)}
                 </span>
               </div>
-              <p className="text-xs text-[#737373] mt-1">
+            </div>
+            <div>
+              <p className="text-xs text-[#737373] uppercase mb-2">Current Position</p>
+              <div className="flex items-center gap-2 mb-2">
+                {getTrendIcon(data.competitiveLandscape?.pricePosition)}
+                <span className="text-2xl font-bold text-white">
+                  {data.marketPosition.percentile}
+                  <span className="text-sm font-normal text-[#737373]">th percentile</span>
+                </span>
+              </div>
+              <p className="text-xs text-[#a3a3a3] leading-relaxed">
                 {data.marketPosition.recommendation}
               </p>
+            </div>
+          </div>
+          
+          {/* Visual Percentile Bar */}
+          <div className="mt-4 pt-4 border-t border-[#2a2a2a]">
+            <div className="relative h-3 bg-[#2a2a2a] rounded-full overflow-hidden">
+              <div 
+                className="absolute h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 opacity-20"
+                style={{ width: '100%' }}
+              />
+              <div 
+                className="absolute top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-full shadow-lg"
+                style={{ left: `${data.marketPosition.percentile}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-2 text-xs text-[#525252]">
+              <span>Below Market</span>
+              <span>At Market</span>
+              <span>Above Market</span>
             </div>
           </div>
         </div>
@@ -133,29 +234,38 @@ export default function MarketTrendReportCard({ data, currentPrice, vehicleInfo 
 
       {/* Market Supply */}
       {data.inventoryAnalysis && !data.inventoryAnalysis.error && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-white flex items-center gap-2">
+        <div className="bg-[#141414] rounded-lg p-5 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all duration-200">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2 mb-4">
             <Package className="h-4 w-4 text-[#3b82f6]" />
             Market Supply
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <p className="text-xs text-[#737373] uppercase mb-1">Days Supply</p>
-              <p className="text-lg font-semibold text-white">
-                {data.inventoryAnalysis.marketDaySupply} days
-              </p>
-              <div className={`inline-flex px-2 py-1 rounded-full text-xs mt-1 ${getScoreBadgeColor(data.inventoryAnalysis.scarcityScore)}`}>
-                Scarcity: {data.inventoryAnalysis.scarcityScore}%
+              <p className="text-xs text-[#737373] uppercase mb-2">Days Supply</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold text-white">
+                  {data.inventoryAnalysis.marketDaySupply}
+                </p>
+                <span className="text-sm text-[#737373]">days</span>
+              </div>
+              <div className="mt-3">
+                <div className={`inline-flex px-3 py-1.5 rounded-full text-xs font-medium ${getScoreBadgeColor(data.inventoryAnalysis.scarcityScore)}`}>
+                  Scarcity Score: {data.inventoryAnalysis.scarcityScore}%
+                </div>
               </div>
             </div>
             <div>
-              <p className="text-xs text-[#737373] uppercase mb-1">Market Inventory</p>
-              <p className="text-lg font-semibold text-white">
-                {data.inventoryAnalysis.inventoryCount} units
-              </p>
-              <p className="text-xs text-[#737373] mt-1">
-                {data.inventoryAnalysis.salesCount} sold/month
-              </p>
+              <p className="text-xs text-[#737373] uppercase mb-2">Market Activity</p>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-[#a3a3a3]">Inventory</span>
+                  <span className="text-lg font-semibold text-white">{data.inventoryAnalysis.inventoryCount}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-[#a3a3a3]">Monthly Sales</span>
+                  <span className="text-lg font-semibold text-white">{data.inventoryAnalysis.salesCount}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -163,21 +273,24 @@ export default function MarketTrendReportCard({ data, currentPrice, vehicleInfo 
 
       {/* Competition */}
       {data.competitiveLandscape && !data.competitiveLandscape.error && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-white flex items-center gap-2">
+        <div className="bg-[#141414] rounded-lg p-5 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all duration-200">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2 mb-4">
             <MapPin className="h-4 w-4 text-[#3b82f6]" />
             Local Competition
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <p className="text-xs text-[#737373] uppercase mb-1">Nearby Inventory</p>
-              <p className="text-lg font-semibold text-white">
-                {data.competitiveLandscape.totalNearbyInventory} vehicles
-              </p>
+              <p className="text-xs text-[#737373] uppercase mb-2">Nearby Inventory</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold text-white">
+                  {data.competitiveLandscape.totalNearbyInventory}
+                </p>
+                <span className="text-sm text-[#737373]">vehicles</span>
+              </div>
             </div>
             <div>
-              <p className="text-xs text-[#737373] uppercase mb-1">Avg Competitor Price</p>
-              <p className="text-lg font-semibold text-white">
+              <p className="text-xs text-[#737373] uppercase mb-2">Avg Competitor Price</p>
+              <p className="text-2xl font-bold text-white">
                 {formatPrice(data.competitiveLandscape.avgCompetitorPrice)}
               </p>
             </div>
@@ -187,27 +300,28 @@ export default function MarketTrendReportCard({ data, currentPrice, vehicleInfo 
 
       {/* Demand Analysis */}
       {data.demandAnalysis && !data.demandAnalysis.error && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-white flex items-center gap-2">
+        <div className="bg-[#141414] rounded-lg p-5 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all duration-200">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2 mb-4">
             <Search className="h-4 w-4 text-[#3b82f6]" />
             Local Demand
           </h3>
           <div>
-            <p className="text-xs text-[#737373] uppercase mb-1">Monthly Searches</p>
-            <div className="flex items-baseline gap-3">
-              <p className="text-lg font-semibold text-white">
+            <p className="text-xs text-[#737373] uppercase mb-2">Monthly Search Volume</p>
+            <div className="flex items-center gap-3 mb-3">
+              <p className="text-3xl font-bold text-white">
                 {data.demandAnalysis.totalMonthlySearches.toLocaleString()}
               </p>
-              <span className={`px-2 py-1 rounded-full text-xs ${
+              <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${
                 data.demandAnalysis.demandLevel === 'high' ? 'bg-green-900/20 text-green-400' :
                 data.demandAnalysis.demandLevel === 'medium' ? 'bg-yellow-900/20 text-yellow-400' :
                 'bg-gray-900/20 text-gray-400'
               }`}>
-                {data.demandAnalysis.demandLevel} demand
+                {data.demandAnalysis.demandLevel.charAt(0).toUpperCase() + data.demandAnalysis.demandLevel.slice(1)} Demand
               </span>
             </div>
-            <p className="text-xs text-[#737373] mt-1">
-              in {data.demandAnalysis.locationName}
+            <p className="text-sm text-[#a3a3a3]">
+              <MapPin className="h-3 w-3 inline mr-1" />
+              {data.demandAnalysis.locationName}
             </p>
           </div>
         </div>
@@ -215,19 +329,22 @@ export default function MarketTrendReportCard({ data, currentPrice, vehicleInfo 
 
       {/* Key Recommendations */}
       {data.recommendations && (
-        <div className="pt-4 border-t border-[#2a2a2a]">
-          <h3 className="text-sm font-medium text-white mb-3">Key Recommendations</h3>
-          <div className="space-y-2">
+        <div className="bg-gradient-to-br from-[#141414] to-[#1a1a1a] rounded-lg p-5 border border-[#2a2a2a]">
+          <h3 className="text-sm font-medium text-white mb-4 flex items-center gap-2">
+            <Target className="h-4 w-4 text-[#3b82f6]" />
+            Key Recommendations
+          </h3>
+          <div className="space-y-3">
             {data.recommendations.action && (
-              <div className="flex items-start gap-2">
-                <div className="w-1 h-1 rounded-full bg-[#3b82f6] mt-2 flex-shrink-0"></div>
-                <p className="text-sm text-[#a3a3a3]">{data.recommendations.action}</p>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 rounded-full bg-[#3b82f6] mt-1.5 flex-shrink-0"></div>
+                <p className="text-sm text-[#e5e5e5] leading-relaxed">{data.recommendations.action}</p>
               </div>
             )}
             {data.recommendations.pricing && (
-              <div className="flex items-start gap-2">
-                <div className="w-1 h-1 rounded-full bg-[#3b82f6] mt-2 flex-shrink-0"></div>
-                <p className="text-sm text-[#a3a3a3]">{data.recommendations.pricing}</p>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 rounded-full bg-[#3b82f6] mt-1.5 flex-shrink-0"></div>
+                <p className="text-sm text-[#e5e5e5] leading-relaxed">{data.recommendations.pricing}</p>
               </div>
             )}
           </div>

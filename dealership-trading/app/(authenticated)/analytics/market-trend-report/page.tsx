@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AlertCircle, TrendingUp, TrendingDown, Minus, Loader2, FileText, DollarSign, Package, Clock, Target, Zap, TrendingUpIcon, Users, BarChart3, Search, Settings2, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
@@ -95,6 +96,7 @@ interface MarketTrendReport {
 export default function MarketTrendReportPage() {
   const { data: session } = useSession()
   const { locations } = useDealershipLocations()
+  const searchParams = useSearchParams()
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -118,6 +120,7 @@ export default function MarketTrendReportPage() {
     // Search parameters
     searchRadius: '100'
   })
+  const [hasAutoRun, setHasAutoRun] = useState(false)
 
   const generateReport = async () => {
     // Check if we have either a selected vehicle or manual VIN
@@ -217,6 +220,46 @@ export default function MarketTrendReportPage() {
     })
     setManualVin('')
   }
+
+  // Auto-run functionality when coming from inventory page
+  useEffect(() => {
+    const vin = searchParams.get('vin')
+    const price = searchParams.get('price')
+    const locationId = searchParams.get('locationId')
+    const autoRun = searchParams.get('autoRun')
+    
+    if (autoRun === 'true' && vin && !hasAutoRun && !loading && !report) {
+      setHasAutoRun(true)
+      
+      // Set manual VIN
+      setManualVin(vin)
+      
+      // Set current price if provided
+      if (price) {
+        setOverrideFields(prev => ({
+          ...prev,
+          currentPrice: price
+        }))
+      }
+      
+      // Set selected vehicle with location if provided
+      if (locationId) {
+        setSelectedVehicle({
+          vin: vin,
+          price: price ? parseFloat(price) : undefined,
+          locationId: locationId
+        })
+      }
+    }
+  }, [searchParams, hasAutoRun, loading, report])
+
+  // Trigger report generation when state is ready
+  useEffect(() => {
+    if (hasAutoRun && manualVin && !loading && !report) {
+      generateReport()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasAutoRun, manualVin, loading, report])
 
   return (
     <div className="min-h-screen bg-[#141414]">
