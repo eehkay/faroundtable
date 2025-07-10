@@ -552,7 +552,17 @@ export async function getDealershipLocations() {
       city,
       state,
       zip,
-      phone
+      phone,
+      email,
+      csv_file_name,
+      email_domains,
+      enable_csv_import,
+      active,
+      latitude,
+      longitude,
+      city_state,
+      created_at,
+      updated_at
     `)
     .eq('active', true)
     .order('name', { ascending: true })
@@ -573,6 +583,15 @@ export async function getDealershipLocations() {
     state: location.state,
     zip: location.zip,
     phone: location.phone,
-    active: true // We already filter by active in the query
+    email: location.email,
+    csvFileName: location.csv_file_name,
+    emailDomains: location.email_domains,
+    enableCsvImport: location.enable_csv_import,
+    active: location.active,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    city_state: location.city_state,
+    createdAt: location.created_at,
+    updatedAt: location.updated_at
   })) || []
 }

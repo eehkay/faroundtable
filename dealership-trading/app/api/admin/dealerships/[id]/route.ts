@@ -17,7 +17,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await req.json();
-    const { name, address, city, state, zip, phone, email, csvFileName, emailDomains, enableCsvImport, active } = body;
+    const { name, address, city, state, zip, phone, email, csvFileName, emailDomains, enableCsvImport, active, latitude, longitude, city_state } = body;
 
     // Validate required fields
     if (!name) {
@@ -53,9 +53,12 @@ export async function PUT(
         phone: phone || null,
         email: email || null,
         csv_file_name: csvFileName || null,
-        email_domains: emailDomains || [],
+        email_domains: Array.isArray(emailDomains) ? emailDomains : [],
         enable_csv_import: enableCsvImport !== undefined ? enableCsvImport : true,
         active: active !== undefined ? active : true,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        city_state: city_state || null,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -82,6 +85,9 @@ export async function PUT(
       emailDomains: updatedDealership.email_domains,
       enableCsvImport: updatedDealership.enable_csv_import,
       active: updatedDealership.active,
+      latitude: updatedDealership.latitude,
+      longitude: updatedDealership.longitude,
+      city_state: updatedDealership.city_state,
       createdAt: updatedDealership.created_at,
       updatedAt: updatedDealership.updated_at
     };
