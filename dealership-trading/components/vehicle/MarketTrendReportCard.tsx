@@ -303,26 +303,86 @@ export default function MarketTrendReportCard({ data, currentPrice, vehicleInfo 
         <div className="bg-[#141414] rounded-lg p-5 border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all duration-200">
           <h3 className="text-sm font-medium text-white flex items-center gap-2 mb-4">
             <Search className="h-4 w-4 text-[#3b82f6]" />
-            Local Demand
+            Local Demand Analysis
           </h3>
-          <div>
-            <p className="text-xs text-[#737373] uppercase mb-2">Monthly Search Volume</p>
-            <div className="flex items-center gap-3 mb-3">
-              <p className="text-3xl font-bold text-white">
-                {data.demandAnalysis.totalMonthlySearches.toLocaleString()}
+          <div className="space-y-4">
+            {/* Total Search Volume */}
+            <div>
+              <p className="text-xs text-[#737373] uppercase mb-2">Monthly Search Volume</p>
+              <div className="flex items-center gap-3 mb-3">
+                <p className="text-3xl font-bold text-white">
+                  {data.demandAnalysis.totalMonthlySearches.toLocaleString()}
+                </p>
+                <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${
+                  data.demandAnalysis.demandLevel === 'high' ? 'bg-green-900/20 text-green-400' :
+                  data.demandAnalysis.demandLevel === 'medium' ? 'bg-yellow-900/20 text-yellow-400' :
+                  'bg-gray-900/20 text-gray-400'
+                }`}>
+                  {data.demandAnalysis.demandLevel.charAt(0).toUpperCase() + data.demandAnalysis.demandLevel.slice(1)} Demand
+                </span>
+              </div>
+              <p className="text-sm text-[#a3a3a3]">
+                <MapPin className="h-3 w-3 inline mr-1" />
+                {data.demandAnalysis.locationName}
               </p>
-              <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${
-                data.demandAnalysis.demandLevel === 'high' ? 'bg-green-900/20 text-green-400' :
-                data.demandAnalysis.demandLevel === 'medium' ? 'bg-yellow-900/20 text-yellow-400' :
-                'bg-gray-900/20 text-gray-400'
-              }`}>
-                {data.demandAnalysis.demandLevel.charAt(0).toUpperCase() + data.demandAnalysis.demandLevel.slice(1)} Demand
-              </span>
             </div>
-            <p className="text-sm text-[#a3a3a3]">
-              <MapPin className="h-3 w-3 inline mr-1" />
-              {data.demandAnalysis.locationName}
-            </p>
+
+            {/* Top Keywords */}
+            {data.demandAnalysis.topKeywords && data.demandAnalysis.topKeywords.length > 0 && (
+              <div className="pt-4 border-t border-[#2a2a2a]">
+                <p className="text-xs text-[#737373] uppercase mb-3">Top Search Keywords</p>
+                <div className="space-y-2">
+                  {data.demandAnalysis.topKeywords.slice(0, 5).map((keyword: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-xs text-[#525252] w-4">{index + 1}.</span>
+                        <span className="text-sm text-[#e5e5e5] truncate">{keyword.keyword}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-white">
+                          {keyword.monthlySearches.toLocaleString()}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          keyword.competition === 'LOW' ? 'bg-green-900/20 text-green-400' :
+                          keyword.competition === 'MEDIUM' ? 'bg-yellow-900/20 text-yellow-400' :
+                          'bg-red-900/20 text-red-400'
+                        }`}>
+                          {keyword.competition}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {data.demandAnalysis.topKeywords.length > 5 && (
+                  <p className="text-xs text-[#525252] mt-3">
+                    +{data.demandAnalysis.topKeywords.length - 5} more keywords analyzed
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Search Trend */}
+            {data.demandAnalysis.searchTrend && (
+              <div className="flex items-center gap-2 pt-2">
+                <span className="text-xs text-[#737373]">Search Trend:</span>
+                <div className="flex items-center gap-1">
+                  {data.demandAnalysis.searchTrend === 'rising' ? (
+                    <TrendingUp className="h-3 w-3 text-green-500" />
+                  ) : data.demandAnalysis.searchTrend === 'declining' ? (
+                    <TrendingDown className="h-3 w-3 text-red-500" />
+                  ) : (
+                    <Minus className="h-3 w-3 text-gray-500" />
+                  )}
+                  <span className={`text-xs font-medium ${
+                    data.demandAnalysis.searchTrend === 'rising' ? 'text-green-500' :
+                    data.demandAnalysis.searchTrend === 'declining' ? 'text-red-500' :
+                    'text-gray-500'
+                  }`}>
+                    {data.demandAnalysis.searchTrend.charAt(0).toUpperCase() + data.demandAnalysis.searchTrend.slice(1)}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
