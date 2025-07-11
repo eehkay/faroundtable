@@ -9,11 +9,8 @@ import { Suspense } from "react";
 export default async function UsersPage() {
   const session = await getServerSession(authOptions);
   
-  console.log('Admin Users Page - Session:', session?.user?.role);
-  console.log('Admin Users Page - Can Manage Users:', session ? canManageUsers(session.user.role) : false);
   
   if (!session || !canManageUsers(session.user.role) || session.impersonating?.active) {
-    console.log('Redirecting to dashboard - insufficient permissions or impersonating');
     redirect("/dashboard");
   }
 
@@ -23,9 +20,6 @@ export default async function UsersPage() {
     getDealershipLocations()
   ]);
 
-  console.log('Admin Users Page - Fetched users:', users.length);
-  console.log('Admin Users Page - Users data:', JSON.stringify(users, null, 2));
-  console.log('Admin Users Page - Locations:', locations.length);
 
   return (
     <div className="space-y-6">

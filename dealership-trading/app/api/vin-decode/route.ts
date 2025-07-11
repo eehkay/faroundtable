@@ -28,7 +28,6 @@ async function getAuthToken(): Promise<string> {
     authUrl.searchParams.append('apiID', apiID);
     authUrl.searchParams.append('apiKey', apiKey);
 
-    console.log('Authenticating with Auto Dealer Data API for VIN decode...');
     
     const response = await fetch(authUrl.toString(), {
       method: 'GET',
@@ -36,7 +35,6 @@ async function getAuthToken(): Promise<string> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Auth response:', response.status, errorText);
       throw new Error(`Failed to authenticate with Auto Dealer Data API: ${response.status}`);
     }
 
@@ -50,22 +48,18 @@ async function getAuthToken(): Promise<string> {
       throw new Error('No token received from Auto Dealer Data API');
     }
     
-    console.log('Auth successful, token cached');
     
     return tokenCache.token;
   } catch (error) {
-    console.error('Error getting auth token:', error);
     throw error;
   }
 }
 
 export async function POST(req: NextRequest) {
-  console.log('VIN decode API called');
   
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
-    console.log('Session:', session ? 'authenticated' : 'not authenticated');
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -79,11 +73,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'VIN is required' }, { status: 400 });
     }
 
-    console.log('Decoding VIN:', vin);
     
     // Get JWT token
     const jwt = await getAuthToken();
-    console.log('JWT token obtained for VIN decode');
 
     // Call VIN decode API
     const apiUrl = process.env.AUTODEALERDATA_API_URL;
@@ -94,7 +86,6 @@ export async function POST(req: NextRequest) {
       passEmpty: 'false', // Don't include empty fields
     });
 
-    console.log('Calling VIN decode API...');
     
     const response = await fetch(vinDecodeUrl, {
       method: 'GET',
@@ -105,7 +96,6 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('VIN decode API error:', response.status, errorText);
       return NextResponse.json(
         { error: 'Failed to decode VIN', details: errorText },
         { status: response.status }
@@ -113,8 +103,6 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('VIN decode successful');
-    console.log('Full API response:', JSON.stringify(data, null, 2));
 
     // Process and structure the response - data is nested in 'data' object
     const vehicleData = data.data || {};
@@ -215,11 +203,9 @@ export async function POST(req: NextRequest) {
       decodedAt: new Date().toISOString(),
     };
 
-    console.log(`Found ${result.recalls.length} recalls for this vehicle`);
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('VIN decode error:', error);
     
     // Return more specific error information
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

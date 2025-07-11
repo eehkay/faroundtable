@@ -200,15 +200,12 @@ export default function TransfersPage() {
         
         // Handle multi-select locations
         if (filters.locations && filters.locations.length > 0) {
-          console.log('Applying location filter for:', filters.locations);
           const locationConditions = filters.locations
             .map(id => `from_location_id.eq.${id},to_location_id.eq.${id}`)
             .join(',');
-          console.log('Location condition string:', locationConditions);
           query = query.or(locationConditions);
         } else if (filters.location && filters.location !== 'all') {
           // Fallback to single location for backward compatibility
-          console.log('Applying single location filter for:', filters.location);
           query = query.or(`from_location_id.eq.${filters.location},to_location_id.eq.${filters.location}`);
         }
         
@@ -249,12 +246,6 @@ export default function TransfersPage() {
         }
 
         if (error) {
-          console.error('Failed to fetch transfers:', error);
-          console.error('Query details:', {
-            locationFilters: filters.locations,
-            statusFilter: filters.status,
-            error: error.message
-          });
           setTransfers([]);
           return;
         }
@@ -266,12 +257,6 @@ export default function TransfersPage() {
 
         // Debug: Log some sample transfers to see location data
         if (data.length > 0) {
-          console.log('Sample transfer data:', {
-            transferId: data[0].id,
-            fromLocation: data[0].from_location,
-            toLocation: data[0].to_location,
-            appliedFilters: filters
-          });
         }
 
         // Transform data to match existing format
@@ -346,7 +331,6 @@ export default function TransfersPage() {
         
         setTransfers(transformedData);
       } catch (error) {
-        console.error('Failed to fetch transfers:', error);
       } finally {
         setLoading(false);
       }
@@ -450,7 +434,6 @@ export default function TransfersPage() {
             window.location.reload();
           }
         } catch (error) {
-          console.error('Failed to verify transfer update:', error);
         }
       };
       verifyUpdate();

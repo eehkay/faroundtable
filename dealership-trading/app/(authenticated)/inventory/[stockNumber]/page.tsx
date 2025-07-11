@@ -30,12 +30,10 @@ export default async function VehicleDetailPage({ params }: PageProps) {
   // Await the params to get the stockNumber
   const { stockNumber } = await params;
 
-  console.log('Fetching vehicle details for:', stockNumber);
 
   // Fetch vehicle details
   const vehicle = await getVehicleByStockNumber(stockNumber);
 
-  console.log('Vehicle result:', vehicle ? 'Found' : 'Not found');
 
   if (!vehicle) {
     notFound();

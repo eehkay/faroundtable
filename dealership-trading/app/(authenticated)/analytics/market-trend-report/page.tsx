@@ -91,6 +91,19 @@ interface MarketTrendReport {
     timing: string
     action: string
   }
+  demandAnalysis?: {
+    totalMonthlySearches: number
+    locationName: string
+    demandLevel: string
+    searchTrend?: string
+    topKeywords?: Array<{
+      keyword: string
+      monthlySearches: number
+      competition: number
+    }>
+    error?: string
+    note?: string
+  }
 }
 
 export default function MarketTrendReportPage() {
@@ -687,7 +700,7 @@ export default function MarketTrendReportPage() {
                         <div className="mt-3">
                           <p className="text-xs text-[#737373] uppercase mb-2">Popular Colors</p>
                           <div className="flex flex-wrap gap-1">
-                            {report.regionalPerformance.topColors.slice(0, 3).map((color, index) => (
+                            {report.regionalPerformance.topColors.slice(0, 3).map((color: string, index: number) => (
                               <Badge key={index} variant="outline" className="text-xs">
                                 {color}
                               </Badge>
@@ -777,7 +790,7 @@ export default function MarketTrendReportPage() {
                   <div>
                     <p className="text-xs text-[#737373] uppercase mb-3">Top Competitors</p>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-                      {report.competitiveLandscape.similarVehicles.slice(0, 3).map((vehicle, index) => (
+                      {report.competitiveLandscape.similarVehicles.slice(0, 3).map((vehicle, index: number) => (
                         <CompetitorCard
                           key={index}
                           distance={vehicle.distance}
@@ -843,7 +856,7 @@ export default function MarketTrendReportPage() {
                       <div>
                         <p className="text-xs text-[#737373] uppercase mb-3">Top Search Keywords</p>
                         <div className="space-y-2">
-                          {report.demandAnalysis.topKeywords.map((keyword, index) => (
+                          {report.demandAnalysis.topKeywords.map((keyword: { keyword: string; monthlySearches: number; competition: number }, index: number) => (
                             <div key={index} className="bg-[#141414] rounded-lg p-3 border border-[#2a2a2a] hover:bg-[#1a1a1a] transition-all duration-200">
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
@@ -858,7 +871,7 @@ export default function MarketTrendReportPage() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  {[...Array(5)].map((_, i) => (
+                                  {[...Array(5)].map((_, i: number) => (
                                     <div
                                       key={i}
                                       className={`h-1.5 w-1.5 rounded-full ${

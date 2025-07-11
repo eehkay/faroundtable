@@ -339,11 +339,11 @@ export async function POST(request: NextRequest) {
       const salesData = citywiseSales.value
       console.log('✅ Citywise Sales SUCCESS:', {
         request: {
-          vin: vehicle.vin,
-          year: vehicle.year,
-          make: vehicle.make.toLowerCase(),
-          model: vehicle.model.toLowerCase(),
-          trim: vehicle.trim,
+          vin: vehicleData.vin,
+          year: vehicleData.year,
+          make: vehicleData.make.toLowerCase(),
+          model: vehicleData.model.toLowerCase(),
+          trim: vehicleData.trim,
           city_state: locationData.city_state
         },
         response: salesData
@@ -378,11 +378,11 @@ export async function POST(request: NextRequest) {
         error: errorMessage,
         debugInfo: {
           requestParams: {
-            vin: vehicle.vin,
-            year: vehicle.year,
-            make: vehicle.make.toLowerCase(),
-            model: vehicle.model.toLowerCase(),
-            trim: vehicle.trim,
+            vin: vehicleData.vin,
+            year: vehicleData.year,
+            make: vehicleData.make.toLowerCase(),
+            model: vehicleData.model.toLowerCase(),
+            trim: vehicleData.trim,
             city_state: locationData.city_state
           },
           errorReason: citywiseSales.reason?.toString(),
