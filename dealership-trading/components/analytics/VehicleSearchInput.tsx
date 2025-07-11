@@ -99,7 +99,6 @@ export default function VehicleSearchInput({
           setSelectedIndex(0)
         }
       } catch (error) {
-        console.error('Error searching vehicles:', error)
         setResults([])
       } finally {
         setIsLoading(false)

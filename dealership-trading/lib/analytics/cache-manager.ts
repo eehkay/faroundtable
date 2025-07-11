@@ -74,7 +74,6 @@ export class CacheManager {
 
       return data.response_data as T;
     } catch (error) {
-      console.error('Cache get error:', error);
       return null;
     }
   }
@@ -109,10 +108,8 @@ export class CacheManager {
         });
 
       if (error) {
-        console.error('Cache set error:', error);
       }
     } catch (error) {
-      console.error('Cache set error:', error);
     }
   }
 
@@ -139,10 +136,8 @@ export class CacheManager {
       const { error } = await query;
 
       if (error) {
-        console.error('Cache invalidate error:', error);
       }
     } catch (error) {
-      console.error('Cache invalidate error:', error);
     }
   }
 
@@ -182,7 +177,6 @@ export class CacheManager {
         sizeByType,
       };
     } catch (error) {
-      console.error('Cache stats error:', error);
       return {
         totalEntries: 0,
         totalHits: 0,

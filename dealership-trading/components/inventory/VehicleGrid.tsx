@@ -94,7 +94,6 @@ export default function VehicleGrid({ userLocation, userRole }: VehicleGridProps
           table: 'vehicles'
         },
         (payload) => {
-          console.log('Vehicle real-time update:', payload);
           // Use debounced refresh to prevent rapid successive updates
           debouncedRefresh();
         }

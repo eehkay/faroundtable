@@ -28,7 +28,7 @@ export default function ImpersonationIndicator() {
         window.location.reload()
       }
     } catch (error) {
-      console.error('Error stopping impersonation:', error)
+      // Error stopping impersonation
     } finally {
       setLoading(false)
     }

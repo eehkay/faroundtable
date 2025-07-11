@@ -84,7 +84,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch vehicle stats:', error);
+        // Failed to fetch vehicle stats
       } finally {
         setIsLoadingStats(false);
       }
@@ -168,7 +168,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       
       router.push(`${pathname}?${params.toString()}`);
     } catch (error) {
-      console.error('Error updating filter:', error);
+      // Error updating filter
     }
   };
 
@@ -182,7 +182,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       
       router.push(`${pathname}?${params.toString()}`);
     } catch (error) {
-      console.error('Error updating sort:', error);
+      // Error updating sort
     }
   };
 
@@ -209,7 +209,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       
       router.push(`${pathname}?${params.toString()}`);
     } catch (error) {
-      console.error('Error updating locations:', error);
+      // Error updating locations
     }
   };
 
@@ -220,7 +220,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       params.delete('locations');
       router.push(`${pathname}?${params.toString()}`);
     } catch (error) {
-      console.error('Error selecting all locations:', error);
+      // Error selecting all locations
     }
   };
 
@@ -243,7 +243,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       
       router.push(`${pathname}?${params.toString()}`);
     } catch (error) {
-      console.error('Error updating range filter:', error);
+      // Error updating range filter
     }
   }, [pathname, router, searchParams]);
 
@@ -252,7 +252,7 @@ export default function VehicleFilters({ locations }: VehicleFiltersProps) {
       // Clear all filters including sorting
       router.push(pathname);
     } catch (error) {
-      console.error('Error clearing filters:', error);
+      // Error clearing filters
     }
   };
 

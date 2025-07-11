@@ -28,7 +28,6 @@ export async function PUT(
     try {
       requestBody = await request.json();
     } catch (jsonError) {
-      console.error('JSON parsing error:', jsonError);
       return NextResponse.json(
         { error: 'Invalid JSON in request body' },
         { status: 400 }
@@ -90,7 +89,6 @@ export async function PUT(
       .single();
 
     if (transferError || !transfer) {
-      console.error('Transfer fetch error:', transferError);
       return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
     }
 
@@ -141,7 +139,6 @@ export async function PUT(
       .single();
 
     if (updateError) {
-      console.error('Transfer update error:', updateError);
       return NextResponse.json({ error: 'Failed to update transfer' }, { status: 500 });
     }
 
@@ -195,7 +192,6 @@ export async function PUT(
         }
       });
     } catch (notificationError) {
-      console.error('Failed to send status update notification:', notificationError);
       // Don't fail the request if notification fails
     }
 
@@ -205,12 +201,6 @@ export async function PUT(
     });
 
   } catch (error) {
-    console.error('Failed to update transfer status:', error);
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      transferId
-    });
     return NextResponse.json(
       { error: 'Failed to update transfer status', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

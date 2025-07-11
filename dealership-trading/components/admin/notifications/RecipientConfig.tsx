@@ -34,7 +34,7 @@ export function RecipientConfigComponent({ config, onChange }: RecipientConfigPr
         setUsers(userData);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      // Error fetching data
     } finally {
       setLoading(false);
     }

@@ -52,7 +52,6 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('VIN decode debug error:', error)
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Failed to decode VIN',

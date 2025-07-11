@@ -97,7 +97,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Vehicle analysis error:', error);
     
     // Log error for monitoring
     const responseTime = Date.now() - startTime;
@@ -140,6 +139,5 @@ async function logAnalyticsUsage(data: {
         cache_hit: data.cacheHit,
       });
   } catch (error) {
-    console.error('Failed to log analytics usage:', error);
   }
 }

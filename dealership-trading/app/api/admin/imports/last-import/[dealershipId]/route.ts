@@ -25,7 +25,6 @@ export async function GET(
       .single();
 
     if (importError && importError.code !== 'PGRST116') { // Not found is ok
-      console.error('Failed to fetch last import:', importError);
       return NextResponse.json({ error: 'Failed to fetch import status' }, { status: 500 });
     }
 
@@ -70,7 +69,6 @@ export async function GET(
       }
     });
   } catch (error) {
-    console.error('Error fetching dealership import status:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

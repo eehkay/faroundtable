@@ -67,8 +67,7 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('Error updating dealership:', error);
-      throw error;
+        throw error;
     }
 
     // Transform response
@@ -96,7 +95,6 @@ export async function PUT(
 
     return NextResponse.json(transformedDealership);
   } catch (error) {
-    console.error('Error updating dealership:', error);
     return NextResponse.json(
       { error: 'Failed to update dealership' },
       { status: 500 }
@@ -156,13 +154,11 @@ export async function DELETE(
       .single();
 
     if (error) {
-      console.error('Error deactivating dealership:', error);
-      throw error;
+        throw error;
     }
 
     return NextResponse.json({ message: 'Dealership deactivated successfully' });
   } catch (error) {
-    console.error('Error deactivating dealership:', error);
     return NextResponse.json(
       { error: 'Failed to deactivate dealership' },
       { status: 500 }

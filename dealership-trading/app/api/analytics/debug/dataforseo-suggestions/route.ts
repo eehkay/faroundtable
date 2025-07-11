@@ -94,7 +94,6 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('DataForSEO suggestions error:', error)
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch keyword suggestions',

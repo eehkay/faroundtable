@@ -26,10 +26,8 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
       try {
         setError(null);
         const data = await getVehicleComments(vehicleId);
-        console.log('Fetched comments for vehicle:', vehicleId, data);
         setComments(data || []);
       } catch (error) {
-        console.error('Failed to fetch comments:', error);
         setError('Failed to load comments. Please check your connection.');
         setComments([]);
       } finally {
@@ -51,7 +49,6 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
           filter: `vehicle_id=eq.${vehicleId}`
         },
         (payload) => {
-          console.log('Comment real-time update:', payload);
           fetchComments();
         }
       )
@@ -87,14 +84,12 @@ export default function CommentSection({ vehicleId }: CommentSectionProps) {
         throw new Error(data.error || `HTTP error! status: ${response.status}`);
       }
 
-      console.log('Comment posted successfully:', data);
       setNewComment('');
       
       // Fetch comments again to get the new one
       const updatedComments = await getVehicleComments(vehicleId);
       setComments(updatedComments || []);
     } catch (error) {
-      console.error('Failed to post comment:', error);
       setError(error instanceof Error ? error.message : 'Failed to post comment. Please try again.');
     } finally {
       setPosting(false);

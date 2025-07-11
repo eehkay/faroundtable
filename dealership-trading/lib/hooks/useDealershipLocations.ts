@@ -32,7 +32,6 @@ export function useDealershipLocations() {
         setLocations(data || [])
       } catch (err) {
         setError(err as Error)
-        console.error('Error fetching locations:', err)
       } finally {
         setIsLoading(false)
       }

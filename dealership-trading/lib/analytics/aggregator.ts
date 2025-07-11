@@ -153,7 +153,6 @@ export class AnalyticsAggregator {
 
       return analysis;
     } catch (error) {
-      console.error('Error analyzing vehicle:', error);
       throw error;
     }
   }
@@ -200,7 +199,6 @@ export class AnalyticsAggregator {
               demandData,
             };
           } catch (error) {
-            console.error(`Error analyzing ${make} ${model}:`, error);
             return null;
           }
         })
@@ -260,7 +258,6 @@ export class AnalyticsAggregator {
 
       return insights;
     } catch (error) {
-      console.error('Error getting regional insights:', error);
       throw error;
     }
   }

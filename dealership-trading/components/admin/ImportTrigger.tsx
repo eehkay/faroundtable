@@ -50,7 +50,7 @@ export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps)
         setDealerships(data);
       }
     } catch (err) {
-      console.error('Failed to fetch dealerships:', err);
+      // Failed to fetch dealerships
     }
   };
 

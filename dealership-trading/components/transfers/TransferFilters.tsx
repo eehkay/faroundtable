@@ -64,10 +64,9 @@ export default function TransferFilters({ filters, onFilterChange }: TransferFil
           .order('name', { ascending: true });
         
         if (error) throw error;
-        console.log('Fetched locations for transfer filters:', data);
         setLocations(data || []);
       } catch (error) {
-        console.error('Failed to fetch locations:', error);
+        // Failed to fetch locations
       }
     };
 

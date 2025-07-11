@@ -107,7 +107,6 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('DataForSEO locations error:', error)
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch locations',

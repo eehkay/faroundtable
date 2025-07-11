@@ -24,7 +24,6 @@ export async function getVehicleActivity(vehicleId: string) {
     .limit(20)
 
   if (error) {
-    console.error('Error fetching activity:', error)
     return []
   }
 
@@ -64,7 +63,6 @@ export async function getVehicleComments(vehicleId: string) {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching comments:', error)
     return []
   }
 

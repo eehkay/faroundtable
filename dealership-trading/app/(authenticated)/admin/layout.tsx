@@ -139,8 +139,7 @@ export default function AdminLayout({
       name: "Settings",
       href: "/admin/settings",
       icon: Settings,
-      show: isAdmin(session.user.role),
-      comingSoon: true
+      show: isAdmin(session.user.role)
     },
     {
       name: "Reports",

@@ -49,9 +49,6 @@ export async function POST(request: NextRequest) {
       debug: debug !== undefined ? debug : true
     })
 
-    // Log for debugging
-    console.log('Market Day Supply Response:', response)
-
     return NextResponse.json({
       success: true,
       data: response,
@@ -61,7 +58,6 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Market day supply error:', error)
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Failed to get market day supply',

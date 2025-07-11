@@ -37,7 +37,6 @@ export async function getDealershipLocation(locationId: string): Promise<Dealers
       coordinates: defaultCoordinates[data.name] || { lat: 33.0, lng: -117.0 },
     };
   } catch (error) {
-    console.error('Error fetching dealership location:', error);
     return null;
   }
 }
@@ -67,7 +66,6 @@ export async function getAllDealershipLocations(): Promise<DealershipLocation[]>
       coordinates: defaultCoordinates[location.name] || { lat: 33.0, lng: -117.0 },
     }));
   } catch (error) {
-    console.error('Error fetching all dealership locations:', error);
     return [];
   }
 }

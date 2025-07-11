@@ -48,12 +48,6 @@ export async function POST(request: NextRequest) {
       rows: rows || 50
     })
 
-    // Log for debugging
-    console.log('Similar Vehicles Response:', {
-      listingsCount: response.listings?.length || 0,
-      stats: response.stats
-    })
-
     return NextResponse.json({
       success: true,
       data: response,
@@ -63,7 +57,6 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Similar vehicles error:', error)
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Failed to search similar vehicles',

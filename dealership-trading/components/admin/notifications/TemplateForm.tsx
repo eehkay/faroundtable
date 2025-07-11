@@ -87,7 +87,6 @@ export function TemplateForm({ template, onSave }: TemplateFormProps) {
         router.push('/admin/notifications/templates');
       }
     } catch (error: any) {
-      console.error('Error saving template:', error);
       toast.error(error.message || 'Failed to save template');
     } finally {
       setSaving(false);
@@ -119,7 +118,6 @@ export function TemplateForm({ template, onSave }: TemplateFormProps) {
       const result = await response.json();
       toast.success('Test email sent successfully');
     } catch (error) {
-      console.error('Error sending test:', error);
       toast.error('Failed to send test email');
     }
   };

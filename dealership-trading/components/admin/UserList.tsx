@@ -28,9 +28,7 @@ interface UserListProps {
 }
 
 export default function UserList({ initialUsers, locations, currentUserId }: UserListProps) {
-  console.log('UserList Component - Initial users:', initialUsers);
-  console.log('UserList Component - User count:', initialUsers?.length || 0);
-  console.log('UserList Component - Current user ID:', currentUserId);
+  // UserList Component initialized
   
   // Ensure initialUsers is always an array
   const safeInitialUsers = initialUsers || [];
@@ -80,7 +78,7 @@ export default function UserList({ initialUsers, locations, currentUserId }: Use
         setUsers(userData);
       }
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+      // Failed to fetch users
     } finally {
       setLoading(false);
     }
@@ -99,7 +97,7 @@ export default function UserList({ initialUsers, locations, currentUserId }: Use
         setEditingUser(null);
       }
     } catch (error) {
-      console.error('Failed to update user:', error);
+      // Failed to update user
     }
   };
 
@@ -120,7 +118,7 @@ export default function UserList({ initialUsers, locations, currentUserId }: Use
         await fetchUsers();
       }
     } catch (error) {
-      console.error('Failed to deactivate user:', error);
+      // Failed to deactivate user
     }
   };
 

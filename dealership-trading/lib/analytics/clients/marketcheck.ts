@@ -240,22 +240,16 @@ export class MarketCheckClient {
    * Decode VIN using MarketCheck API to get standardized vehicle information
    */
   async decodeVin(vin: string): Promise<VinDecodeResult> {
-    console.log(`🔍 VIN Decode called for: ${vin}`);
-    
     // Check cache first
     if (this.vinDecodeCache.has(vin)) {
       const cached = this.vinDecodeCache.get(vin)!;
-      console.log(`📋 Using cached VIN decode result:`, cached);
       return cached;
     }
 
     try {
-      console.log(`🌐 Making VIN decode API call: /decode/car/${vin}/specs`);
       const response = await this.request<VinDecodeResponse>(`/decode/car/${vin}/specs`, {
         api_key: this.apiKey
       });
-
-      console.log(`✅ VIN decode API response:`, response);
 
       const result: VinDecodeResult = {
         success: true,
@@ -264,10 +258,8 @@ export class MarketCheckClient {
 
       // Cache the result
       this.vinDecodeCache.set(vin, result);
-      console.log(`💾 Cached VIN decode result for ${vin}`);
       return result;
     } catch (error) {
-      console.error(`❌ VIN decode error for ${vin}:`, error);
       const result: VinDecodeResult = {
         success: false,
         error: error instanceof Error ? error.message : 'VIN decode failed'
@@ -275,7 +267,6 @@ export class MarketCheckClient {
       
       // Cache failed results for a short time to avoid repeated failures
       this.vinDecodeCache.set(vin, result);
-      console.log(`💾 Cached VIN decode error for ${vin}`);
       return result;
     }
   }
@@ -351,7 +342,6 @@ export class MarketCheckClient {
       const response = await this.searchVehicles({ vin });
       return response.listings?.[0] || null;
     } catch (error) {
-      console.error('Error fetching vehicle by VIN:', error);
       return null;
     }
   }
@@ -421,7 +411,6 @@ export class MarketCheckClient {
         marketTrend,
       };
     } catch (error) {
-      console.error('Error getting regional stats:', error);
       throw error;
     }
   }
@@ -471,7 +460,6 @@ export class MarketCheckClient {
         competitivePricing: 'at', // This would need more complex calculation
       };
     } catch (error) {
-      console.error('Error getting competitors:', error);
       throw error;
     }
   }
@@ -487,7 +475,6 @@ export class MarketCheckClient {
         ...params
       });
     } catch (error) {
-      console.error('Error getting price prediction:', error);
       throw error;
     }
   }
@@ -503,7 +490,6 @@ export class MarketCheckClient {
         ...params
       });
     } catch (error) {
-      console.error('Error getting market day supply:', error);
       throw error;
     }
   }
@@ -521,11 +507,9 @@ export class MarketCheckClient {
       // Priority 1: Use provided YMMT if available
       if (ymmt) {
         dataSource = 'provided';
-        console.log('Using provided YMMT:', { ymmt, dataSource });
       }
       // Priority 2: If we have a VIN, ALWAYS try to decode it first for accurate YMMT
       else if (params.vin) {
-        console.log('Attempting VIN decode for:', params.vin);
         vinDecodeResult = await this.decodeVin(params.vin);
         
         if (vinDecodeResult.success && vinDecodeResult.data) {
@@ -535,25 +519,7 @@ export class MarketCheckClient {
             ymmt += `|${decoded.trim.toLowerCase()}`;
           }
           dataSource = 'vin-decode';
-          
-          console.log('✅ VIN decode successful - Using decoded YMMT:', {
-            original: {
-              year: params.year,
-              make: params.make,
-              model: params.model,
-              trim: params.trim
-            },
-            decoded: {
-              year: decoded.year,
-              make: decoded.make,
-              model: decoded.model,
-              trim: decoded.trim
-            },
-            ymmt,
-            dataSource
-          });
         } else {
-          console.log('❌ VIN decode failed:', vinDecodeResult.error);
           // VIN decode failed, fall through to database values
         }
       }
@@ -565,13 +531,6 @@ export class MarketCheckClient {
           ymmt += `|${params.trim.toLowerCase()}`;
         }
         dataSource = 'database-fallback';
-        
-        console.log('⚠️ Using database YMMT (fallback):', {
-          params: { year: params.year, make: params.make, model: params.model, trim: params.trim },
-          ymmt,
-          dataSource,
-          reason: params.vin ? 'VIN decode failed' : 'No VIN provided'
-        });
       }
 
       const requestParams = {
@@ -580,17 +539,8 @@ export class MarketCheckClient {
         city_state: params.city_state
       };
 
-      console.log('🚀 Citywise Sales API Request:', {
-        endpoint: '/sales/car',
-        params: requestParams,
-        dataSource,
-        vinDecodeUsed: !!vinDecodeResult?.success,
-        fullUrl: `${this.baseUrl}/sales/car?api_key=${this.apiKey}&ymmt=${encodeURIComponent(ymmt || '')}&city_state=${encodeURIComponent(params.city_state)}`
-      });
-
       return await this.request<CitywiseSalesResponse>('/sales/car', requestParams);
     } catch (error) {
-      console.error('Error getting citywise sales:', error);
       throw error;
     }
   }
@@ -620,7 +570,6 @@ export class MarketCheckClient {
         ...params
       });
     } catch (error) {
-      console.error('Error searching inventory:', error);
       throw error;
     }
   }
@@ -655,7 +604,6 @@ export class MarketCheckClient {
         ...params
       });
     } catch (error) {
-      console.error('Error searching dealers:', error);
       throw error;
     }
   }
@@ -690,7 +638,6 @@ export class MarketCheckClient {
         ...params
       });
     } catch (error) {
-      console.error('Error getting trends:', error);
       throw error;
     }
   }
@@ -718,7 +665,6 @@ export class MarketCheckClient {
         car_type: 'used'
       });
     } catch (error) {
-      console.error('Error getting history:', error);
       throw error;
     }
   }
@@ -772,7 +718,6 @@ export class MarketCheckClient {
         stats: response.stats
       };
     } catch (error) {
-      console.error('Error searching similar vehicles:', error);
       throw error;
     }
   }

@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (userError || !user) {
-      console.error('Error finding user:', userError);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
@@ -42,7 +41,6 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (commentError) {
-      console.error('Error creating comment:', commentError);
       throw commentError;
     }
     
@@ -63,7 +61,6 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ success: true, commentId: comment.id });
   } catch (error) {
-    console.error('Error creating comment:', error);
     return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
   }
 }
@@ -91,7 +88,6 @@ export async function DELETE(request: NextRequest) {
       .single();
     
     if (userError || !user) {
-      console.error('Error finding user:', userError);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
@@ -121,13 +117,11 @@ export async function DELETE(request: NextRequest) {
       .eq('id', commentId);
     
     if (deleteError) {
-      console.error('Error deleting comment:', deleteError);
       throw deleteError;
     }
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting comment:', error);
     return NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 });
   }
 }

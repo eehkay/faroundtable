@@ -50,7 +50,6 @@ export async function PATCH(
       .single()
 
     if (error) {
-      console.error('Error updating vehicle:', error)
       return NextResponse.json({ error: 'Failed to update vehicle' }, { status: 500 })
     }
 
@@ -67,7 +66,6 @@ export async function PATCH(
 
     return NextResponse.json({ vehicle: data })
   } catch (error) {
-    console.error('Error in PATCH /api/admin/vehicles/[id]:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -94,7 +92,6 @@ export async function DELETE(
       .in('status', ['requested', 'approved', 'in-transit'])
 
     if (transferError) {
-      console.error('Error checking transfers:', transferError)
       return NextResponse.json({ error: 'Failed to check transfers' }, { status: 500 })
     }
 
@@ -119,7 +116,6 @@ export async function DELETE(
       .eq('id', vehicleId)
 
     if (deleteError) {
-      console.error('Error deleting vehicle:', deleteError)
       return NextResponse.json({ error: 'Failed to delete vehicle' }, { status: 500 })
     }
 
@@ -138,7 +134,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error in DELETE /api/admin/vehicles/[id]:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

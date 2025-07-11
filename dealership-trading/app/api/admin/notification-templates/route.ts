@@ -33,13 +33,11 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching templates:', error);
       return NextResponse.json({ error: 'Failed to fetch templates' }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error in GET /api/admin/notification-templates:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -90,13 +88,11 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      console.error('Error creating template:', error);
       return NextResponse.json({ error: 'Failed to create template' }, { status: 500 });
     }
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
-    console.error('Error in POST /api/admin/notification-templates:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

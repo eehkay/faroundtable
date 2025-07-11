@@ -19,8 +19,6 @@ export async function getPreviewData(
 ): Promise<TemplatePreviewData> {
   const { useRealData, vehicleId, transferId, userId } = options;
 
-  console.log('[Preview Data] getPreviewData called with:', { useRealData, vehicleId, transferId, userId });
-
   if (useRealData && (vehicleId || transferId)) {
     return getRealPreviewData(supabase, { vehicleId, transferId, userId });
   }
@@ -35,8 +33,6 @@ async function getRealPreviewData(
   supabase: SupabaseClient,
   { vehicleId, transferId, userId }: { vehicleId?: string; transferId?: string; userId?: string }
 ): Promise<TemplatePreviewData> {
-  console.log('[Preview Data] getRealPreviewData started with:', { vehicleId, transferId, userId });
-  
   const data: TemplatePreviewData = {
     system: {
       date: format(new Date(), 'MMMM d, yyyy'),
@@ -53,8 +49,6 @@ async function getRealPreviewData(
 
   // Fetch transfer data if transferId provided
   if (transferId) {
-    console.log('[Preview Data] Fetching transfer with ID:', transferId);
-    
     const { data: transfer, error: transferError } = await supabase
       .from('transfers')
       .select(`
@@ -69,23 +63,10 @@ async function getRealPreviewData(
       .single();
 
     if (transferError) {
-      console.error('[Preview Data] Error fetching transfer:', transferError);
+      // Error fetching transfer - continue without it
     }
 
     if (transfer) {
-      // Debug log to check what we're getting
-      console.log('[Preview Data Debug] Transfer data received:', {
-        transferId: transfer.id,
-        hasFromLocation: !!transfer.from_location,
-        fromLocationName: transfer.from_location?.name,
-        hasToLocation: !!transfer.to_location,
-        toLocationName: transfer.to_location?.name,
-        hasRequestedBy: !!transfer.requested_by,
-        requestedByName: transfer.requested_by?.name,
-        requestedByEmail: transfer.requested_by?.email,
-        rawTransfer: JSON.stringify(transfer, null, 2)
-      });
-      
       data.transfer = {
         from_location: transfer.from_location ? { name: transfer.from_location.name } : { name: 'Unknown' },
         to_location: transfer.to_location ? { name: transfer.to_location.name } : { name: 'Unknown' },
@@ -115,8 +96,6 @@ async function getRealPreviewData(
 
   // Fetch vehicle data if vehicleId provided
   if (vehicleId) {
-    console.log('[Preview Data] Fetching vehicle with ID:', vehicleId);
-    
     const { data: vehicle, error: vehicleError } = await supabase
       .from('vehicles')
       .select(`
@@ -127,7 +106,7 @@ async function getRealPreviewData(
       .single();
 
     if (vehicleError) {
-      console.error('[Preview Data] Error fetching vehicle:', vehicleError);
+      // Error fetching vehicle - continue without it
     }
 
     if (vehicle) {

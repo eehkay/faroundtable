@@ -179,7 +179,6 @@ export class DataForSEOClient {
 
       return results;
     } catch (error) {
-      console.error('Error getting search volume:', error);
       return keywords.map(keyword => ({
         keyword,
         search_volume: 0,
@@ -230,7 +229,6 @@ export class DataForSEOClient {
 
       return Array.from(aggregatedMap.values());
     } catch (error) {
-      console.error('Error getting multi-location search volume:', error);
       return keywords.map(keyword => ({
         keyword,
         search_volume: 0,
@@ -305,7 +303,6 @@ export class DataForSEOClient {
         relevance: 1, // Google Ads API doesn't provide relevance score
       }));
     } catch (error) {
-      console.error('Error getting keyword suggestions:', error);
       return [];
     }
   }
@@ -365,7 +362,6 @@ export class DataForSEOClient {
         seasonality: undefined, // Google Ads API doesn't provide seasonality data
       };
     } catch (error) {
-      console.error('Error getting demand data:', error);
       return {
         monthlySearchVolume: 0,
         trendDirection: 'stable',

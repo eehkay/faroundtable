@@ -5,11 +5,6 @@ import { supabaseAdmin } from "./supabase-server"
 // Allowed domains from environment variable
 const ALLOWED_DOMAINS = process.env.ALLOWED_DOMAINS?.split(',').map(d => d.trim()) || ['delmaradv.com', 'formanautomotive.com']
 
-console.log('NextAuth Config:', {
-  ALLOWED_DOMAINS,
-  SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-  GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID
-})
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -30,15 +25,10 @@ export const authOptions: NextAuthOptions = {
       const email = profile?.email || ''
       const domain = email.split('@')[1]
       
-      console.log('Sign in attempt:', { email, domain, ALLOWED_DOMAINS })
-      
       // Verify domain is allowed
       if (!ALLOWED_DOMAINS.includes(domain)) {
-        console.log(`Rejected login from unauthorized domain: ${domain}`)
         return false
       }
-      
-      console.log(`Accepted login from authorized domain: ${domain}`)
       
       // Create/update user in Supabase
       try {
@@ -50,7 +40,6 @@ export const authOptions: NextAuthOptions = {
           .single()
         
         if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = not found
-          console.error('Error fetching user:', fetchError)
           throw fetchError
         }
         
@@ -67,11 +56,8 @@ export const authOptions: NextAuthOptions = {
             .eq('id', existingUser.id)
           
           if (updateError) {
-            console.error('Error updating user:', updateError)
             throw updateError
           }
-          
-          console.log('Updated existing user:', existingUser.id)
         } else {
           // Create new user with default 'sales' role
           const { data: newUser, error: createError } = await supabaseAdmin
@@ -89,14 +75,10 @@ export const authOptions: NextAuthOptions = {
             .single()
           
           if (createError) {
-            console.error('Error creating user:', createError)
             throw createError
           }
-          
-          console.log('Created new user:', newUser.id)
         }
       } catch (error) {
-        console.error('Error in user sign-in:', error)
         // Don't fail auth if database operation fails
         // User can still access the app, but may have limited functionality
       }
@@ -123,7 +105,6 @@ export const authOptions: NextAuthOptions = {
             .single()
           
           if (error) {
-            console.error('Error fetching user for session:', error)
             // Provide fallback values
             session.user.id = crypto.randomUUID()
             session.user.role = 'sales'
@@ -136,7 +117,6 @@ export const authOptions: NextAuthOptions = {
             session.user.location = user.location && !Array.isArray(user.location) ? user.location : undefined
           }
         } catch (error) {
-          console.error('Error enriching session:', error)
           // Provide fallback values
           session.user.id = crypto.randomUUID()
           session.user.role = 'sales'

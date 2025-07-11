@@ -25,9 +25,7 @@ export class AnalyticsErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Analytics error:', error, errorInfo)
-    console.error('Error stack:', error.stack)
-    console.error('Component stack:', errorInfo.componentStack)
+    // Analytics error caught
   }
 
   render() {

@@ -28,7 +28,6 @@ async function getAuthToken(): Promise<string> {
     authUrl.searchParams.append('apiID', apiID);
     authUrl.searchParams.append('apiKey', apiKey);
 
-    console.log('Authenticating with Auto Dealer Data API...');
     
     const response = await fetch(authUrl.toString(), {
       method: 'GET',
@@ -36,12 +35,10 @@ async function getAuthToken(): Promise<string> {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Auth response:', response.status, errorText);
       throw new Error(`Failed to authenticate with Auto Dealer Data API: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Auth response:', data);
     
     // The API returns the token in the 'token' field
     tokenCache.token = data.token;
@@ -51,22 +48,18 @@ async function getAuthToken(): Promise<string> {
       throw new Error('No token received from Auto Dealer Data API');
     }
     
-    console.log('Auth successful, token cached');
     
     return tokenCache.token;
   } catch (error) {
-    console.error('Error getting auth token:', error);
     throw error;
   }
 }
 
 export async function POST(req: NextRequest) {
-  console.log('Market insights API called');
   
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
-    console.log('Session:', session ? 'authenticated' : 'not authenticated');
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -80,12 +73,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'VIN is required for market insights' }, { status: 400 });
     }
 
-    console.log('Market insights for VIN:', vin);
-    console.log('API URL configured:', process.env.AUTODEALERDATA_API_URL ? 'yes' : 'no');
     
     // Get JWT token
     const jwt = await getAuthToken();
-    console.log('JWT token obtained:', jwt ? 'yes' : 'no');
 
     // Prepare API calls
     const apiUrl = process.env.AUTODEALERDATA_API_URL;
@@ -107,11 +97,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log('Similar sale price API call status:', similarPriceRes.status);
 
     if (!similarPriceRes.ok) {
       const errorText = await similarPriceRes.text();
-      console.error('Similar price API error:', similarPriceRes.status, errorText);
       return NextResponse.json(
         { error: 'Failed to fetch market insights', details: errorText },
         { status: similarPriceRes.status }
@@ -119,7 +107,6 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await similarPriceRes.json();
-    console.log('Similar vehicles data:', JSON.stringify(data, null, 2));
     
     // Map API response to market insights format
     const similarData = data.data || {};
@@ -151,10 +138,8 @@ export async function POST(req: NextRequest) {
       dataDate: new Date().toISOString(),
     };
 
-    console.log('Returning insights:', JSON.stringify(insights, null, 2));
     return NextResponse.json(insights);
   } catch (error) {
-    console.error('Market insights error:', error);
     
     // Return more specific error information
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

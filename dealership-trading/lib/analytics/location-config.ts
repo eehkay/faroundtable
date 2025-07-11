@@ -44,7 +44,6 @@ export async function getLocationCodesForDealership(dealershipId: string): Promi
       .single()
     
     if (error || !dealership) {
-      console.error('Error fetching dealership:', error)
       return [DATAFORSEO_LOCATION_CODES.UNITED_STATES] // Fallback to US
     }
     
@@ -72,7 +71,6 @@ export async function getLocationCodesForDealership(dealershipId: string): Promi
     // Fallback to US if no specific location codes found
     return [DATAFORSEO_LOCATION_CODES.UNITED_STATES]
   } catch (error) {
-    console.error('Error getting location codes:', error)
     return [DATAFORSEO_LOCATION_CODES.UNITED_STATES]
   }
 }

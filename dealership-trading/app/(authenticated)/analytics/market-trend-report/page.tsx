@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, TrendingUp, TrendingDown, Minus, Loader2, FileText, DollarSign, Package, Clock, Target, Zap, TrendingUpIcon, Users, BarChart3, Search, Settings2, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
+import { AlertCircle, TrendingUp, TrendingDown, Minus, Loader2, FileText, DollarSign, Package, Clock, Target, Zap, TrendingUpIcon, Users, BarChart3, Search, Settings2, ChevronDown, ChevronUp, RotateCcw, Bot, Sparkles, MessageSquare, Bug, Copy, Eye, EyeOff } from 'lucide-react'
 import VehicleSearchInput from '@/components/analytics/VehicleSearchInput'
 import { useDealershipLocations } from '@/lib/hooks/useDealershipLocations'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -15,6 +15,8 @@ import SummaryDashboardStrip from '@/components/analytics/SummaryDashboardStrip'
 import MetricGauge from '@/components/analytics/MetricGauge'
 import CompetitorCard from '@/components/analytics/CompetitorCard'
 import ActionCard from '@/components/analytics/ActionCard'
+import { toast } from 'sonner'
+import ReactMarkdown from 'react-markdown'
 
 interface MarketTrendReport {
   vehicle: {
@@ -106,6 +108,27 @@ interface MarketTrendReport {
   }
 }
 
+interface AISetting {
+  id: string
+  name: string
+  description: string
+  model: string
+}
+
+interface AIAnalysis {
+  analysis: string | any
+  metadata: {
+    model: string
+    temperature: number
+    timestamp: string
+    aiSetting?: {
+      id: string
+      name: string
+      description: string
+    }
+  }
+}
+
 export default function MarketTrendReportPage() {
   const { data: session } = useSession()
   const { locations } = useDealershipLocations()
@@ -116,6 +139,21 @@ export default function MarketTrendReportPage() {
   const [report, setReport] = useState<MarketTrendReport | null>(null)
   const [showManualOverride, setShowManualOverride] = useState(false)
   const [manualVin, setManualVin] = useState('')
+  
+  // AI Analysis states
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false)
+  const [aiSettings, setAiSettings] = useState<AISetting[]>([])
+  const [selectedAISetting, setSelectedAISetting] = useState<string>('')
+  const [customPrompt, setCustomPrompt] = useState('')
+  const [useCustomPrompt, setUseCustomPrompt] = useState(false)
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  
+  // Debug states
+  const [debugMode, setDebugMode] = useState(false)
+  const [showDebugData, setShowDebugData] = useState(false)
+  const [lastRequestData, setLastRequestData] = useState<any>(null)
+  
   const [overrideFields, setOverrideFields] = useState({
     // Vehicle overrides
     year: '',
@@ -134,6 +172,127 @@ export default function MarketTrendReportPage() {
     searchRadius: '100'
   })
   const [hasAutoRun, setHasAutoRun] = useState(false)
+
+  // Fetch AI settings when component mounts
+  useEffect(() => {
+    fetchAISettings()
+  }, [])
+
+  const fetchAISettings = async () => {
+    try {
+      const response = await fetch('/api/admin/ai-settings')
+      const data = await response.json()
+      
+      if (data.success && data.data) {
+        const activeSettings = data.data.filter((s: any) => s.is_active)
+        setAiSettings(activeSettings)
+        
+        // Set default setting
+        const defaultSetting = activeSettings.find((s: any) => s.is_default)
+        if (defaultSetting) {
+          setSelectedAISetting(defaultSetting.id)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch AI settings:', error)
+    }
+  }
+
+  const runAIAnalysis = async () => {
+    if (!report) return
+
+    setAiLoading(true)
+    setAiAnalysis(null)
+
+    try {
+      const userPrompt = useCustomPrompt ? customPrompt : getDefaultPromptForSetting()
+      const selectedSettingDetails = aiSettings.find(s => s.id === selectedAISetting)
+      
+      const requestBody: any = {
+        reportData: report,
+        userPrompt: userPrompt
+      }
+
+      // Add AI setting ID if not using custom prompt
+      if (!useCustomPrompt && selectedAISetting) {
+        requestBody.aiSettingId = selectedAISetting
+      }
+
+      // Add custom system prompt if using custom prompt
+      if (useCustomPrompt && customPrompt) {
+        requestBody.userPrompt = customPrompt
+      }
+
+      // Capture debug data
+      const debugData = {
+        timestamp: new Date().toISOString(),
+        requestBody,
+        selectedSetting: selectedSettingDetails,
+        reportDataSummary: {
+          vehicle: report.vehicle,
+          hasMarketPosition: !!report.marketPosition && !report.marketPosition.error,
+          hasInventoryAnalysis: !!report.inventoryAnalysis && !report.inventoryAnalysis.error,
+          hasRegionalPerformance: !!report.regionalPerformance && !report.regionalPerformance.error,
+          hasCompetitiveLandscape: !!report.competitiveLandscape && !report.competitiveLandscape.error,
+          hasDemandAnalysis: !!report.demandAnalysis && !report.demandAnalysis.error,
+          opportunityScore: report.opportunityScore?.overall
+        }
+      }
+      
+      setLastRequestData(debugData)
+
+      // Console logging if debug mode is enabled
+      if (debugMode) {
+        console.group('🤖 AI Analysis Debug')
+        console.log('📊 Report Data:', report)
+        console.log('🎯 Request Body:', requestBody)
+        console.log('⚙️ Selected AI Setting:', selectedSettingDetails)
+        console.log('💬 User Prompt:', userPrompt)
+        console.log('📝 Report Summary:', debugData.reportDataSummary)
+        console.groupEnd()
+      }
+
+      const response = await fetch('/api/analytics/market-trend-report/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to analyze report')
+      }
+
+      setAiAnalysis(result.data)
+      setShowAIAnalysis(true)
+      
+      // Log successful response in debug mode
+      if (debugMode) {
+        console.log('✅ AI Response:', result.data)
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to run AI analysis')
+      if (debugMode) {
+        console.error('❌ AI Analysis Error:', err)
+      }
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const getDefaultPromptForSetting = () => {
+    const setting = aiSettings.find(s => s.id === selectedAISetting)
+    
+    // Default prompts based on AI setting type
+    if (setting?.name.includes('Aggressive')) {
+      return 'What aggressive pricing and promotional strategies should I implement to sell this vehicle within 7 days? Be specific with price points and tactics.'
+    } else if (setting?.name.includes('Premium')) {
+      return 'How can I position this vehicle to maximize profit margins? What premium features or unique aspects justify a higher price point?'
+    } else {
+      return 'Provide a comprehensive analysis with your top 3 recommendations for this vehicle. Include specific pricing guidance and expected time to sell.'
+    }
+  }
 
   const generateReport = async () => {
     // Check if we have either a selected vehicle or manual VIN
@@ -945,6 +1104,386 @@ export default function MarketTrendReportPage() {
                   priority={1}
                 />
               </div>
+            </div>
+          )}
+
+          {/* AI Analysis Section */}
+          {report && (
+            <div className="mt-8">
+              <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]/50">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Bot className="h-5 w-5 text-[#3b82f6]" />
+                        AI Analysis
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Go Deeper
+                        </Badge>
+                      </CardTitle>
+                      <CardDescription>
+                        Get AI-powered insights and recommendations based on the market data
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {showAIAnalysis && (
+                        <Button
+                          size="sm"
+                          variant={debugMode ? "default" : "outline"}
+                          onClick={() => setDebugMode(!debugMode)}
+                          className="text-xs"
+                        >
+                          <Bug className="h-3 w-3 mr-1" />
+                          Debug Mode
+                        </Button>
+                      )}
+                      {!showAIAnalysis && (
+                        <Button
+                          onClick={() => setShowAIAnalysis(true)}
+                          className="bg-[#3b82f6] hover:bg-[#2563eb]"
+                        >
+                          <Bot className="h-4 w-4 mr-2" />
+                          Analyze with AI
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                {showAIAnalysis && (
+                  <CardContent className="space-y-4">
+                    {/* AI Settings Selection */}
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* AI Model Selection */}
+                        <div>
+                          <label className="text-sm font-medium text-white mb-2 block">
+                            Analysis Type
+                          </label>
+                          <select
+                            value={selectedAISetting}
+                            onChange={(e) => {
+                              setSelectedAISetting(e.target.value)
+                              setUseCustomPrompt(false)
+                            }}
+                            disabled={useCustomPrompt}
+                            className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200 disabled:opacity-50"
+                          >
+                            <option value="">Select AI analysis type...</option>
+                            {aiSettings.map((setting) => (
+                              <option key={setting.id} value={setting.id}>
+                                {setting.name} - {setting.model}
+                              </option>
+                            ))}
+                          </select>
+                          {selectedAISetting && !useCustomPrompt && (
+                            <p className="text-xs text-[#737373] mt-1">
+                              {aiSettings.find(s => s.id === selectedAISetting)?.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div>
+                          <label className="text-sm font-medium text-white mb-2 block">
+                            Quick Prompts
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setUseCustomPrompt(true)
+                                setCustomPrompt('Should I reduce the price on this vehicle? Give me a YES or NO answer with 3 supporting data points.')
+                              }}
+                              className="text-xs"
+                            >
+                              Price Decision
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setUseCustomPrompt(true)
+                                setCustomPrompt('What are the top 3 actions I should take this week to sell this vehicle?')
+                              }}
+                              className="text-xs"
+                            >
+                              Action Plan
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setUseCustomPrompt(true)
+                                setCustomPrompt('Who is the ideal buyer for this vehicle and how should I market to them?')
+                              }}
+                              className="text-xs"
+                            >
+                              Target Buyer
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setUseCustomPrompt(true)
+                                setCustomPrompt('Compare this vehicle to the top 3 competitors and tell me how to win.')
+                              }}
+                              className="text-xs"
+                            >
+                              Beat Competition
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Custom Prompt */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-white">
+                            Custom Prompt
+                          </label>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setUseCustomPrompt(!useCustomPrompt)
+                              setCustomPrompt('')
+                            }}
+                            className="text-xs text-[#3b82f6] hover:text-[#2563eb]"
+                          >
+                            {useCustomPrompt ? 'Use AI Setting' : 'Use Custom Prompt'}
+                          </Button>
+                        </div>
+                        <textarea
+                          value={customPrompt}
+                          onChange={(e) => {
+                            setCustomPrompt(e.target.value)
+                            setUseCustomPrompt(true)
+                          }}
+                          placeholder="Ask a specific question about this vehicle's market data..."
+                          className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200 min-h-[80px]"
+                        />
+                      </div>
+
+                      {/* Analyze Button */}
+                      <Button
+                        onClick={runAIAnalysis}
+                        disabled={aiLoading || (!selectedAISetting && !customPrompt)}
+                        className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+                      >
+                        {aiLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="mr-2 h-4 w-4" />
+                            Run AI Analysis
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* AI Analysis Results */}
+                    {aiAnalysis && (
+                      <div className="mt-6 space-y-4">
+                        <div className="bg-[#141414] rounded-lg p-6 border border-[#2a2a2a]">
+                          {/* Metadata */}
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <MessageSquare className="h-4 w-4 text-[#3b82f6]" />
+                              <span className="text-sm font-medium text-white">
+                                {aiAnalysis.metadata.aiSetting?.name || 'Custom Analysis'}
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                {aiAnalysis.metadata.model}
+                              </Badge>
+                            </div>
+                            <span className="text-xs text-[#737373]">
+                              {new Date(aiAnalysis.metadata.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+
+                          {/* Analysis Content */}
+                          <div className="markdown-content prose prose-invert max-w-none">
+                            {typeof aiAnalysis.analysis === 'string' ? (
+                              <ReactMarkdown
+                                components={{
+                                  // Custom styling for markdown elements
+                                  h1: ({node, ...props}) => <h1 className="text-2xl font-bold text-white mb-4 mt-6" {...props} />,
+                                  h2: ({node, ...props}) => <h2 className="text-xl font-semibold text-white mb-3 mt-5" {...props} />,
+                                  h3: ({node, ...props}) => <h3 className="text-lg font-medium text-white mb-2 mt-4" {...props} />,
+                                  p: ({node, ...props}) => <p className="text-sm text-[#e5e5e5] mb-3 leading-relaxed" {...props} />,
+                                  ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-1 mb-3 ml-4" {...props} />,
+                                  ol: ({node, ...props}) => <ol className="list-decimal list-inside space-y-1 mb-3 ml-4" {...props} />,
+                                  li: ({node, ...props}) => <li className="text-sm text-[#e5e5e5] leading-relaxed" {...props} />,
+                                  strong: ({node, ...props}) => <strong className="font-semibold text-white" {...props} />,
+                                  em: ({node, ...props}) => <em className="italic text-[#a3a3a3]" {...props} />,
+                                  blockquote: ({node, ...props}) => (
+                                    <blockquote className="border-l-4 border-[#3b82f6] pl-4 py-2 mb-3 bg-[#0a0a0a] rounded-r-lg" {...props} />
+                                  ),
+                                  code: ({node, inline, ...props}) => 
+                                    inline ? (
+                                      <code className="bg-[#0a0a0a] text-[#3b82f6] px-1.5 py-0.5 rounded text-xs font-mono" {...props} />
+                                    ) : (
+                                      <code className="block bg-[#0a0a0a] text-[#e5e5e5] p-4 rounded-lg overflow-x-auto font-mono text-xs mb-3" {...props} />
+                                    ),
+                                  pre: ({node, ...props}) => <pre className="mb-3" {...props} />,
+                                  hr: ({node, ...props}) => <hr className="border-[#2a2a2a] my-6" {...props} />,
+                                  a: ({node, ...props}) => <a className="text-[#3b82f6] hover:text-[#2563eb] underline" {...props} />,
+                                  table: ({node, ...props}) => (
+                                    <div className="overflow-x-auto mb-4">
+                                      <table className="min-w-full divide-y divide-[#2a2a2a]" {...props} />
+                                    </div>
+                                  ),
+                                  thead: ({node, ...props}) => <thead className="bg-[#1a1a1a]" {...props} />,
+                                  tbody: ({node, ...props}) => <tbody className="divide-y divide-[#2a2a2a]" {...props} />,
+                                  th: ({node, ...props}) => (
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-white uppercase tracking-wider" {...props} />
+                                  ),
+                                  td: ({node, ...props}) => (
+                                    <td className="px-4 py-2 text-sm text-[#e5e5e5]" {...props} />
+                                  ),
+                                }}
+                              >
+                                {aiAnalysis.analysis}
+                              </ReactMarkdown>
+                            ) : (
+                              <pre className="text-sm text-[#e5e5e5] overflow-auto bg-[#0a0a0a] p-4 rounded-lg">
+                                {JSON.stringify(aiAnalysis.analysis, null, 2)}
+                              </pre>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[#2a2a2a]">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                navigator.clipboard.writeText(
+                                  typeof aiAnalysis.analysis === 'string' 
+                                    ? aiAnalysis.analysis 
+                                    : JSON.stringify(aiAnalysis.analysis, null, 2)
+                                )
+                                toast.success('Analysis copied to clipboard')
+                              }}
+                              className="text-xs text-[#737373] hover:text-white"
+                            >
+                              Copy Analysis
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setAiAnalysis(null)}
+                              className="text-xs text-[#737373] hover:text-white"
+                            >
+                              Run New Analysis
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Debug Panel */}
+                    {debugMode && lastRequestData && (
+                      <div className="mt-6 space-y-4">
+                        <div className="bg-[#0a0a0a] rounded-lg p-4 border border-[#3b82f6]/20">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                              <Bug className="h-4 w-4 text-[#3b82f6]" />
+                              Debug Information
+                            </h4>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setShowDebugData(!showDebugData)}
+                                className="text-xs text-[#737373] hover:text-white"
+                              >
+                                {showDebugData ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                {showDebugData ? 'Hide' : 'Show'} Data
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  const debugText = JSON.stringify(lastRequestData, null, 2)
+                                  navigator.clipboard.writeText(debugText)
+                                  toast.success('Debug data copied to clipboard')
+                                }}
+                                className="text-xs text-[#737373] hover:text-white"
+                              >
+                                <Copy className="h-4 w-4 mr-1" />
+                                Copy Debug Data
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Debug Summary */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                            <div className="bg-[#141414] rounded p-2 border border-[#2a2a2a]">
+                              <p className="text-xs text-[#737373]">Model</p>
+                              <p className="text-xs text-white font-medium">
+                                {lastRequestData.selectedSetting?.model || 'Default'}
+                              </p>
+                            </div>
+                            <div className="bg-[#141414] rounded p-2 border border-[#2a2a2a]">
+                              <p className="text-xs text-[#737373]">Prompt Type</p>
+                              <p className="text-xs text-white font-medium">
+                                {useCustomPrompt ? 'Custom' : lastRequestData.selectedSetting?.name || 'Default'}
+                              </p>
+                            </div>
+                            <div className="bg-[#141414] rounded p-2 border border-[#2a2a2a]">
+                              <p className="text-xs text-[#737373]">Vehicle</p>
+                              <p className="text-xs text-white font-medium">
+                                {lastRequestData.reportDataSummary.vehicle.vin}
+                              </p>
+                            </div>
+                            <div className="bg-[#141414] rounded p-2 border border-[#2a2a2a]">
+                              <p className="text-xs text-[#737373]">Timestamp</p>
+                              <p className="text-xs text-white font-medium">
+                                {new Date(lastRequestData.timestamp).toLocaleTimeString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Data Availability Check */}
+                          <div className="bg-[#141414] rounded p-3 border border-[#2a2a2a] mb-4">
+                            <p className="text-xs text-[#737373] mb-2">Data Availability</p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                              {Object.entries(lastRequestData.reportDataSummary).map(([key, value]) => {
+                                if (key === 'vehicle' || key === 'opportunityScore') return null
+                                return (
+                                  <div key={key} className="flex items-center gap-2">
+                                    <div className={`h-2 w-2 rounded-full ${value ? 'bg-green-500' : 'bg-red-500'}`} />
+                                    <span className="text-xs text-[#a3a3a3]">
+                                      {key.replace(/([A-Z])/g, ' $1').replace('has', '').trim()}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Full Request Data */}
+                          {showDebugData && (
+                            <div className="bg-[#141414] rounded p-3 border border-[#2a2a2a]">
+                              <p className="text-xs text-[#737373] mb-2">Full Request Data</p>
+                              <pre className="text-xs text-[#a3a3a3] overflow-auto max-h-96">
+                                {JSON.stringify(lastRequestData, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                )}
+              </Card>
             </div>
           )}
         </>

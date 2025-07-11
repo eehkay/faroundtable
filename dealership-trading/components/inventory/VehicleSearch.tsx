@@ -33,7 +33,7 @@ export default function VehicleSearch() {
       
       router.push(`${pathname}?${params.toString()}`);
     } catch (error) {
-      console.error('Error updating search params:', error);
+      // Error updating search params
     }
   }, 300);
 
@@ -49,7 +49,7 @@ export default function VehicleSearch() {
       params.delete('search');
       router.push(`${pathname}?${params.toString()}`);
     } catch (error) {
-      console.error('Error clearing search:', error);
+      // Error clearing search
     }
   };
 

@@ -88,7 +88,7 @@ export default function TransferRequestsPanel({ vehicleId, vehicleLocation, onUp
           setTransfers(data.transfers.filter((t: TransferRequest) => t.status === 'requested'));
         }
       } catch (error) {
-        console.error('Failed to fetch transfers:', error);
+        // Failed to fetch transfers
       } finally {
         setLoading(false);
       }

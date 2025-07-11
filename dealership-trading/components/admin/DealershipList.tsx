@@ -65,7 +65,7 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
         fetchImportStatuses(data);
       }
     } catch (error) {
-      console.error('Failed to fetch dealerships:', error);
+      // Failed to fetch dealerships
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
             }
           }
         } catch (error) {
-          console.error(`Failed to fetch import status for ${dealership.name}:`, error);
+          // Failed to fetch import status
         }
       })
     );
@@ -124,7 +124,6 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
         alert(error.error || 'Failed to save dealership');
       }
     } catch (error) {
-      console.error('Failed to save dealership:', error);
       alert('Failed to save dealership');
     }
   };
@@ -144,7 +143,6 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
         alert(error.error || 'Failed to deactivate dealership');
       }
     } catch (error) {
-      console.error('Failed to deactivate dealership:', error);
       alert('Failed to deactivate dealership');
     }
   };

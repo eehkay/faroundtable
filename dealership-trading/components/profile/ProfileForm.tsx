@@ -52,7 +52,7 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
         setLocations(data);
       }
     } catch (error) {
-      console.error('Error fetching locations:', error);
+      // Error fetching locations
     }
   };
 
@@ -92,7 +92,6 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
       }
     } catch (error) {
       setMessage('Failed to update profile');
-      console.error('Error updating profile:', error);
     } finally {
       setLoading(false);
     }

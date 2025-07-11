@@ -56,9 +56,6 @@ export async function POST(request: NextRequest) {
       city_state
     })
 
-    // Log for debugging
-    console.log('Citywise Sales Response:', response)
-
     return NextResponse.json({
       success: true,
       data: response,
@@ -68,7 +65,6 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Citywise sales error:', error)
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Failed to get citywise sales data',

@@ -155,7 +155,6 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (error) {
-        console.error('VIN decode failed:', error)
       }
     }
 
@@ -337,17 +336,6 @@ export async function POST(request: NextRequest) {
     // Process Citywise Sales
     if (citywiseSales.status === 'fulfilled') {
       const salesData = citywiseSales.value
-      console.log('✅ Citywise Sales SUCCESS:', {
-        request: {
-          vin: vehicleData.vin,
-          year: vehicleData.year,
-          make: vehicleData.make.toLowerCase(),
-          model: vehicleData.model.toLowerCase(),
-          trim: vehicleData.trim,
-          city_state: locationData.city_state
-        },
-        response: salesData
-      })
       report.regionalPerformance = {
         citySalesCount: salesData.count || salesData.sales_count || 0,
         avgPrice: salesData.price_stats?.mean || salesData.average_price || 0,
@@ -357,18 +345,6 @@ export async function POST(request: NextRequest) {
         salesTrend: salesData.sales_trend || 'stable'
       }
     } else {
-      console.log('❌ Citywise Sales FAILED:', {
-        status: citywiseSales.status,
-        reason: citywiseSales.reason,
-        requestParams: {
-          vin: vehicleData.vin,
-          year: vehicleData.year,
-          make: vehicleData.make.toLowerCase(),
-          model: vehicleData.model.toLowerCase(),
-          trim: vehicleData.trim,
-          city_state: locationData.city_state
-        }
-      })
       
       const errorMessage = citywiseSales.reason instanceof Error 
         ? citywiseSales.reason.message 
@@ -470,7 +446,6 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('Market trend report error:', error)
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Failed to generate market trend report',

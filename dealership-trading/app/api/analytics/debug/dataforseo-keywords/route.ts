@@ -78,7 +78,6 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
   } catch (error) {
-    console.error('DataForSEO keywords debug error:', error)
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Failed to get search volume data',

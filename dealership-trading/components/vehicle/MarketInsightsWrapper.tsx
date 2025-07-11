@@ -41,7 +41,6 @@ export default function MarketInsightsWrapper({
 
   const fetchMarketInsights = async () => {
     if (!vehicleInfo.vin || !vehicleInfo.locationId) {
-      console.error('VIN and location ID are required for market analysis');
       return;
     }
     
@@ -62,14 +61,13 @@ export default function MarketInsightsWrapper({
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Market trend report API error:', response.status, errorText);
         throw new Error(`Failed to fetch market analysis: ${response.status}`);
       }
 
       const result = await response.json();
       setMarketTrendReport(result.data);
     } catch (error) {
-      console.error('Error fetching market analysis:', error);
+      // Error fetching market analysis
     } finally {
       setIsLoadingInsights(false);
     }
@@ -93,7 +91,6 @@ export default function MarketInsightsWrapper({
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('VIN decode API error:', response.status, errorText);
         throw new Error(`Failed to decode VIN: ${response.status}`);
       }
 
@@ -105,7 +102,7 @@ export default function MarketInsightsWrapper({
       };
       setVinDecodeData(vinData);
     } catch (error) {
-      console.error('Error decoding VIN:', error);
+      // Error decoding VIN
     } finally {
       setIsLoadingVinDecode(false);
     }

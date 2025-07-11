@@ -47,9 +47,6 @@ export async function POST(request: NextRequest) {
       car_type: car_type || 'used'
     })
 
-    // Log for debugging
-    console.log('Price Prediction Response:', response)
-
     return NextResponse.json({
       success: true,
       data: response,
@@ -59,7 +56,6 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Price prediction error:', error)
     return NextResponse.json(
       { 
         error: error instanceof Error ? error.message : 'Failed to get price prediction',

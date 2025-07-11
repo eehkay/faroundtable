@@ -112,7 +112,6 @@ export async function GET(
       hasMore: false // Pagination not implemented as feed is limited to 20 most recent items
     })
   } catch (error) {
-    console.error('Error fetching unified feed:', error)
     return NextResponse.json(
       { error: 'Failed to fetch feed data' },
       { status: 500 }

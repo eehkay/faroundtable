@@ -189,7 +189,6 @@ async function getRecipients(store: DealershipLocation | { _ref: string }, roles
     .eq('active', true);
 
   if (error) {
-    console.error('Error fetching recipients:', error);
     return [];
   }
 
@@ -208,7 +207,6 @@ async function getEmailSettings(settingKey: string) {
     .single();
 
   if (error) {
-    console.error(`Error fetching email settings for ${settingKey}:`, error);
     return null;
   }
 
@@ -230,7 +228,6 @@ export async function sendTransferRequestedNotification(data: {
     // Get email settings for this notification type
     const settings = await getEmailSettings('transferRequested');
     if (!settings || !settings.enabled) {
-      console.log('Transfer requested notifications are disabled');
       return;
     }
 
@@ -281,10 +278,8 @@ export async function sendTransferRequestedNotification(data: {
       html: emailData.html
     });
 
-    console.log(`Transfer requested notification sent to ${recipients.length} recipients`);
     return result;
   } catch (error) {
-    console.error('Failed to send transfer requested notification:', error);
     throw error;
   }
 }
@@ -303,7 +298,6 @@ export async function sendTransferApprovedNotification(data: {
     // Get email settings for this notification type
     const settings = await getEmailSettings('transferApproved');
     if (!settings || !settings.enabled) {
-      console.log('Transfer approved notifications are disabled');
       return;
     }
 
@@ -359,10 +353,8 @@ export async function sendTransferApprovedNotification(data: {
       html: emailData.html
     });
 
-    console.log(`Transfer approved notification sent to ${recipients.length} recipients`);
     return result;
   } catch (error) {
-    console.error('Failed to send transfer approved notification:', error);
     throw error;
   }
 }
@@ -383,7 +375,6 @@ export async function sendTransferStatusUpdateNotification(data: {
     const settingKey = data.status === 'in-transit' ? 'transferInTransit' : 'transferDelivered';
     const settings = await getEmailSettings(settingKey);
     if (!settings || !settings.enabled) {
-      console.log(`Transfer ${data.status} notifications are disabled`);
       return;
     }
 
@@ -435,10 +426,8 @@ export async function sendTransferStatusUpdateNotification(data: {
       html: emailData.html
     });
 
-    console.log(`Transfer ${data.status} notification sent to ${recipients.length} recipients`);
     return result;
   } catch (error) {
-    console.error(`Failed to send transfer ${data.status} notification:`, error);
     throw error;
   }
 }
@@ -458,7 +447,6 @@ export async function sendTransferCancelledNotification(data: {
     // Get email settings for this notification type
     const settings = await getEmailSettings('transferCancelled');
     if (!settings || !settings.enabled) {
-      console.log('Transfer cancelled notifications are disabled');
       return;
     }
 
@@ -514,10 +502,8 @@ export async function sendTransferCancelledNotification(data: {
       html: emailData.html
     });
 
-    console.log(`Transfer cancelled notification sent to ${recipients.length} recipients`);
     return result;
   } catch (error) {
-    console.error('Failed to send transfer cancelled notification:', error);
     throw error;
   }
 }

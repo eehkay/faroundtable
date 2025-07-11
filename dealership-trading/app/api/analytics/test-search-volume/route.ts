@@ -65,7 +65,6 @@ export async function POST(request: NextRequest) {
           debugInfo.endpoint = debugData.debug.apiUrl;
         }
       } catch (error) {
-        console.error(`Error getting data for location ${locationCode}:`, error);
         results.push({
           locationName: LOCATION_NAMES[locationCode] || `Location ${locationCode}`,
           locationCode,
@@ -80,7 +79,6 @@ export async function POST(request: NextRequest) {
       debug: debugInfo,
     });
   } catch (error) {
-    console.error('Test search volume error:', error);
     return NextResponse.json({ 
       error: 'Failed to get search volume data',
       message: error instanceof Error ? error.message : 'Unknown error',
