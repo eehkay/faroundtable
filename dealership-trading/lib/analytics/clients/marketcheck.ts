@@ -198,6 +198,49 @@ export interface VinDecodeRequest {
   vin: string;
 }
 
+export interface PopularCar {
+  country: string;
+  city?: string;
+  count: number;
+  make: string;
+  model: string;
+  price_stats: {
+    median: number;
+    mean: number;
+    min: number;
+    max: number;
+    iqr: number;
+  };
+  miles_stats: {
+    median: number;
+    mean: number;
+    min: number;
+    max: number;
+  };
+  dom_stats: {
+    median: number;
+    mean: number;
+    min: number;
+    max: number;
+    iqr?: number;
+  };
+  cpo_price_stats?: {
+    median: number;
+    mean: number;
+    listings_count: number;
+  };
+  cpo_miles_stats?: {
+    median: number;
+    mean: number;
+  };
+  cpo_dom_stats?: {
+    median: number;
+    mean: number;
+  };
+}
+
+export type PopularCarsResponse = PopularCar[];
+
 export interface VinDecodeResponse {
   vin: string;
   year: number;
@@ -247,9 +290,7 @@ export class MarketCheckClient {
     }
 
     try {
-      const response = await this.request<VinDecodeResponse>(`/decode/car/${vin}/specs`, {
-        api_key: this.apiKey
-      });
+      const response = await this.request<VinDecodeResponse>(`/decode/car/${vin}/specs`);
 
       const result: VinDecodeResult = {
         success: true,
@@ -274,23 +315,29 @@ export class MarketCheckClient {
   private async request<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
     const url = new URL(`${this.baseUrl}${endpoint}`);
     
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.append(key, String(value));
-        }
-      });
-    }
+    // MarketCheck API expects api_key as a query parameter, not a header
+    const allParams = {
+      api_key: this.apiKey,
+      ...params
+    };
+    
+    Object.entries(allParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, String(value));
+      }
+    });
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
+      console.log('[MarketCheck] Request URL:', url.toString());
+      console.log('[MarketCheck] Request params:', allParams);
+
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'X-API-Key': this.apiKey,
         },
         signal: controller.signal,
       });
@@ -298,7 +345,21 @@ export class MarketCheckClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`MarketCheck API error: ${response.status} ${response.statusText}`);
+        // Try to get error details from response body
+        let errorDetails = '';
+        try {
+          const errorBody = await response.text();
+          errorDetails = errorBody ? ` - Details: ${errorBody}` : '';
+        } catch {
+          // Ignore errors reading response body
+        }
+        
+        const errorMessage = `MarketCheck API error: ${response.status} ${response.statusText}${errorDetails}`;
+        console.error('[MarketCheck] Error:', errorMessage);
+        console.error('[MarketCheck] Failed endpoint:', endpoint);
+        console.error('[MarketCheck] Failed URL:', url.toString());
+        
+        throw new Error(errorMessage);
       }
 
       return await response.json();
@@ -306,16 +367,17 @@ export class MarketCheckClient {
       clearTimeout(timeoutId);
       
       if (error instanceof Error && error.name === 'AbortError') {
+        console.error('[MarketCheck] Request timeout for:', url.toString());
         throw new Error('MarketCheck API request timeout');
       }
       
+      console.error('[MarketCheck] Request failed:', error);
       throw error;
     }
   }
 
   async searchVehicles(params: VehicleAnalysisRequest): Promise<MarketCheckSearchResponse> {
     const searchParams: Record<string, any> = {
-      api_key: this.apiKey,
       year: params.year,
       make: params.make,
       model: params.model,
@@ -470,10 +532,7 @@ export class MarketCheckClient {
    */
   async getPricePrediction(params: PricePredictionRequest): Promise<PricePredictionResponse> {
     try {
-      return await this.request<PricePredictionResponse>('/predict/car/price', {
-        api_key: this.apiKey,
-        ...params
-      });
+      return await this.request<PricePredictionResponse>('/predict/car/price', params);
     } catch (error) {
       throw error;
     }
@@ -485,10 +544,7 @@ export class MarketCheckClient {
    */
   async getMarketDaySupply(params: MarketDaySupplyRequest): Promise<MarketDaySupplyResponse> {
     try {
-      return await this.request<MarketDaySupplyResponse>('/mds/car', {
-        api_key: this.apiKey,
-        ...params
-      });
+      return await this.request<MarketDaySupplyResponse>('/mds/car', params);
     } catch (error) {
       throw error;
     }
@@ -534,7 +590,6 @@ export class MarketCheckClient {
       }
 
       const requestParams = {
-        api_key: this.apiKey,
         ymmt,
         city_state: params.city_state
       };
@@ -565,7 +620,6 @@ export class MarketCheckClient {
   }): Promise<MarketCheckSearchResponse> {
     try {
       return await this.request<MarketCheckSearchResponse>('/inventory/search', {
-        api_key: this.apiKey,
         car_type: 'used',
         ...params
       });
@@ -599,10 +653,7 @@ export class MarketCheckClient {
     total_count: number;
   }> {
     try {
-      return await this.request('/dealers/search', {
-        api_key: this.apiKey,
-        ...params
-      });
+      return await this.request('/dealers/search', params);
     } catch (error) {
       throw error;
     }
@@ -633,10 +684,7 @@ export class MarketCheckClient {
     };
   }> {
     try {
-      return await this.request('/trends', {
-        api_key: this.apiKey,
-        ...params
-      });
+      return await this.request('/trends', params);
     } catch (error) {
       throw error;
     }
@@ -660,7 +708,6 @@ export class MarketCheckClient {
   }> {
     try {
       return await this.request('/history', {
-        api_key: this.apiKey,
         vin,
         car_type: 'used'
       });
@@ -676,7 +723,6 @@ export class MarketCheckClient {
   async searchSimilarVehicles(params: SimilarVehiclesRequest): Promise<SimilarVehiclesResponse> {
     try {
       const response = await this.request<any>('/search/car/active', {
-        api_key: this.apiKey,
         car_type: 'used',
         latitude: params.latitude,
         longitude: params.longitude,
@@ -717,6 +763,49 @@ export class MarketCheckClient {
         })) || [],
         stats: response.stats
       };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get popular cars in a specific city with complete statistics
+   * This endpoint provides inventory counts, price stats, mileage stats, and DOM stats
+   */
+  async getPopularCarsByCity(params: {
+    city: string;
+    state: string;
+    limit?: number;
+    carType?: 'used' | 'new' | 'both';
+  }): Promise<PopularCarsResponse> {
+    try {
+      const response = await this.request<PopularCarsResponse>('/popular/cars', {
+        city_state: `${params.city}|${params.state}`,
+        car_type: params.carType || 'used',
+        limit: params.limit || 50
+      });
+
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get popular cars nationally (without city/state filter)
+   * Returns the most popular cars across the entire country
+   */
+  async getPopularCarsNational(params: {
+    limit?: number;
+    carType?: 'used' | 'new' | 'both';
+  } = {}): Promise<PopularCarsResponse> {
+    try {
+      const response = await this.request<PopularCarsResponse>('/popular/cars', {
+        car_type: params.carType || 'used',
+        limit: params.limit || 50
+      });
+
+      return response;
     } catch (error) {
       throw error;
     }

@@ -178,6 +178,12 @@ export class AnalyticsAggregator {
 
       const location = dealership.coordinates || { lat: 33.0, lng: -117.0 };
 
+      console.log('[Aggregator] Getting regional insights for:', {
+        locationId: request.locationId,
+        location,
+        radius: request.radius
+      });
+
       // Get popular vehicles in the region
       const popularMakes = ['Toyota', 'Honda', 'Ford', 'Chevrolet', 'Nissan'];
       const popularModels = ['Camry', 'Accord', 'F-150', 'Silverado', 'Altima'];
@@ -187,6 +193,8 @@ export class AnalyticsAggregator {
         popularMakes.slice(0, 3).map(async (make, index) => {
           const model = popularModels[index];
           try {
+            console.log(`[Aggregator] Analyzing ${make} ${model}`);
+            
             const [marketData, demandData] = await Promise.all([
               this.marketCheckClient.getRegionalStats(make, model, location, request.radius),
               this.dataForSEOClient.getDemandData({ make, model }),
@@ -199,12 +207,28 @@ export class AnalyticsAggregator {
               demandData,
             };
           } catch (error) {
+            console.error(`[Aggregator] Failed to analyze ${make} ${model}:`, error);
+            
+            // Include more details about the error
+            if (error instanceof Error) {
+              console.error('[Aggregator] Error details:', {
+                make,
+                model,
+                message: error.message,
+                stack: error.stack
+              });
+            }
+            
             return null;
           }
         })
       );
 
       const validAnalyses = vehicleAnalyses.filter(Boolean);
+
+      if (validAnalyses.length === 0) {
+        throw new Error('Failed to analyze any vehicles. Check API credentials and endpoints.');
+      }
 
       // Transform to popular vehicles
       const popularVehicles: PopularVehicle[] = validAnalyses.map(analysis => ({
@@ -258,6 +282,12 @@ export class AnalyticsAggregator {
 
       return insights;
     } catch (error) {
+      console.error('[Aggregator] getRegionalInsights failed:', error);
+      
+      // Re-throw with more context
+      if (error instanceof Error) {
+        throw new Error(`Regional insights analysis failed: ${error.message}`);
+      }
       throw error;
     }
   }

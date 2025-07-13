@@ -5,6 +5,11 @@ export interface DealershipLocation {
   name: string;
   code: string;
   csv_file_name?: string;
+  city?: string;
+  state?: string;
+  city_state?: string;
+  latitude?: number;
+  longitude?: number;
   coordinates?: {
     lat: number;
     lng: number;
@@ -34,7 +39,9 @@ export async function getDealershipLocation(locationId: string): Promise<Dealers
 
     return {
       ...data,
-      coordinates: defaultCoordinates[data.name] || { lat: 33.0, lng: -117.0 },
+      coordinates: data.latitude && data.longitude 
+        ? { lat: data.latitude, lng: data.longitude }
+        : defaultCoordinates[data.name] || { lat: 33.0, lng: -117.0 },
     };
   } catch (error) {
     return null;

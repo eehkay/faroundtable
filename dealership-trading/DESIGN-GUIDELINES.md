@@ -325,6 +325,38 @@ Based on 4px unit (0.25rem)
 - No hover effects
 - Cursor: not-allowed
 
+### Text Selection
+- Light mode: Blue background (#3b82f6) with white text
+- Dark mode: Light blue background (#60a5fa) with black text for maximum contrast
+- Ensures selected text is always clearly visible
+- Applied globally to all text, inputs, and textareas
+
+```css
+/* Text selection styles */
+::selection {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.dark ::selection {
+  background-color: #60a5fa;
+  color: #000000;
+}
+
+/* Input and textarea specific */
+input::selection,
+textarea::selection {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.dark input::selection,
+.dark textarea::selection {
+  background-color: #60a5fa;
+  color: #000000;
+}
+```
+
 ---
 
 ## 📱 Responsive Design

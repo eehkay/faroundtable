@@ -76,6 +76,8 @@ export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps)
     try {
       // If dry run, fetch preview first
       if (dryRun) {
+        console.log('Triggering dry run with options:', { stores, enrichment });
+        
         const response = await fetch('/api/admin/imports/dry-run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -83,6 +85,7 @@ export default function ImportTrigger({ onImportTriggered }: ImportTriggerProps)
         });
 
         const data = await response.json();
+        console.log('Dry run response:', response.status, data);
 
         if (response.ok) {
           setDryRunResult(data);

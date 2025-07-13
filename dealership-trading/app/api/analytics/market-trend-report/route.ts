@@ -4,12 +4,12 @@ import { authOptions } from '@/lib/auth'
 import { MarketCheckClient } from '@/lib/analytics/clients/marketcheck'
 import { DataForSEOClient } from '@/lib/analytics/clients/dataforseo'
 import { supabaseAdmin } from '@/lib/supabase-server'
-import { getLocationCodesForDealership, generateLocationKeywords, getLocationName } from '@/lib/analytics/location-config'
 
 interface MarketTrendReportRequest {
   vin: string
   currentPrice?: number
   locationId?: string  // Now optional when using overrides
+  includeRawData?: boolean  // Include unprocessed API responses
   overrides?: {
     vehicle?: {
       year?: number
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Get request body
     const body: MarketTrendReportRequest = await request.json()
-    const { vin, currentPrice, locationId, overrides } = body
+    const { vin, currentPrice, locationId, overrides, includeRawData = false } = body
 
     // Validate required fields
     if (!vin) {
@@ -205,13 +205,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Get DataForSEO location codes for this dealership
-    const locationCodes = locationData.dataforseo_location_code 
-      ? [locationData.dataforseo_location_code]
-      : locationId 
-        ? await getLocationCodesForDealership(locationId)
-        : [2840] // Default to US if no specific location code
-    
     // Generate keywords for search volume
     const baseKeywords = [
       `${vehicleData.year} ${vehicleData.make} ${vehicleData.model}`,
@@ -221,8 +214,9 @@ export async function POST(request: NextRequest) {
       `used ${vehicleData.make} ${vehicleData.model}`
     ]
     
-    const locationName = getLocationName(locationCodes[0])
-    const localKeywords = generateLocationKeywords(baseKeywords, locationName)
+    // For coordinate-based search, we don't need location-specific keywords
+    // The coordinate radius will handle the geographic targeting
+    const localKeywords = baseKeywords
 
     // Use search radius from overrides or default
     const searchRadius = overrides?.searchRadius || 100
@@ -267,11 +261,16 @@ export async function POST(request: NextRequest) {
       }),
       
       // DataForSEO Search Volume (only if client is configured)
-      dataForSEOClient ? (
-        locationCodes.length > 1
-          ? dataForSEOClient.getSearchVolumeMultiLocation(localKeywords, locationCodes)
-          : dataForSEOClient.getSearchVolume(localKeywords, locationCodes[0])
-      ) : Promise.resolve(null)
+      dataForSEOClient ? 
+        dataForSEOClient.getSearchVolumeByCoordinate(
+          localKeywords,
+          locationData.latitude,
+          locationData.longitude,
+          searchRadius,
+          ['rental', 'lease', 'parts', 'repair', 'manual', 'recall', 'service', 'insurance'],
+          true // Include raw response for debugging
+        )
+      : Promise.resolve(null)
     ])
 
     // Process results
@@ -302,15 +301,35 @@ export async function POST(request: NextRequest) {
       const lowerBound = priceData.price_range?.low || predictedPrice * 0.9
       const upperBound = priceData.price_range?.high || predictedPrice * 1.1
       
-      report.marketPosition = {
-        predictedPrice,
-        priceRange: {
-          lower: lowerBound,
-          upper: upperBound
-        },
-        currentPrice: currentPrice || vehicleData.price,
-        percentile: calculatePricePercentile(currentPrice || vehicleData.price, lowerBound, upperBound),
-        recommendation: generatePriceRecommendation(currentPrice || vehicleData.price, predictedPrice)
+      if (includeRawData) {
+        // Extract only essential fields from price data
+        report.marketPosition = {
+          raw: {
+            predicted_price: priceData.predicted_price,
+            confidence: priceData.confidence,
+            price_range: priceData.price_range,
+            market_data: priceData.market_data
+          },
+          processed: {
+            predictedPrice,
+            priceRange: {
+              lower: lowerBound,
+              upper: upperBound
+            },
+            currentPrice: currentPrice || vehicleData.price
+          }
+        }
+      } else {
+        report.marketPosition = {
+          predictedPrice,
+          priceRange: {
+            lower: lowerBound,
+            upper: upperBound
+          },
+          currentPrice: currentPrice || vehicleData.price,
+          percentile: calculatePricePercentile(currentPrice || vehicleData.price, lowerBound, upperBound),
+          recommendation: generatePriceRecommendation(currentPrice || vehicleData.price, predictedPrice)
+        }
       }
     } else {
       report.marketPosition = {
@@ -321,11 +340,30 @@ export async function POST(request: NextRequest) {
     // Process Market Day Supply
     if (marketDaySupply.status === 'fulfilled') {
       const mdsData = marketDaySupply.value
-      report.inventoryAnalysis = {
-        marketDaySupply: mdsData.mds || 0,
-        inventoryCount: mdsData.inventory_count || 0,
-        salesCount: mdsData.sales_count || 0,
-        scarcityScore: calculateScarcityScore(mdsData.mds || 0)
+      
+      if (includeRawData) {
+        // Extract only essential fields from MDS data
+        report.inventoryAnalysis = {
+          raw: {
+            mds: mdsData.mds,
+            inventory_count: mdsData.inventory_count,
+            sales_count: mdsData.sales_count,
+            sales_period_days: mdsData.sales_period_days,
+            market_radius: mdsData.market_radius
+          },
+          processed: {
+            marketDaySupply: mdsData.mds || 0,
+            inventoryCount: mdsData.inventory_count || 0,
+            salesCount: mdsData.sales_count || 0
+          }
+        }
+      } else {
+        report.inventoryAnalysis = {
+          marketDaySupply: mdsData.mds || 0,
+          inventoryCount: mdsData.inventory_count || 0,
+          salesCount: mdsData.sales_count || 0,
+          scarcityScore: calculateScarcityScore(mdsData.mds || 0)
+        }
       }
     } else {
       report.inventoryAnalysis = {
@@ -336,13 +374,45 @@ export async function POST(request: NextRequest) {
     // Process Citywise Sales
     if (citywiseSales.status === 'fulfilled') {
       const salesData = citywiseSales.value
-      report.regionalPerformance = {
-        citySalesCount: salesData.count || salesData.sales_count || 0,
-        avgPrice: salesData.price_stats?.mean || salesData.average_price || 0,
-        avgMiles: salesData.miles_stats?.mean || salesData.average_miles || 0,
-        avgDaysOnMarket: salesData.dom_stats?.mean || salesData.average_dom || 0,
-        topColors: salesData.top_colors || [],
-        salesTrend: salesData.sales_trend || 'stable'
+      
+      if (includeRawData) {
+        // Extract only essential stats from sales data
+        report.regionalPerformance = {
+          raw: {
+            count: salesData.count || salesData.sales_count,
+            price_stats: salesData.price_stats ? {
+              mean: salesData.price_stats.mean,
+              median: salesData.price_stats.median,
+              min: salesData.price_stats.min,
+              max: salesData.price_stats.max
+            } : null,
+            miles_stats: salesData.miles_stats ? {
+              mean: salesData.miles_stats.mean,
+              median: salesData.miles_stats.median
+            } : null,
+            dom_stats: salesData.dom_stats ? {
+              mean: salesData.dom_stats.mean,
+              median: salesData.dom_stats.median
+            } : null
+          },
+          processed: {
+            citySalesCount: salesData.count || salesData.sales_count || 0,
+            avgPrice: salesData.price_stats?.mean || salesData.average_price || 0,
+            avgMiles: salesData.miles_stats?.mean || salesData.average_miles || 0,
+            avgDaysOnMarket: salesData.dom_stats?.mean || salesData.average_dom || 0,
+            topColors: salesData.top_colors || [],
+            salesTrend: salesData.sales_trend || 'stable'
+          }
+        }
+      } else {
+        report.regionalPerformance = {
+          citySalesCount: salesData.count || salesData.sales_count || 0,
+          avgPrice: salesData.price_stats?.mean || salesData.average_price || 0,
+          avgMiles: salesData.miles_stats?.mean || salesData.average_miles || 0,
+          avgDaysOnMarket: salesData.dom_stats?.mean || salesData.average_dom || 0,
+          topColors: salesData.top_colors || [],
+          salesTrend: salesData.sales_trend || 'stable'
+        }
       }
     } else {
       
@@ -372,27 +442,70 @@ export async function POST(request: NextRequest) {
       const similarData = similarVehicles.value
       const vehicles = similarData.listings || []
       
-      const competitiveVehicles = vehicles.map((v: any) => ({
-        vin: v.vin,
-        distance: Math.round(v.distance),
-        price: v.price,
-        dealer: v.dealer.name,
-        daysOnMarket: v.dom || 0,
-        year: v.year,
-        make: v.make,
-        model: v.model,
-        vdpUrl: v.vdp_url
-      }))
+      if (includeRawData) {
+        // Limit to top 20 vehicles to avoid token limits
+        const limitedVehicles = vehicles.slice(0, 20).map((v: any) => ({
+          vin: v.vin,
+          year: v.year,
+          make: v.make,
+          model: v.model,
+          trim: v.trim,
+          price: v.price,
+          miles: v.miles,
+          distance: Math.round(v.distance),
+          dealer: v.dealer.name,
+          dom: v.dom || 0
+        }))
+        
+        report.competitiveLandscape = {
+          raw: {
+            listings: limitedVehicles, // Top 20 vehicles with essential fields only
+            stats: similarData.stats || null,
+            totalCount: vehicles.length
+          },
+          processed: {
+            totalNearbyInventory: vehicles.length,
+            avgCompetitorPrice: vehicles.length > 0
+              ? vehicles.reduce((sum: number, v: any) => sum + v.price, 0) / vehicles.length
+              : 0,
+            priceDistribution: {
+              min: vehicles.length > 0 ? Math.min(...vehicles.map((v: any) => v.price)) : 0,
+              max: vehicles.length > 0 ? Math.max(...vehicles.map((v: any) => v.price)) : 0,
+              median: vehicles.length > 0 ? vehicles.sort((a: any, b: any) => a.price - b.price)[Math.floor(vehicles.length / 2)]?.price : 0
+            }
+          }
+        }
+      } else {
+        const competitiveVehicles = vehicles.map((v: any) => ({
+          vin: v.vin,
+          distance: Math.round(v.distance),
+          price: v.price,
+          dealer: v.dealer.name,
+          daysOnMarket: v.dom || 0,
+          year: v.year,
+          make: v.make,
+          model: v.model,
+          vdpUrl: v.vdp_url
+        }))
 
-      const avgCompetitorPrice = vehicles.length > 0
-        ? vehicles.reduce((sum: number, v: any) => sum + v.price, 0) / vehicles.length
-        : 0
+        const avgCompetitorPrice = vehicles.length > 0
+          ? vehicles.reduce((sum: number, v: any) => sum + v.price, 0) / vehicles.length
+          : 0
 
-      report.competitiveLandscape = {
-        similarVehicles: competitiveVehicles.slice(0, 10), // Top 10 closest
-        totalNearbyInventory: vehicles.length,
-        avgCompetitorPrice,
-        pricePosition: determinePricePosition(currentPrice || vehicleData.price, avgCompetitorPrice)
+        report.competitiveLandscape = {
+          similarVehicles: competitiveVehicles, // All vehicles
+          totalNearbyInventory: vehicles.length,
+          avgCompetitorPrice,
+          pricePosition: determinePricePosition(currentPrice || vehicleData.price, avgCompetitorPrice),
+          // Group by dealer for easier display
+          vehiclesByDealer: competitiveVehicles.reduce((acc: any, vehicle: any) => {
+            if (!acc[vehicle.dealer]) {
+              acc[vehicle.dealer] = []
+            }
+            acc[vehicle.dealer].push(vehicle)
+            return acc
+          }, {})
+        }
       }
     } else {
       report.competitiveLandscape = {
@@ -402,43 +515,105 @@ export async function POST(request: NextRequest) {
 
     // Process Search Volume Data
     if (searchVolume.status === 'fulfilled' && searchVolume.value) {
-      const volumeData = searchVolume.value
+      // Extract results and raw response
+      const searchVolumeResponse = searchVolume.value
+      const volumeData = Array.isArray(searchVolumeResponse) 
+        ? searchVolumeResponse 
+        : searchVolumeResponse.results
+      const rawDataForSEOResponse = !Array.isArray(searchVolumeResponse) 
+        ? searchVolumeResponse.raw 
+        : null
       
       // Calculate total search volume
-      const totalSearchVolume = volumeData.reduce((sum, keyword) => sum + keyword.search_volume, 0)
+      const totalSearchVolume = volumeData.reduce((sum: number, keyword: any) => sum + keyword.search_volume, 0)
       
       // Find top performing keywords
       const topKeywords = volumeData
-        .sort((a, b) => b.search_volume - a.search_volume)
-        .slice(0, 5)
-        .map(kw => ({
+        .sort((a: any, b: any) => b.search_volume - a.search_volume)
+        .slice(0, 10)
+        .map((kw: any) => ({
           keyword: kw.keyword,
           monthlySearches: kw.search_volume,
-          competition: kw.competition
+          competition: kw.competition,
+          cpc: kw.cpc
         }))
       
-      report.demandAnalysis = {
-        totalMonthlySearches: totalSearchVolume,
-        locationName,
-        locationCodes,
-        topKeywords,
-        searchTrend: determineSearchTrend(volumeData),
-        demandLevel: determineDemandLevel(totalSearchVolume)
+      if (includeRawData) {
+        // More aggressive summarization to reduce tokens
+        const vehicleSpecificKeywords = volumeData.filter((kw: any) => 
+          kw.keyword.includes(vehicleData.year.toString()) || 
+          kw.keyword.includes(vehicleData.make.toLowerCase()) || 
+          kw.keyword.includes(vehicleData.model.toLowerCase())
+        ).slice(0, 10) // Limit to top 10
+        
+        const genericKeywords = volumeData.filter((kw: any) => 
+          kw.keyword.includes('for sale') || 
+          kw.keyword.includes('price') ||
+          kw.keyword.includes('used')
+        ).slice(0, 5) // Limit to top 5
+        
+        report.demandAnalysis = {
+          raw: {
+            keywordSummary: {
+              topVehicleSpecific: vehicleSpecificKeywords.map((kw: any) => ({
+                keyword: kw.keyword,
+                volume: kw.search_volume
+              })),
+              topGeneric: genericKeywords.map((kw: any) => ({
+                keyword: kw.keyword,
+                volume: kw.search_volume
+              })),
+              totalAnalyzed: volumeData.length
+            },
+            metrics: {
+              totalMonthlySearches: totalSearchVolume,
+              avgSearchVolume: Math.round(totalSearchVolume / volumeData.length),
+              avgCompetition: Math.round(volumeData.reduce((sum: number, kw: any) => sum + kw.competition, 0) / volumeData.length * 100) / 100
+            }
+          },
+          processed: {
+            totalMonthlySearches: totalSearchVolume,
+            searchRadius: searchRadius,
+            locationName: locationData.city_state || locationData.name,
+            topKeywords: topKeywords // Already limited to top 10
+          }
+        }
+      } else {
+        report.demandAnalysis = {
+          totalMonthlySearches: totalSearchVolume,
+          searchRadius: searchRadius,
+          locationName: locationData.city_state || locationData.name,
+          topKeywords,
+          searchTrend: determineSearchTrend(volumeData),
+          demandLevel: determineDemandLevel(totalSearchVolume),
+          // Include raw data for debugging
+          raw: rawDataForSEOResponse || {
+            topKeywords: topKeywords.map((kw: any) => ({
+              keyword: kw.keyword,
+              monthlySearches: kw.monthlySearches,
+              competition: kw.competition,
+              cpc: kw.cpc
+            })),
+            totalAnalyzed: volumeData.length,
+            totalMonthlySearches: totalSearchVolume
+          }
+        }
       }
     } else {
       report.demandAnalysis = {
         error: dataForSEOClient ? 'Unable to get search volume data' : 'DataForSEO API credentials not configured',
-        locationName,
-        locationCodes,
+        searchRadius: searchRadius,
+        locationName: locationData.city_state || locationData.name,
         note: !dataForSEOClient ? 'Please add DATAFORSEO_EMAIL and DATAFORSEO_API_KEY to your environment variables' : undefined
       }
     }
 
-    // Calculate Opportunity Score
-    report.opportunityScore = calculateOpportunityScore(report)
-
-    // Generate Recommendations
-    report.recommendations = generateRecommendations(report)
+    // Calculate Opportunity Score and Recommendations only if not including raw data
+    // This avoids biasing the AI with our pre-calculated scores
+    if (!includeRawData) {
+      report.opportunityScore = calculateOpportunityScore(report)
+      report.recommendations = generateRecommendations(report)
+    }
 
     return NextResponse.json({
       success: true,

@@ -4,6 +4,15 @@ import { authOptions } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase-server'
 import OpenAI from 'openai'
 
+interface AIContextSettings {
+  market_position_context: string
+  inventory_analysis_context: string
+  regional_performance_context: string
+  competitive_landscape_context: string
+  demand_analysis_context: string
+  include_context: boolean
+}
+
 interface AnalyzeMarketTrendRequest {
   // System prompt to guide the AI analysis
   systemPrompt?: string
@@ -56,14 +65,27 @@ const DEFAULT_SYSTEM_PROMPT = `You are an expert automotive market analyst with 
 - Competitive landscape analysis
 - Search trend interpretation and demand forecasting
 
-Analyze the provided market trend report data and provide actionable insights. Focus on:
-1. Key opportunities and risks
-2. Strategic recommendations
-3. Market timing considerations
-4. Competitive positioning strategies
-5. Pricing optimization suggestions
+You will receive market data in a structured format with the following sections:
+- VEHICLE INFORMATION: Basic details about the vehicle being analyzed
+- LOCATION CONTEXT: Dealership location and market area
+- MARKET POSITION: Price predictions and market value analysis
+- INVENTORY ANALYSIS: Supply metrics including Market Day Supply (MDS)
+- REGIONAL PERFORMANCE: Historical sales data for this vehicle type in the region
+- COMPETITIVE LANDSCAPE: Similar vehicles currently for sale nearby
+- DEMAND ANALYSIS: Consumer search trends and keyword volumes
 
-Be specific, data-driven, and provide concrete action items.`
+When you see 'raw' and 'processed' data:
+- 'raw' contains unbiased API responses - use this for your analysis
+- 'processed' contains pre-calculated values - use these only as reference points
+
+Provide actionable insights focusing on:
+1. Key opportunities and risks based on the raw data
+2. Strategic recommendations with specific price points
+3. Market timing considerations (when to sell)
+4. Competitive positioning strategies
+5. Expected days to sell based on market conditions
+
+Be specific, data-driven, and provide concrete action items with numerical targets where possible.`
 
 export async function POST(request: NextRequest) {
   try {
@@ -146,19 +168,103 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if OpenAI API key is configured
+    // Determine if we should use OpenRouter based on the model
+    const isOpenRouterModel = finalOptions.model?.includes('/')
+    
+    // Check API key configuration
     const openaiApiKey = process.env.OPENAI_API_KEY
-    if (!openaiApiKey) {
+    const openrouterApiKey = process.env.OPENROUTER_API_KEY
+    
+    if (isOpenRouterModel && !openrouterApiKey) {
+      return NextResponse.json(
+        { error: 'OpenRouter API key not configured' },
+        { status: 500 }
+      )
+    } else if (!isOpenRouterModel && !openaiApiKey) {
       return NextResponse.json(
         { error: 'OpenAI API key not configured' },
         { status: 500 }
       )
     }
 
-    // Initialize OpenAI client
+    // Fetch AI context settings from database
+    let contextSettings: AIContextSettings | null = null
+    try {
+      const { data } = await supabaseAdmin
+        .from('ai_context_settings')
+        .select('*')
+        .single()
+      
+      contextSettings = data
+    } catch (error) {
+      console.log('Using default context settings')
+    }
+
+    // Default context values if not in database
+    const defaultContext: AIContextSettings = {
+      market_position_context: 'This section contains price prediction data comparing the vehicle\'s current price to market predictions. \'raw\' contains unprocessed API responses, \'processed\' contains calculated values. Key metrics: predicted_price, confidence level, price_range (market bounds)',
+      inventory_analysis_context: 'Market Day Supply (MDS) indicates how many days of inventory exist based on current sales rate. Lower MDS = higher demand/scarcity, Higher MDS = oversupply. inventory_count: current listings, sales_count: recent sales used for MDS calculation',
+      regional_performance_context: 'Historical sales data for this vehicle type in the specified city/region. Includes pricing statistics, mileage averages, and days on market trends. \'count\' represents historical sales volume in this market',
+      competitive_landscape_context: 'Shows competing inventory within the search radius. Limited to top 20 vehicles to reduce data size. Includes pricing, mileage, distance from location, and days on market. totalCount shows full inventory size even though listings are limited',
+      demand_analysis_context: 'Based on keyword search volume data from DataForSEO. Shows consumer interest through search queries. Vehicle-specific keywords indicate direct interest in this model. Generic keywords show general market activity',
+      include_context: true
+    }
+
+    const context = contextSettings || defaultContext
+
+    // Initialize OpenAI client with appropriate configuration
     const openai = new OpenAI({
-      apiKey: openaiApiKey
+      apiKey: isOpenRouterModel ? openrouterApiKey : openaiApiKey,
+      baseURL: isOpenRouterModel ? 'https://openrouter.ai/api/v1' : undefined,
+      defaultHeaders: isOpenRouterModel ? {
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://roundtable.app',
+        'X-Title': 'Round Table Market Analysis'
+      } : undefined
     })
+
+    // Build user message content
+    let userContent = userPrompt
+
+    // Add context if enabled
+    if (context.include_context) {
+      userContent += `
+
+Market Trend Report Data with Context:
+
+VEHICLE INFORMATION:
+${JSON.stringify(reportData.vehicle, null, 2)}
+
+LOCATION CONTEXT:
+${JSON.stringify(reportData.location, null, 2)}
+
+MARKET POSITION (Price Analysis):
+- ${context.market_position_context}
+${JSON.stringify(reportData.marketPosition, null, 2)}
+
+INVENTORY ANALYSIS (Supply & Demand):
+- ${context.inventory_analysis_context}
+${JSON.stringify(reportData.inventoryAnalysis, null, 2)}
+
+REGIONAL PERFORMANCE (Local Market Stats):
+- ${context.regional_performance_context}
+${JSON.stringify(reportData.regionalPerformance, null, 2)}
+
+COMPETITIVE LANDSCAPE (Similar Vehicles):
+- ${context.competitive_landscape_context}
+${JSON.stringify(reportData.competitiveLandscape, null, 2)}
+
+DEMAND ANALYSIS (Search Trends):
+- ${context.demand_analysis_context}
+${JSON.stringify(reportData.demandAnalysis, null, 2)}
+
+Note: When 'raw' data is present, it contains unbiased API responses. The 'processed' data contains our calculations for reference but the AI should form its own conclusions from the raw data.`
+    } else {
+      // Without context, just provide the raw data
+      userContent += `
+
+Market Trend Report Data:
+${JSON.stringify(reportData, null, 2)}`
+    }
 
     // Prepare the messages for OpenAI
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -168,7 +274,7 @@ export async function POST(request: NextRequest) {
       },
       {
         role: 'user',
-        content: `${userPrompt}\n\nMarket Trend Report Data:\n${JSON.stringify(reportData, null, 2)}`
+        content: userContent
       }
     ]
 
@@ -180,8 +286,9 @@ export async function POST(request: NextRequest) {
 
     // Log request details before API call
     if (process.env.NODE_ENV === 'development') {
-      console.log('🚀 [AI Analysis API] Calling OpenAI:', {
+      console.log(`🚀 [AI Analysis API] Calling ${isOpenRouterModel ? 'OpenRouter' : 'OpenAI'}:`, {
         model,
+        provider: isOpenRouterModel ? 'OpenRouter' : 'OpenAI Direct',
         temperature,
         maxTokens,
         responseFormat,
@@ -206,11 +313,12 @@ export async function POST(request: NextRequest) {
     const responseTime = Date.now() - startTime
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ [AI Analysis API] OpenAI Response:', {
+      console.log(`✅ [AI Analysis API] ${isOpenRouterModel ? 'OpenRouter' : 'OpenAI'} Response:`, {
         responseTime: `${responseTime}ms`,
         tokensUsed: completion.usage?.total_tokens,
         finishReason: completion.choices[0]?.finish_reason,
-        responseLength: aiResponse?.length
+        responseLength: aiResponse?.length,
+        actualModel: completion.model // OpenRouter returns the actual model used
       })
     }
 

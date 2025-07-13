@@ -3,16 +3,24 @@
 import { useState } from 'react';
 import VehiclePricing from './VehiclePricing';
 import MarketTrendReportCard from './MarketTrendReportCard';
-import VinDecodeInfo from './VinDecodeInfo';
+import ListingHistoryInfo from './ListingHistoryInfo';
 
-interface VinDecodeResponse {
-  vehicleInfo: {
-    [key: string]: string | number | undefined;
+interface ListingHistoryResponse {
+  listings: any[];
+  summary: {
+    totalListings: number;
+    uniqueDealers: number;
+    priceRange: { min: number; max: number; current: number };
+    mileageRange: { min: number; max: number; current: number };
+    totalDaysListed: number;
+    averageDaysPerListing: number;
+    priceHistory: any[];
+    hasMultipleDealers: boolean;
+    currentListing: any;
+    oldestListingDate?: string;
+    newestListingDate?: string;
   };
-  recalls?: any[];
-  complaints?: any[];
-  investigations?: any[];
-  decodedAt?: string;
+  fetchedAt: string;
 }
 
 interface MarketInsightsWrapperProps {
@@ -36,8 +44,8 @@ export default function MarketInsightsWrapper({
 }: MarketInsightsWrapperProps) {
   const [marketTrendReport, setMarketTrendReport] = useState<any>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
-  const [vinDecodeData, setVinDecodeData] = useState<VinDecodeResponse | null>(null);
-  const [isLoadingVinDecode, setIsLoadingVinDecode] = useState(false);
+  const [listingHistoryData, setListingHistoryData] = useState<ListingHistoryResponse | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const fetchMarketInsights = async () => {
     if (!vehicleInfo.vin || !vehicleInfo.locationId) {
@@ -73,13 +81,13 @@ export default function MarketInsightsWrapper({
     }
   };
 
-  const fetchVinDecode = async () => {
+  const fetchListingHistory = async () => {
     if (!vehicleInfo.vin) return;
     
     try {
-      setIsLoadingVinDecode(true);
+      setIsLoadingHistory(true);
       
-      const response = await fetch('/api/vin-decode', {
+      const response = await fetch('/api/vehicle-history', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,20 +99,15 @@ export default function MarketInsightsWrapper({
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Failed to decode VIN: ${response.status}`);
+        throw new Error(`Failed to fetch listing history: ${response.status}`);
       }
 
       const data = await response.json();
-      // Add decodedAt timestamp if not present
-      const vinData = {
-        ...data,
-        decodedAt: data.decodedAt || new Date().toISOString()
-      };
-      setVinDecodeData(vinData);
+      setListingHistoryData(data);
     } catch (error) {
-      // Error decoding VIN
+      // Error fetching listing history
     } finally {
-      setIsLoadingVinDecode(false);
+      setIsLoadingHistory(false);
     }
   };
 
@@ -116,8 +119,8 @@ export default function MarketInsightsWrapper({
         msrp={msrp}
         onGetMarketInsights={vehicleInfo.vin ? fetchMarketInsights : undefined}
         isLoadingInsights={isLoadingInsights}
-        onCheckVinRecalls={vehicleInfo.vin ? fetchVinDecode : undefined}
-        isLoadingVinDecode={isLoadingVinDecode}
+        onCheckListingHistory={vehicleInfo.vin ? fetchListingHistory : undefined}
+        isLoadingHistory={isLoadingHistory}
       />
       
       {marketTrendReport && (
@@ -128,14 +131,11 @@ export default function MarketInsightsWrapper({
         />
       )}
       
-      {vinDecodeData && vehicleInfo.vin && (
-        <VinDecodeInfo 
-          data={{
-            vehicleInfo: vinDecodeData.vehicleInfo,
-            recalls: vinDecodeData.recalls || [],
-            decodedAt: vinDecodeData.decodedAt || new Date().toISOString()
-          }}
+      {listingHistoryData && vehicleInfo.vin && (
+        <ListingHistoryInfo 
+          data={listingHistoryData}
           vin={vehicleInfo.vin}
+          currentPrice={salePrice || price}
         />
       )}
     </>

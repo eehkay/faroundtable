@@ -20,8 +20,8 @@ export default function CompetitorCard({
   currentPrice,
   rank
 }: CompetitorCardProps) {
-  const priceDiff = price - currentPrice
-  const priceDiffPercent = (priceDiff / currentPrice) * 100
+  const priceDiff = (price || 0) - (currentPrice || 0)
+  const priceDiffPercent = currentPrice ? (priceDiff / currentPrice) * 100 : 0
   
   const getRankColor = (rank: number) => {
     if (rank === 1) return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
@@ -61,7 +61,7 @@ export default function CompetitorCard({
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <span className="text-lg sm:text-xl font-semibold text-white">
-            ${price.toLocaleString()}
+            ${price?.toLocaleString() || 'N/A'}
           </span>
           <Badge 
             variant={priceDiff > 0 ? 'destructive' : 'default'} 

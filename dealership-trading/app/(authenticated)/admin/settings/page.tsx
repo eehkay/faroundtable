@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Plus, Settings, Bot, Trash2, Edit, Check, X, AlertCircle, Copy, CheckCircle } from 'lucide-react'
+import { Loader2, Plus, Settings, Bot, Trash2, Edit, Check, X, AlertCircle, Copy, CheckCircle, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import AISettingForm from '@/components/admin/settings/AISettingForm'
 
@@ -185,16 +185,26 @@ export default function AdminSettingsPage() {
                     Configure AI models and system prompts for market trend analysis
                   </CardDescription>
                 </div>
-                <Button
-                  onClick={() => {
-                    setShowForm(true)
-                    setEditingId(null)
-                  }}
-                  className="bg-[#3b82f6] hover:bg-[#2563eb]"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Prompt
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => window.location.href = '/admin/settings/ai-context'}
+                    variant="outline"
+                    className="border-[#2a2a2a] hover:bg-[#2a2a2a]"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Context Settings
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowForm(true)
+                      setEditingId(null)
+                    }}
+                    className="bg-[#3b82f6] hover:bg-[#2563eb]"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Prompt
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

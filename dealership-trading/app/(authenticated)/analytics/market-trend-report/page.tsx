@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, TrendingUp, TrendingDown, Minus, Loader2, FileText, DollarSign, Package, Clock, Target, Zap, TrendingUpIcon, Users, BarChart3, Search, Settings2, ChevronDown, ChevronUp, RotateCcw, Bot, Sparkles, MessageSquare, Bug, Copy, Eye, EyeOff } from 'lucide-react'
+import { AlertCircle, TrendingUp, TrendingDown, Minus, Loader2, FileText, DollarSign, Package, Clock, Target, Zap, TrendingUpIcon, Users, BarChart3, Search, Settings2, ChevronDown, ChevronUp, RotateCcw, Bot, Sparkles, MessageSquare, Bug, Copy, Eye, EyeOff, Info, Check, HelpCircle, Car } from 'lucide-react'
 import VehicleSearchInput from '@/components/analytics/VehicleSearchInput'
 import { useDealershipLocations } from '@/lib/hooks/useDealershipLocations'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -76,6 +76,17 @@ interface MarketTrendReport {
     totalNearbyInventory: number
     avgCompetitorPrice: number
     pricePosition: 'above' | 'at' | 'below'
+    vehiclesByDealer?: Record<string, Array<{
+      vin: string
+      distance: number
+      price: number
+      dealer: string
+      daysOnMarket: number
+      year: number
+      make: string
+      model: string
+      vdpUrl?: string
+    }>>
     error?: string
   }
   opportunityScore?: {
@@ -105,6 +116,7 @@ interface MarketTrendReport {
     }>
     error?: string
     note?: string
+    raw?: any
   }
 }
 
@@ -139,6 +151,7 @@ export default function MarketTrendReportPage() {
   const [report, setReport] = useState<MarketTrendReport | null>(null)
   const [showManualOverride, setShowManualOverride] = useState(false)
   const [manualVin, setManualVin] = useState('')
+  const [showHowToUse, setShowHowToUse] = useState(false)
   
   // AI Analysis states
   const [showAIAnalysis, setShowAIAnalysis] = useState(false)
@@ -153,6 +166,7 @@ export default function MarketTrendReportPage() {
   const [debugMode, setDebugMode] = useState(false)
   const [showDebugData, setShowDebugData] = useState(false)
   const [lastRequestData, setLastRequestData] = useState<any>(null)
+  const [autoRunAnalysis, setAutoRunAnalysis] = useState(false) // New state for auto-run preference
   
   const [overrideFields, setOverrideFields] = useState({
     // Vehicle overrides
@@ -167,11 +181,11 @@ export default function MarketTrendReportPage() {
     latitude: '',
     longitude: '',
     cityState: '',
-    dataforseoLocationCode: '',
     // Search parameters
     searchRadius: '100'
   })
   const [hasAutoRun, setHasAutoRun] = useState(false)
+  const [showDemandDebug, setShowDemandDebug] = useState(false)
 
   // Fetch AI settings when component mounts
   useEffect(() => {
@@ -205,11 +219,57 @@ export default function MarketTrendReportPage() {
     setAiAnalysis(null)
 
     try {
+      // First, regenerate the report with raw data for unbiased AI analysis
+      const reportRequestBody: any = {
+        vin: manualVin || selectedVehicle?.vin,
+        currentPrice: overrideFields.currentPrice ? parseFloat(overrideFields.currentPrice) : selectedVehicle?.price,
+        locationId: selectedVehicle?.locationId,
+        includeRawData: true // This is the key - get raw data without bias
+      }
+
+      // Add overrides if manual override is enabled
+      if (showManualOverride) {
+        reportRequestBody.overrides = {
+          vehicle: {},
+          location: {},
+          searchRadius: parseInt(overrideFields.searchRadius) || 100
+        }
+
+        // Vehicle overrides
+        if (overrideFields.year) reportRequestBody.overrides.vehicle.year = parseInt(overrideFields.year)
+        if (overrideFields.make) reportRequestBody.overrides.vehicle.make = overrideFields.make
+        if (overrideFields.model) reportRequestBody.overrides.vehicle.model = overrideFields.model
+        if (overrideFields.trim) reportRequestBody.overrides.vehicle.trim = overrideFields.trim
+        if (overrideFields.mileage) reportRequestBody.overrides.vehicle.mileage = parseInt(overrideFields.mileage)
+
+        // Location overrides
+        if (overrideFields.zipCode) reportRequestBody.overrides.location.zip = overrideFields.zipCode
+        if (overrideFields.latitude) reportRequestBody.overrides.location.latitude = parseFloat(overrideFields.latitude)
+        if (overrideFields.longitude) reportRequestBody.overrides.location.longitude = parseFloat(overrideFields.longitude)
+        if (overrideFields.cityState) reportRequestBody.overrides.location.cityState = overrideFields.cityState
+      }
+
+      // Regenerate report with raw data
+      const reportResponse = await fetch('/api/analytics/market-trend-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reportRequestBody)
+      })
+
+      const reportResult = await reportResponse.json()
+      
+      if (!reportResponse.ok) {
+        throw new Error(reportResult.error || 'Failed to generate raw data report for AI analysis')
+      }
+
+      const rawDataReport = reportResult.data
+
+      // Now send the raw data report to AI analysis
       const userPrompt = useCustomPrompt ? customPrompt : getDefaultPromptForSetting()
       const selectedSettingDetails = aiSettings.find(s => s.id === selectedAISetting)
       
       const requestBody: any = {
-        reportData: report,
+        reportData: rawDataReport, // Use raw data report instead of biased report
         userPrompt: userPrompt
       }
 
@@ -228,14 +288,16 @@ export default function MarketTrendReportPage() {
         timestamp: new Date().toISOString(),
         requestBody,
         selectedSetting: selectedSettingDetails,
+        usingRawData: true,
         reportDataSummary: {
-          vehicle: report.vehicle,
-          hasMarketPosition: !!report.marketPosition && !report.marketPosition.error,
-          hasInventoryAnalysis: !!report.inventoryAnalysis && !report.inventoryAnalysis.error,
-          hasRegionalPerformance: !!report.regionalPerformance && !report.regionalPerformance.error,
-          hasCompetitiveLandscape: !!report.competitiveLandscape && !report.competitiveLandscape.error,
-          hasDemandAnalysis: !!report.demandAnalysis && !report.demandAnalysis.error,
-          opportunityScore: report.opportunityScore?.overall
+          vehicle: rawDataReport.vehicle,
+          hasMarketPosition: !!rawDataReport.marketPosition && !rawDataReport.marketPosition.error,
+          hasInventoryAnalysis: !!rawDataReport.inventoryAnalysis && !rawDataReport.inventoryAnalysis.error,
+          hasRegionalPerformance: !!rawDataReport.regionalPerformance && !rawDataReport.regionalPerformance.error,
+          hasCompetitiveLandscape: !!rawDataReport.competitiveLandscape && !rawDataReport.competitiveLandscape.error,
+          hasDemandAnalysis: !!rawDataReport.demandAnalysis && !rawDataReport.demandAnalysis.error,
+          hasRawData: !!rawDataReport.marketPosition?.raw || !!rawDataReport.inventoryAnalysis?.raw,
+          noBiasedScores: !rawDataReport.opportunityScore && !rawDataReport.recommendations
         }
       }
       
@@ -244,11 +306,13 @@ export default function MarketTrendReportPage() {
       // Console logging if debug mode is enabled
       if (debugMode) {
         console.group('🤖 AI Analysis Debug')
-        console.log('📊 Report Data:', report)
+        console.log('🔄 Using Raw Data (unbiased):', true)
+        console.log('📊 Raw Report Data:', rawDataReport)
         console.log('🎯 Request Body:', requestBody)
         console.log('⚙️ Selected AI Setting:', selectedSettingDetails)
         console.log('💬 User Prompt:', userPrompt)
         console.log('📝 Report Summary:', debugData.reportDataSummary)
+        console.log('✅ No Biased Scores:', debugData.reportDataSummary.noBiasedScores)
         console.groupEnd()
       }
 
@@ -312,15 +376,17 @@ export default function MarketTrendReportPage() {
         locationId: selectedVehicle?.locationId
       }
 
-      // Add overrides if manual override is enabled
-      if (showManualOverride) {
+      // Always check for override values (whether manual override is shown or not)
+      const hasAnyOverrides = Object.values(overrideFields).some(v => v && v !== '100') // Exclude default searchRadius
+      
+      if (hasAnyOverrides || showManualOverride) {
         requestBody.overrides = {
           vehicle: {},
           location: {},
           searchRadius: parseInt(overrideFields.searchRadius) || 100
         }
 
-        // Vehicle overrides
+        // Vehicle overrides - use override values if they exist
         if (overrideFields.year) requestBody.overrides.vehicle.year = parseInt(overrideFields.year)
         if (overrideFields.make) requestBody.overrides.vehicle.make = overrideFields.make
         if (overrideFields.model) requestBody.overrides.vehicle.model = overrideFields.model
@@ -332,7 +398,6 @@ export default function MarketTrendReportPage() {
         if (overrideFields.latitude) requestBody.overrides.location.latitude = parseFloat(overrideFields.latitude)
         if (overrideFields.longitude) requestBody.overrides.location.longitude = parseFloat(overrideFields.longitude)
         if (overrideFields.cityState) requestBody.overrides.location.cityState = overrideFields.cityState
-        if (overrideFields.dataforseoLocationCode) requestBody.overrides.location.dataforseoLocationCode = parseInt(overrideFields.dataforseoLocationCode)
       }
 
       const response = await fetch('/api/analytics/market-trend-report', {
@@ -387,7 +452,6 @@ export default function MarketTrendReportPage() {
       latitude: '',
       longitude: '',
       cityState: '',
-      dataforseoLocationCode: '',
       searchRadius: '100'
     })
     setManualVin('')
@@ -440,22 +504,94 @@ export default function MarketTrendReportPage() {
         <div>
           <h1 className="text-3xl font-bold text-white">Market Trend Report</h1>
           <p className="text-gray-400 mt-2">
-            Comprehensive market analysis using real-time data from Market Check
+            AI-powered market analysis to help you price competitively and identify sales opportunities
           </p>
+        </div>
+        
+        {/* Welcome Section */}
+        <Card className="bg-gradient-to-r from-blue-950/20 to-blue-900/10 border border-blue-800/30">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Info className="h-5 w-5 text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-white mb-1">What this report provides:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-300">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-green-400 flex-shrink-0" />
+                    <span>Competitive pricing recommendations based on similar vehicles</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-green-400 flex-shrink-0" />
+                    <span>Local search demand and trending keywords</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-green-400 flex-shrink-0" />
+                    <span>Competitor inventory and pricing analysis</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-green-400 flex-shrink-0" />
+                    <span>Market timing and opportunity scoring</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* How to Use Section */}
+        <div className="bg-[#1a1a1a] rounded-lg p-4 border border-[#2a2a2a]">
+          <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowHowToUse(!showHowToUse)}>
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <HelpCircle className="h-4 w-4 text-[#3b82f6]" />
+              How to Use This Report
+            </h3>
+            {showHowToUse ? <ChevronUp className="h-4 w-4 text-[#737373]" /> : <ChevronDown className="h-4 w-4 text-[#737373]" />}
+          </div>
+          {showHowToUse && (
+            <div className="mt-3 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-[#3b82f6] rounded-full flex items-center justify-center text-xs font-bold text-white">1</div>
+                <div>
+                  <p className="text-sm font-medium text-white">Search for a vehicle</p>
+                  <p className="text-xs text-[#737373]">Use VIN, stock number, or year/make/model from your inventory</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-[#3b82f6] rounded-full flex items-center justify-center text-xs font-bold text-white">2</div>
+                <div>
+                  <p className="text-sm font-medium text-white">(Optional) Customize settings</p>
+                  <p className="text-xs text-[#737373]">Analyze vehicles not in inventory or different market locations</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-6 h-6 bg-[#3b82f6] rounded-full flex items-center justify-center text-xs font-bold text-white">3</div>
+                <div>
+                  <p className="text-sm font-medium text-white">Generate analysis</p>
+                  <p className="text-xs text-[#737373]">Get comprehensive market insights in 15-30 seconds</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
       {/* Vehicle Selection */}
       <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]/50">
         <CardHeader>
-          <CardTitle>Select Vehicle for Analysis</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Car className="h-5 w-5 text-[#3b82f6]" />
+            Select Vehicle for Analysis
+          </CardTitle>
           <CardDescription>
-            Search for a vehicle in your inventory to generate a market trend report
+            Search for a vehicle in your inventory to generate a comprehensive market analysis
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <VehicleSearchInput
             label="Search for a vehicle"
-            onVehicleSelect={(vehicle) => {
+            placeholder="Enter VIN (17 chars), Stock #, or Year/Make/Model"
+            onVehicleSelect={async (vehicle) => {
               setSelectedVehicle({
                 vin: vehicle.vin,
                 year: vehicle.year,
@@ -466,9 +602,27 @@ export default function MarketTrendReportPage() {
                 price: vehicle.price,
                 locationId: vehicle.locationId
               })
+              
+              // Auto-populate override fields with vehicle data
+              setOverrideFields(prev => ({
+                ...prev,
+                year: vehicle.year?.toString() || '',
+                make: vehicle.make || '',
+                model: vehicle.model || '',
+                trim: vehicle.trim || '',
+                mileage: vehicle.mileage?.toString() || '',
+                currentPrice: vehicle.price?.toString() || ''
+              }))
+              
+              // Note: Location data will be fetched by the backend when locationId is provided
+              // Users can manually override location data in the form if needed
+              
               setReport(null) // Clear previous report
             }}
           />
+          <p className="text-xs text-[#737373] -mt-2">
+            <span className="font-medium">Examples:</span> 1HGCM82633A123456, MP12345, or 2023 Toyota Camry
+          </p>
           
           {selectedVehicle && (
             <div className="p-4 bg-[#141414] rounded-lg border border-[#2a2a2a] transition-all duration-200 ease">
@@ -478,26 +632,29 @@ export default function MarketTrendReportPage() {
               </p>
               <div className="mt-1 space-y-0.5">
                 <p className="text-xs sm:text-sm text-[#737373]">VIN: {selectedVehicle.vin}</p>
-                <p className="text-xs sm:text-sm text-[#737373]">Current Price: ${selectedVehicle.price.toLocaleString()}</p>
+                <p className="text-xs sm:text-sm text-[#737373]">Current Price: ${selectedVehicle.price?.toLocaleString() || 'N/A'}</p>
               </div>
             </div>
           )}
 
-          {/* Manual Override Toggle */}
+          {/* Custom Analysis Settings Toggle */}
           <div className="flex items-center justify-between p-3 bg-[#141414] rounded-lg border border-[#2a2a2a]">
             <div className="flex items-center gap-2">
               <Settings2 className="h-4 w-4 text-[#3b82f6]" />
-              <span className="text-sm font-medium text-white">Manual Override</span>
-              <Badge variant="outline" className="text-xs">Advanced</Badge>
+              <span className="text-sm font-medium text-white">Custom Analysis Settings</span>
+              <Badge variant="outline" className="text-xs">Optional</Badge>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowManualOverride(!showManualOverride)}
-              className="text-[#3b82f6] hover:text-[#2563eb]"
-            >
-              {showManualOverride ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#737373]">Analyze vehicles not in inventory or different markets</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowManualOverride(!showManualOverride)}
+                className="text-[#3b82f6] hover:text-[#2563eb]"
+              >
+                {showManualOverride ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
 
           {/* Manual Override Form */}
@@ -506,7 +663,25 @@ export default function MarketTrendReportPage() {
               {/* Manual VIN Entry */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-white">Manual VIN Entry</label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-white">Manual VIN Entry</label>
+                    <div className="group relative">
+                      <HelpCircle className="h-3.5 w-3.5 text-[#737373] hover:text-[#3b82f6] cursor-help" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                        <div className="bg-[#2a2a2a] text-white text-xs rounded-lg p-3 max-w-xs whitespace-normal">
+                          <p className="font-semibold mb-1">When to use:</p>
+                          <ul className="list-disc list-inside space-y-1 text-[#a3a3a3]">
+                            <li>Analyzing competitor vehicles</li>
+                            <li>Evaluating potential acquisitions</li>
+                            <li>Checking market before adding to inventory</li>
+                          </ul>
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-2">
+                            <div className="border-4 border-transparent border-t-[#2a2a2a]"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -524,14 +699,25 @@ export default function MarketTrendReportPage() {
                   placeholder="Enter any VIN (e.g., 1HGCM82633A123456)"
                   className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
                 />
-                <p className="text-xs text-[#737373]">Override selected vehicle with any VIN, even if not in inventory</p>
+                <p className="text-xs text-[#737373]">Analyze any vehicle by VIN, even if not in your inventory</p>
               </div>
 
               {/* Vehicle Information Overrides */}
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-white flex items-center gap-2">
                   Vehicle Information
-                  <span className="text-xs text-[#737373] font-normal">Leave blank to use defaults</span>
+                  <div className="group relative">
+                    <HelpCircle className="h-3.5 w-3.5 text-[#737373] hover:text-[#3b82f6] cursor-help" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                      <div className="bg-[#2a2a2a] text-white text-xs rounded-lg p-3 max-w-xs whitespace-normal">
+                        <p>Override these fields if the vehicle is not in your inventory or if you want to test different configurations</p>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-2">
+                          <div className="border-4 border-transparent border-t-[#2a2a2a]"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-xs text-[#737373] font-normal">Leave blank to use detected values</span>
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -601,7 +787,23 @@ export default function MarketTrendReportPage() {
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-white flex items-center gap-2">
                   Location Settings
-                  <span className="text-xs text-[#737373] font-normal">Override market analysis location</span>
+                  <div className="group relative">
+                    <HelpCircle className="h-3.5 w-3.5 text-[#737373] hover:text-[#3b82f6] cursor-help" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                      <div className="bg-[#2a2a2a] text-white text-xs rounded-lg p-3 max-w-xs whitespace-normal">
+                        <p className="font-semibold mb-1">Use different location to:</p>
+                        <ul className="list-disc list-inside space-y-1 text-[#a3a3a3]">
+                          <li>Analyze market in different regions</li>
+                          <li>Check demand before transferring vehicles</li>
+                          <li>Compare prices across markets</li>
+                        </ul>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-2">
+                          <div className="border-4 border-transparent border-t-[#2a2a2a]"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-xs text-[#737373] font-normal">Default uses vehicle&apos;s dealership location</span>
                 </h4>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -645,16 +847,6 @@ export default function MarketTrendReportPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-[#737373] mb-1 block">DataForSEO Location Code</label>
-                    <input
-                      type="text"
-                      value={overrideFields.dataforseoLocationCode}
-                      onChange={(e) => setOverrideFields({...overrideFields, dataforseoLocationCode: e.target.value})}
-                      placeholder="e.g., 9057131"
-                      className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white placeholder-[#737373] focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
-                    />
-                  </div>
-                  <div>
                     <label className="text-xs text-[#737373] mb-1 block">Search Radius (miles)</label>
                     <input
                       type="text"
@@ -688,10 +880,22 @@ export default function MarketTrendReportPage() {
           <Button 
             onClick={generateReport}
             disabled={(!selectedVehicle && !manualVin) || loading}
-            className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white transition-all duration-200 ease hover:transform hover:-translate-y-0.5 hover:shadow-lg"
+            className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white transition-all duration-200 ease hover:transform hover:-translate-y-0.5 hover:shadow-lg h-12"
           >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {loading ? 'Generating Report...' : 'Generate Market Trend Report'}
+            {loading ? (
+              <div className="flex flex-col items-center">
+                <div className="flex items-center">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span className="font-medium">Analyzing Market Data...</span>
+                </div>
+                <span className="text-xs opacity-80">This typically takes 15-30 seconds</span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center">
+                <span className="font-medium">Analyze Vehicle</span>
+                <span className="text-xs opacity-80">Generate comprehensive market report</span>
+              </div>
+            )}
           </Button>
         </CardContent>
       </Card>
@@ -706,14 +910,23 @@ export default function MarketTrendReportPage() {
 
       {/* Loading State */}
       {loading && !report && (
-        <div className="mt-8 flex flex-col items-center justify-center py-16">
-          <div className="relative">
-            <div className="h-16 w-16 animate-spin rounded-full border-4 border-[#2a2a2a] border-t-[#3b82f6]"></div>
-            <Loader2 className="absolute top-1/2 left-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-[#3b82f6] animate-pulse" />
-          </div>
-          <p className="mt-4 text-lg font-medium text-white">Analyzing Market Data</p>
-          <p className="mt-2 text-sm text-[#737373]">This may take a few moments...</p>
-        </div>
+        <Card className="bg-[#1f1f1f] border border-[#2a2a2a]">
+          <CardContent className="py-16">
+            <div className="flex flex-col items-center justify-center">
+              <div className="relative">
+                <div className="h-16 w-16 animate-spin rounded-full border-4 border-[#2a2a2a] border-t-[#3b82f6]"></div>
+                <Loader2 className="absolute top-1/2 left-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-[#3b82f6] animate-pulse" />
+              </div>
+              <p className="mt-4 text-lg font-medium text-white">Analyzing Market Data</p>
+              <div className="mt-4 space-y-2 text-center">
+                <p className="text-sm text-[#737373] animate-pulse">• Fetching competitive pricing data...</p>
+                <p className="text-sm text-[#737373] animate-pulse delay-100">• Analyzing local search demand...</p>
+                <p className="text-sm text-[#737373] animate-pulse delay-200">• Comparing similar vehicles...</p>
+                <p className="text-sm text-[#737373] animate-pulse delay-300">• Calculating opportunity score...</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Report Display */}
@@ -757,11 +970,11 @@ export default function MarketTrendReportPage() {
                     <div>
                       <p className="text-xs text-[#737373] uppercase mb-1">Predicted Market Price</p>
                       <p className="text-xl sm:text-2xl font-bold text-white">
-                        ${report.marketPosition.predictedPrice.toLocaleString()}
+                        ${report.marketPosition.predictedPrice?.toLocaleString() || 'N/A'}
                       </p>
                       <p className="text-xs text-[#737373] mt-1">
-                        ${report.marketPosition.priceRange.lower.toLocaleString()} - 
-                        ${report.marketPosition.priceRange.upper.toLocaleString()}
+                        ${report.marketPosition.priceRange?.lower?.toLocaleString() || 'N/A'} - 
+                        ${report.marketPosition.priceRange?.upper?.toLocaleString() || 'N/A'}
                       </p>
                     </div>
                     
@@ -769,7 +982,7 @@ export default function MarketTrendReportPage() {
                       <p className="text-xs text-[#737373] uppercase mb-1">Current Position</p>
                       <div className="flex flex-wrap items-baseline gap-2">
                         <span className="text-xl sm:text-2xl font-bold text-white">
-                          ${report.marketPosition.currentPrice.toLocaleString()}
+                          ${report.marketPosition.currentPrice?.toLocaleString() || 'N/A'}
                         </span>
                         <Badge variant={report.marketPosition.percentile > 70 ? 'destructive' : 
                                        report.marketPosition.percentile < 30 ? 'default' : 'secondary'}
@@ -844,7 +1057,7 @@ export default function MarketTrendReportPage() {
                         <div className="bg-[#141414] rounded-lg p-3">
                           <p className="text-xs text-[#737373] uppercase">Avg Price</p>
                           <p className="text-lg font-semibold text-white">
-                            ${report.regionalPerformance.avgPrice.toLocaleString()}
+                            ${report.regionalPerformance.avgPrice?.toLocaleString() || 'N/A'}
                           </p>
                         </div>
                         <div className="bg-[#141414] rounded-lg p-3">
@@ -942,26 +1155,79 @@ export default function MarketTrendReportPage() {
                       </Badge>
                     </div>
                     <p className="text-2xl font-bold text-white">
-                      ${report.competitiveLandscape.avgCompetitorPrice.toLocaleString()}
+                      ${report.competitiveLandscape.avgCompetitorPrice?.toLocaleString() || 'N/A'}
                     </p>
                   </div>
                   
                   <div>
-                    <p className="text-xs text-[#737373] uppercase mb-3">Top Competitors</p>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-                      {report.competitiveLandscape.similarVehicles.slice(0, 3).map((vehicle, index: number) => (
-                        <CompetitorCard
-                          key={index}
-                          distance={vehicle.distance}
-                          price={vehicle.price}
-                          dealer={vehicle.dealer}
-                          daysOnMarket={vehicle.daysOnMarket}
-                          vdpUrl={vehicle.vdpUrl}
-                          currentPrice={report.vehicle.currentPrice}
-                          rank={index + 1}
-                        />
-                      ))}
+                    <p className="text-xs text-[#737373] uppercase mb-3">All Competing Dealers</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-[#2a2a2a]">
+                            <th className="text-left py-2 px-3 text-xs font-medium text-[#737373] uppercase">Dealer</th>
+                            <th className="text-right py-2 px-3 text-xs font-medium text-[#737373] uppercase">Price</th>
+                            <th className="text-right py-2 px-3 text-xs font-medium text-[#737373] uppercase">vs Your Price</th>
+                            <th className="text-right py-2 px-3 text-xs font-medium text-[#737373] uppercase">Distance</th>
+                            <th className="text-right py-2 px-3 text-xs font-medium text-[#737373] uppercase">Days Listed</th>
+                            <th className="text-center py-2 px-3 text-xs font-medium text-[#737373] uppercase">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {report.competitiveLandscape.similarVehicles.map((vehicle: any, index: number) => {
+                            const priceDiff = vehicle.price - (report.vehicle.currentPrice || 0)
+                            const priceDiffPercent = ((priceDiff / (report.vehicle.currentPrice || 1)) * 100)
+                            return (
+                              <tr key={index} className="border-b border-[#2a2a2a] hover:bg-[#141414] transition-all duration-200">
+                                <td className="py-2 px-3 text-white">{vehicle.dealer}</td>
+                                <td className="text-right py-2 px-3 text-white font-medium">
+                                  ${vehicle.price.toLocaleString()}
+                                </td>
+                                <td className={`text-right py-2 px-3 font-medium ${
+                                  priceDiff > 0 ? 'text-green-500' : priceDiff < 0 ? 'text-red-500' : 'text-[#737373]'
+                                }`}>
+                                  {priceDiff > 0 ? '+' : ''}{priceDiff.toLocaleString()} ({priceDiffPercent > 0 ? '+' : ''}{priceDiffPercent.toFixed(1)}%)
+                                </td>
+                                <td className="text-right py-2 px-3 text-[#a3a3a3]">{vehicle.distance} mi</td>
+                                <td className="text-right py-2 px-3 text-[#a3a3a3]">{vehicle.daysOnMarket} days</td>
+                                <td className="text-center py-2 px-3">
+                                  {vehicle.vdpUrl && (
+                                    <a
+                                      href={vehicle.vdpUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[#3b82f6] hover:text-[#2563eb] transition-colors duration-200"
+                                    >
+                                      View
+                                    </a>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
                     </div>
+                    
+                    {/* Summary by Dealer */}
+                    {report.competitiveLandscape.vehiclesByDealer && Object.keys(report.competitiveLandscape.vehiclesByDealer).length > 0 && (
+                      <div className="mt-6">
+                        <p className="text-xs text-[#737373] uppercase mb-3">Inventory by Dealer</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {Object.entries(report.competitiveLandscape.vehiclesByDealer).map(([dealer, vehicles]: [string, any]) => (
+                            <div key={dealer} className="bg-[#141414] rounded-lg p-3 border border-[#2a2a2a]">
+                              <p className="text-sm text-white font-medium truncate">{dealer}</p>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-xs text-[#737373]">{vehicles.length} units</span>
+                                <span className="text-xs text-[#a3a3a3]">
+                                  Avg: ${(vehicles.reduce((sum: number, v: any) => sum + v.price, 0) / vehicles.length).toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -972,12 +1238,24 @@ export default function MarketTrendReportPage() {
           {report.demandAnalysis && (
             <Card className="bg-[#1f1f1f] border border-[#2a2a2a] transition-all duration-200 ease hover:bg-[#2a2a2a]/50">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Search className="h-5 w-5 text-[#3b82f6]" />
-                  Local Search Demand Analysis
-                  <Badge variant="outline" className="ml-2 text-xs">
-                    {report.demandAnalysis.locationName}
-                  </Badge>
+                <CardTitle className="flex items-center justify-between text-lg">
+                  <div className="flex items-center gap-2">
+                    <Search className="h-5 w-5 text-[#3b82f6]" />
+                    Local Search Demand Analysis
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      {report.demandAnalysis.locationName}
+                    </Badge>
+                  </div>
+                  {/* Debug Mode Toggle */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDemandDebug(!showDemandDebug)}
+                    className="text-xs text-[#737373] hover:text-[#3b82f6]"
+                  >
+                    <Bug className="h-3 w-3 mr-1" />
+                    {showDemandDebug ? 'Hide' : 'Show'} Debug
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1003,7 +1281,7 @@ export default function MarketTrendReportPage() {
                         </Badge>
                       </div>
                       <p className="text-3xl font-bold text-white">
-                        {report.demandAnalysis.totalMonthlySearches.toLocaleString()}
+                        {report.demandAnalysis.totalMonthlySearches?.toLocaleString() || '0'}
                       </p>
                       <p className="text-xs text-[#737373] mt-1">
                         searches/month in {report.demandAnalysis.locationName}
@@ -1014,36 +1292,99 @@ export default function MarketTrendReportPage() {
                     {report.demandAnalysis.topKeywords && report.demandAnalysis.topKeywords.length > 0 && (
                       <div>
                         <p className="text-xs text-[#737373] uppercase mb-3">Top Search Keywords</p>
+                        
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          <div className="bg-[#141414] rounded-lg p-2 border border-[#2a2a2a]">
+                            <p className="text-xs text-[#737373]">Highest</p>
+                            <p className="text-sm font-bold text-white">
+                              {Math.max(...report.demandAnalysis.topKeywords.map((k: any) => k.monthlySearches)).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="bg-[#141414] rounded-lg p-2 border border-[#2a2a2a]">
+                            <p className="text-xs text-[#737373]">Average</p>
+                            <p className="text-sm font-bold text-white">
+                              {Math.round(report.demandAnalysis.topKeywords.reduce((sum: number, k: any) => sum + k.monthlySearches, 0) / report.demandAnalysis.topKeywords.length).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="bg-[#141414] rounded-lg p-2 border border-[#2a2a2a]">
+                            <p className="text-xs text-[#737373]">Keywords</p>
+                            <p className="text-sm font-bold text-white">{report.demandAnalysis.topKeywords.length}</p>
+                          </div>
+                        </div>
+                        
                         <div className="space-y-2">
-                          {report.demandAnalysis.topKeywords.map((keyword: { keyword: string; monthlySearches: number; competition: number }, index: number) => (
-                            <div key={index} className="bg-[#141414] rounded-lg p-3 border border-[#2a2a2a] hover:bg-[#1a1a1a] transition-all duration-200">
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                  <p className="text-sm text-white font-medium">{keyword.keyword}</p>
-                                  <div className="flex items-center gap-4 mt-1">
-                                    <span className="text-xs text-[#737373]">
-                                      {keyword.monthlySearches.toLocaleString()} searches/mo
-                                    </span>
-                                    <span className="text-xs text-[#737373]">
-                                      Competition: {(keyword.competition * 100).toFixed(0)}%
-                                    </span>
+                          {report.demandAnalysis.topKeywords.map((keyword: { keyword: string; monthlySearches: number; competition: number }, index: number) => {
+                            const maxVolume = Math.max(...(report.demandAnalysis?.topKeywords?.map((k: any) => k.monthlySearches) || [0]))
+                            const volumePercent = (keyword.monthlySearches / maxVolume) * 100
+                            
+                            // Determine tier colors based on volume
+                            const isHighVolume = keyword.monthlySearches >= 100000
+                            const isMediumVolume = keyword.monthlySearches >= 30000 && keyword.monthlySearches < 100000
+                            const isLowVolume = keyword.monthlySearches < 30000
+                            
+                            const bgColor = isHighVolume ? 'bg-gradient-to-r from-green-950/50 to-green-900/30' :
+                                          isMediumVolume ? 'bg-gradient-to-r from-blue-950/50 to-blue-900/30' :
+                                          'bg-gradient-to-r from-[#1a1a1a] to-[#141414]'
+                            
+                            const borderColor = isHighVolume ? 'border-green-800/50' :
+                                              isMediumVolume ? 'border-blue-800/50' :
+                                              'border-[#2a2a2a]'
+                                              
+                            const volumeColor = isHighVolume ? 'text-green-400' :
+                                              isMediumVolume ? 'text-blue-400' :
+                                              'text-[#737373]'
+                            
+                            return (
+                              <div key={index} className={`${bgColor} rounded-lg p-4 border ${borderColor} hover:scale-[1.02] transition-all duration-200 relative overflow-hidden`}>
+                                {/* Progress bar background */}
+                                <div className="absolute inset-0 opacity-10">
+                                  <div 
+                                    className={`h-full ${isHighVolume ? 'bg-green-500' : isMediumVolume ? 'bg-blue-500' : 'bg-gray-500'}`}
+                                    style={{ width: `${volumePercent}%` }}
+                                  />
+                                </div>
+                                
+                                <div className="relative z-10 flex items-center justify-between">
+                                  {/* Left side - Volume */}
+                                  <div className="flex items-center gap-4">
+                                    <div>
+                                      <span className={`text-3xl font-black ${volumeColor}`}>
+                                        {keyword.monthlySearches?.toLocaleString() || '0'}
+                                      </span>
+                                      <p className="text-xs text-[#737373] mt-0.5">searches/month</p>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Center - Keyword */}
+                                  <div className="flex-1 mx-6">
+                                    <p className="text-base font-semibold text-white">{keyword.keyword}</p>
+                                  </div>
+                                  
+                                  {/* Right side - Competition */}
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
+                                      {[...Array(5)].map((_, i: number) => {
+                                        const competitionLevel = (keyword.competition || 0) * 5
+                                        const isFilled = i < competitionLevel
+                                        return (
+                                          <div
+                                            key={i}
+                                            className={`h-2 w-2 rounded-full ${
+                                              isFilled 
+                                                ? competitionLevel > 3 ? 'bg-red-500' : competitionLevel > 1.5 ? 'bg-orange-500' : 'bg-green-500'
+                                                : 'bg-[#2a2a2a]'
+                                            }`}
+                                          />
+                                        )
+                                      })}
+                                    </div>
+                                    <span className="text-xs text-[#737373]">comp</span>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  {[...Array(5)].map((_, i: number) => (
-                                    <div
-                                      key={i}
-                                      className={`h-1.5 w-1.5 rounded-full ${
-                                        i < Math.ceil(keyword.monthlySearches / 200) 
-                                          ? 'bg-[#3b82f6]' 
-                                          : 'bg-[#2a2a2a]'
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
                               </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -1058,6 +1399,33 @@ export default function MarketTrendReportPage() {
                             {report.demandAnalysis.searchTrend}
                           </span>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Debug Panel */}
+                    {showDemandDebug && report.demandAnalysis.raw && (
+                      <div className="mt-4 bg-[#0a0a0a] rounded-lg p-4 border border-[#3b82f6]/20">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                            <Bug className="h-4 w-4 text-[#3b82f6]" />
+                            Raw DataForSEO Response
+                          </h4>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              navigator.clipboard.writeText(JSON.stringify(report.demandAnalysis?.raw, null, 2))
+                              toast.success('Raw data copied to clipboard')
+                            }}
+                            className="text-xs text-[#737373] hover:text-white"
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copy
+                          </Button>
+                        </div>
+                        <pre className="text-xs text-[#e5e5e5] overflow-auto bg-black/50 p-3 rounded-lg max-h-96">
+                          {JSON.stringify(report.demandAnalysis.raw, null, 2)}
+                        </pre>
                       </div>
                     )}
                   </div>
@@ -1164,8 +1532,18 @@ export default function MarketTrendReportPage() {
                           <select
                             value={selectedAISetting}
                             onChange={(e) => {
-                              setSelectedAISetting(e.target.value)
+                              const newSettingId = e.target.value
+                              setSelectedAISetting(newSettingId)
                               setUseCustomPrompt(false)
+                              setAiAnalysis(null) // Clear previous analysis when changing selection
+                              
+                              // Auto-run if enabled and a valid setting is selected
+                              if (autoRunAnalysis && newSettingId && report) {
+                                // Small delay to ensure state updates
+                                setTimeout(() => {
+                                  runAIAnalysis()
+                                }, 100)
+                              }
                             }}
                             disabled={useCustomPrompt}
                             className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200 disabled:opacity-50"
@@ -1182,6 +1560,20 @@ export default function MarketTrendReportPage() {
                               {aiSettings.find(s => s.id === selectedAISetting)?.description}
                             </p>
                           )}
+                          {selectedAISetting && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <input
+                                type="checkbox"
+                                id="auto-run-analysis"
+                                checked={autoRunAnalysis}
+                                onChange={(e) => setAutoRunAnalysis(e.target.checked)}
+                                className="h-3 w-3 rounded border-[#2a2a2a] bg-[#0a0a0a] text-[#3b82f6] focus:ring-[#3b82f6]/20"
+                              />
+                              <label htmlFor="auto-run-analysis" className="text-xs text-[#737373] cursor-pointer">
+                                Auto-run when changing selection
+                              </label>
+                            </div>
+                          )}
                         </div>
 
                         {/* Quick Actions */}
@@ -1196,6 +1588,7 @@ export default function MarketTrendReportPage() {
                               onClick={() => {
                                 setUseCustomPrompt(true)
                                 setCustomPrompt('Should I reduce the price on this vehicle? Give me a YES or NO answer with 3 supporting data points.')
+                                setAiAnalysis(null) // Clear previous analysis
                               }}
                               className="text-xs"
                             >
@@ -1207,6 +1600,7 @@ export default function MarketTrendReportPage() {
                               onClick={() => {
                                 setUseCustomPrompt(true)
                                 setCustomPrompt('What are the top 3 actions I should take this week to sell this vehicle?')
+                                setAiAnalysis(null) // Clear previous analysis
                               }}
                               className="text-xs"
                             >
@@ -1218,6 +1612,7 @@ export default function MarketTrendReportPage() {
                               onClick={() => {
                                 setUseCustomPrompt(true)
                                 setCustomPrompt('Who is the ideal buyer for this vehicle and how should I market to them?')
+                                setAiAnalysis(null) // Clear previous analysis
                               }}
                               className="text-xs"
                             >
@@ -1229,6 +1624,7 @@ export default function MarketTrendReportPage() {
                               onClick={() => {
                                 setUseCustomPrompt(true)
                                 setCustomPrompt('Compare this vehicle to the top 3 competitors and tell me how to win.')
+                                setAiAnalysis(null) // Clear previous analysis
                               }}
                               className="text-xs"
                             >
@@ -1287,6 +1683,16 @@ export default function MarketTrendReportPage() {
                       </Button>
                     </div>
 
+                    {/* Analysis Update Notice */}
+                    {!aiAnalysis && aiSettings.length > 0 && selectedAISetting && (
+                      <Alert className="border-[#3b82f6]/20 bg-[#3b82f6]/5">
+                        <AlertCircle className="h-4 w-4 text-[#3b82f6]" />
+                        <AlertDescription className="text-sm text-[#e5e5e5]">
+                          Click &quot;Run AI Analysis&quot; to analyze with <strong>{aiSettings.find(s => s.id === selectedAISetting)?.name}</strong>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     {/* AI Analysis Results */}
                     {aiAnalysis && (
                       <div className="mt-6 space-y-4">
@@ -1325,12 +1731,19 @@ export default function MarketTrendReportPage() {
                                   blockquote: ({node, ...props}) => (
                                     <blockquote className="border-l-4 border-[#3b82f6] pl-4 py-2 mb-3 bg-[#0a0a0a] rounded-r-lg" {...props} />
                                   ),
-                                  code: ({node, inline, ...props}) => 
-                                    inline ? (
-                                      <code className="bg-[#0a0a0a] text-[#3b82f6] px-1.5 py-0.5 rounded text-xs font-mono" {...props} />
+                                  code: ({node, className, children, ...props}) => {
+                                    const match = /language-(\w+)/.exec(className || '')
+                                    const isInline = !match && node?.position?.start.line === node?.position?.end.line
+                                    return isInline ? (
+                                      <code className="bg-[#0a0a0a] text-[#3b82f6] px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
+                                        {children}
+                                      </code>
                                     ) : (
-                                      <code className="block bg-[#0a0a0a] text-[#e5e5e5] p-4 rounded-lg overflow-x-auto font-mono text-xs mb-3" {...props} />
-                                    ),
+                                      <code className="block bg-[#0a0a0a] text-[#e5e5e5] p-4 rounded-lg overflow-x-auto font-mono text-xs mb-3" {...props}>
+                                        {children}
+                                      </code>
+                                    )
+                                  },
                                   pre: ({node, ...props}) => <pre className="mb-3" {...props} />,
                                   hr: ({node, ...props}) => <hr className="border-[#2a2a2a] my-6" {...props} />,
                                   a: ({node, ...props}) => <a className="text-[#3b82f6] hover:text-[#2563eb] underline" {...props} />,
@@ -1411,15 +1824,105 @@ export default function MarketTrendReportPage() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => {
-                                  const debugText = JSON.stringify(lastRequestData, null, 2)
-                                  navigator.clipboard.writeText(debugText)
-                                  toast.success('Debug data copied to clipboard')
+                                  // Create the exact payload sent to LLM
+                                  const llmPayload = {
+                                    messages: [
+                                      {
+                                        role: 'system',
+                                        content: lastRequestData.selectedSetting?.system_prompt || 'Default system prompt'
+                                      },
+                                      {
+                                        role: 'user',
+                                        content: `${lastRequestData.requestBody.userPrompt}\n\nMarket Trend Report Data:\n${JSON.stringify(lastRequestData.requestBody.reportData, null, 2)}`
+                                      }
+                                    ],
+                                    model: lastRequestData.selectedSetting?.model || 'gpt-4-turbo-preview',
+                                    temperature: lastRequestData.selectedSetting?.temperature || 0.7,
+                                    max_tokens: lastRequestData.selectedSetting?.max_tokens || 2000
+                                  }
+                                  
+                                  const fullText = JSON.stringify(llmPayload, null, 2)
+                                  navigator.clipboard.writeText(fullText)
+                                  
+                                  // Calculate token estimate
+                                  const tokenEstimate = Math.ceil(fullText.length / 4)
+                                  toast.success(`LLM payload copied (≈${tokenEstimate.toLocaleString()} tokens)`)
                                 }}
                                 className="text-xs text-[#737373] hover:text-white"
                               >
                                 <Copy className="h-4 w-4 mr-1" />
-                                Copy Debug Data
+                                Copy LLM Payload
                               </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  // Download just the report data as JSON
+                                  const reportData = lastRequestData.requestBody.reportData
+                                  const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' })
+                                  const url = URL.createObjectURL(blob)
+                                  const a = document.createElement('a')
+                                  a.href = url
+                                  a.download = `llm-report-data-${new Date().toISOString().split('T')[0]}.json`
+                                  a.click()
+                                  URL.revokeObjectURL(url)
+                                  toast.success('Report data downloaded')
+                                }}
+                                className="text-xs text-[#737373] hover:text-white"
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                Download JSON
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Token Estimation */}
+                          <div className="bg-[#141414] rounded p-3 border border-[#2a2a2a] mb-4">
+                            <p className="text-xs text-[#737373] mb-2">Token Usage Estimation</p>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-[#737373]">System Prompt:</span>
+                                <span className="text-white font-mono">
+                                  ≈{Math.ceil((lastRequestData.selectedSetting?.system_prompt || '').length / 4).toLocaleString()} tokens
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-[#737373]">User Prompt:</span>
+                                <span className="text-white font-mono">
+                                  ≈{Math.ceil((lastRequestData.requestBody.userPrompt || '').length / 4).toLocaleString()} tokens
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-[#737373]">Report Data:</span>
+                                <span className="text-white font-mono">
+                                  ≈{Math.ceil(JSON.stringify(lastRequestData.requestBody.reportData).length / 4).toLocaleString()} tokens
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-xs pt-2 border-t border-[#2a2a2a]">
+                                <span className="text-[#737373] font-medium">Total Estimate:</span>
+                                <span className={`font-mono font-medium ${
+                                  Math.ceil((
+                                    (lastRequestData.selectedSetting?.system_prompt || '').length +
+                                    (lastRequestData.requestBody.userPrompt || '').length +
+                                    JSON.stringify(lastRequestData.requestBody.reportData).length
+                                  ) / 4) > 120000 ? 'text-red-500' : 'text-[#3b82f6]'
+                                }`}>
+                                  ≈{Math.ceil((
+                                    (lastRequestData.selectedSetting?.system_prompt || '').length +
+                                    (lastRequestData.requestBody.userPrompt || '').length +
+                                    JSON.stringify(lastRequestData.requestBody.reportData).length
+                                  ) / 4).toLocaleString()} tokens
+                                </span>
+                              </div>
+                              {Math.ceil((
+                                (lastRequestData.selectedSetting?.system_prompt || '').length +
+                                (lastRequestData.requestBody.userPrompt || '').length +
+                                JSON.stringify(lastRequestData.requestBody.reportData).length
+                              ) / 4) > 120000 && (
+                                <p className="text-xs text-red-500 mt-2">
+                                  ⚠️ Warning: Estimated tokens exceed 120k limit
+                                </p>
+                              )}
                             </div>
                           </div>
 
@@ -1432,9 +1935,9 @@ export default function MarketTrendReportPage() {
                               </p>
                             </div>
                             <div className="bg-[#141414] rounded p-2 border border-[#2a2a2a]">
-                              <p className="text-xs text-[#737373]">Prompt Type</p>
+                              <p className="text-xs text-[#737373]">Using Raw Data</p>
                               <p className="text-xs text-white font-medium">
-                                {useCustomPrompt ? 'Custom' : lastRequestData.selectedSetting?.name || 'Default'}
+                                {lastRequestData.usingRawData ? 'Yes' : 'No'}
                               </p>
                             </div>
                             <div className="bg-[#141414] rounded p-2 border border-[#2a2a2a]">
@@ -1471,11 +1974,41 @@ export default function MarketTrendReportPage() {
 
                           {/* Full Request Data */}
                           {showDebugData && (
-                            <div className="bg-[#141414] rounded p-3 border border-[#2a2a2a]">
-                              <p className="text-xs text-[#737373] mb-2">Full Request Data</p>
-                              <pre className="text-xs text-[#a3a3a3] overflow-auto max-h-96">
-                                {JSON.stringify(lastRequestData, null, 2)}
-                              </pre>
+                            <div className="space-y-4">
+                              {/* LLM Payload Preview */}
+                              <div className="bg-[#141414] rounded p-3 border border-[#2a2a2a]">
+                                <p className="text-xs text-[#737373] mb-2">Exact LLM Payload Preview</p>
+                                <div className="space-y-3">
+                                  <div>
+                                    <p className="text-xs text-[#3b82f6] mb-1">System Message:</p>
+                                    <pre className="text-xs text-[#a3a3a3] bg-[#0a0a0a] p-2 rounded overflow-auto max-h-32">
+                                      {lastRequestData.selectedSetting?.system_prompt || 'Default system prompt'}
+                                    </pre>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-[#3b82f6] mb-1">User Message:</p>
+                                    <pre className="text-xs text-[#a3a3a3] bg-[#0a0a0a] p-2 rounded overflow-auto max-h-32">
+                                      {lastRequestData.requestBody.userPrompt}
+                                      {'\n\n'}
+                                      [Market data follows with detailed context for each section...]
+                                    </pre>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-[#3b82f6] mb-1">Report Data Structure:</p>
+                                    <pre className="text-xs text-[#a3a3a3] bg-[#0a0a0a] p-2 rounded overflow-auto max-h-64">
+                                      {JSON.stringify(lastRequestData.requestBody.reportData, null, 2)}
+                                    </pre>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Raw Debug Data */}
+                              <div className="bg-[#141414] rounded p-3 border border-[#2a2a2a]">
+                                <p className="text-xs text-[#737373] mb-2">Full Debug Data</p>
+                                <pre className="text-xs text-[#a3a3a3] overflow-auto max-h-96">
+                                  {JSON.stringify(lastRequestData, null, 2)}
+                                </pre>
+                              </div>
                             </div>
                           )}
                         </div>

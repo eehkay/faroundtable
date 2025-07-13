@@ -16,6 +16,7 @@ export interface SearchVolumeResult {
   keyword: string;
   search_volume: number;
   competition: number;
+  cpc?: number; // Cost per click (optional)
   trend: number[];
   monthly_searches: Array<{
     year: number;
@@ -57,7 +58,7 @@ export class DataForSEOClient {
     return `Basic ${Buffer.from(credentials).toString('base64')}`;
   }
 
-  private async request<T>(endpoint: string, data?: any): Promise<T> {
+  private async request<T>(endpoint: string, data?: any, returnFullResponse: boolean = false): Promise<T> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
@@ -79,6 +80,11 @@ export class DataForSEOClient {
       }
 
       const result = await response.json();
+      
+      // If we want the full response, return it immediately
+      if (returnFullResponse) {
+        return result as T;
+      }
       
       // Check for API-level errors
       if (result.status_code !== 20000) {
@@ -193,6 +199,104 @@ export class DataForSEOClient {
    * Get search volume for multiple location codes and aggregate results
    * Useful for locations like Reno that have multiple DataForSEO codes
    */
+  /**
+   * Get search volume using latitude, longitude, and radius
+   * @param keywords - Array of keywords to analyze
+   * @param latitude - Latitude coordinate
+   * @param longitude - Longitude coordinate
+   * @param radiusMiles - Radius in miles (default 50)
+   * @param negativeKeywords - Keywords to exclude from results
+   */
+  async getSearchVolumeByCoordinate(
+    keywords: string[],
+    latitude: number,
+    longitude: number,
+    radiusMiles: number = 50,
+    negativeKeywords: string[] = [],
+    includeRawResponse: boolean = false
+  ): Promise<SearchVolumeResult[] | { results: SearchVolumeResult[], raw: any }> {
+    try {
+      // Format: "latitude,longitude,radius_in_miles"
+      const locationCoordinate = `${latitude},${longitude},${radiusMiles}`;
+      
+      const requestData = {
+        keywords: keywords,
+        location_coordinate: locationCoordinate,
+        language_code: 'en',
+        sort_by: 'search_volume',
+        keywords_negative: negativeKeywords.length > 0 ? negativeKeywords : undefined
+      };
+
+      // First get the full response for debugging if requested
+      const fullResponse = includeRawResponse ? await this.request<any>(
+        '/v3/keywords_data/google_ads/keywords_for_keywords/live',
+        requestData,
+        true
+      ) : null;
+      
+      const response = await this.request<any>(
+        '/v3/keywords_data/google_ads/keywords_for_keywords/live',
+        requestData
+      );
+
+      // Parse the response - Google Ads returns results directly as an array
+      let items: any[] = [];
+      
+      if (response && Array.isArray(response)) {
+        items = response;
+      }
+
+      if (items.length === 0) {
+        return keywords.map(keyword => ({
+          keyword,
+          search_volume: 0,
+          competition: 0,
+          cpc: 0,
+          trend: [],
+          monthly_searches: [],
+        }));
+      }
+
+      // Process ALL results returned by the API
+      const results: SearchVolumeResult[] = [];
+
+      for (const item of items) {
+        const keyword = item.keyword;
+        if (!keyword) continue;
+        
+        // Convert competition string to number (0-1 scale)
+        let competitionValue = 0;
+        if (item.competition === 'HIGH') competitionValue = 1;
+        else if (item.competition === 'MEDIUM') competitionValue = 0.5;
+        else if (item.competition === 'LOW') competitionValue = 0.25;
+        
+        // Extract trend from monthly searches
+        const trend = item.monthly_searches?.map((m: any) => m.search_volume) || [];
+        
+        results.push({
+          keyword: keyword,
+          search_volume: item.search_volume || 0,
+          competition: competitionValue,
+          cpc: item.cpc || 0,
+          trend: trend,
+          monthly_searches: item.monthly_searches || [],
+        });
+      }
+
+      return includeRawResponse ? { results, raw: fullResponse } : results;
+    } catch (error) {
+      console.error('Error fetching search volume by coordinate:', error);
+      return keywords.map(keyword => ({
+        keyword,
+        search_volume: 0,
+        competition: 0,
+        cpc: 0,
+        trend: [],
+        monthly_searches: [],
+      }));
+    }
+  }
+
   async getSearchVolumeMultiLocation(keywords: string[], locationCodes: number[]): Promise<SearchVolumeResult[]> {
     try {
       // Get search volume for each location
