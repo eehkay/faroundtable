@@ -1,11 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
-import { X, Save } from 'lucide-react'
+import { X, Save, Loader2, AlertCircle } from 'lucide-react'
+
+interface ModelInfo {
+  id: string
+  name: string
+  description?: string
+  info: {
+    provider: string
+    shortName: string
+    pricePerMillionInput: number
+    pricePerMillionOutput: number
+    contextWindow: string
+    features: string[]
+  }
+  pricing: {
+    input: number
+    output: number
+  }
+  contextLength: number
+}
+
+interface ModelCategory {
+  name: string
+  models: ModelInfo[]
+}
 
 interface AISettingFormProps {
   setting?: {
@@ -24,26 +48,6 @@ interface AISettingFormProps {
   onCancel: () => void
 }
 
-const AI_MODELS = [
-  // GPT-4 Models
-  { value: 'gpt-4-turbo-preview', label: 'GPT-4 Turbo Preview (Latest, Recommended)', category: 'GPT-4' },
-  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo (Stable)', category: 'GPT-4' },
-  { value: 'gpt-4', label: 'GPT-4 (Original)', category: 'GPT-4' },
-  { value: 'gpt-4-32k', label: 'GPT-4 32K (Extended Context)', category: 'GPT-4' },
-  
-  // GPT-3.5 Models
-  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo (Fast & Affordable)', category: 'GPT-3.5' },
-  { value: 'gpt-3.5-turbo-16k', label: 'GPT-3.5 Turbo 16K (Extended Context)', category: 'GPT-3.5' },
-  
-  // GPT-4o Models
-  { value: 'gpt-4o', label: 'GPT-4o (Optimized for Speed)', category: 'GPT-4o' },
-  { value: 'gpt-4o-mini', label: 'GPT-4o Mini (Faster, Lower Cost)', category: 'GPT-4o' },
-  
-  // Specialized Models
-  { value: 'o1-preview', label: 'O1 Preview (Advanced Reasoning)', category: 'Specialized' },
-  { value: 'o1-mini', label: 'O1 Mini (Reasoning, Lower Cost)', category: 'Specialized' },
-]
-
 export default function AISettingForm({ setting, onSave, onCancel }: AISettingFormProps) {
   const [formData, setFormData] = useState({
     name: setting?.name || '',
@@ -56,6 +60,46 @@ export default function AISettingForm({ setting, onSave, onCancel }: AISettingFo
     is_active: setting?.is_active !== false,
     is_default: setting?.is_default || false
   })
+
+  const [modelCategories, setModelCategories] = useState<ModelCategory[]>([])
+  const [loadingModels, setLoadingModels] = useState(true)
+  const [modelsError, setModelsError] = useState<string | null>(null)
+  const [selectedModel, setSelectedModel] = useState<ModelInfo | null>(null)
+
+  // Load models on component mount
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        setLoadingModels(true)
+        const response = await fetch('/api/admin/ai-settings/models')
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          setModelCategories(data.data)
+          
+          // Find the selected model info
+          if (formData.model) {
+            for (const category of data.data) {
+              const model = category.models.find((m: ModelInfo) => m.id === formData.model)
+              if (model) {
+                setSelectedModel(model)
+                break
+              }
+            }
+          }
+        } else {
+          setModelsError(data.error || 'Failed to load models')
+        }
+      } catch (error) {
+        console.error('Error loading models:', error)
+        setModelsError('Failed to load models')
+      } finally {
+        setLoadingModels(false)
+      }
+    }
+
+    loadModels()
+  }, [formData.model])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -101,32 +145,92 @@ export default function AISettingForm({ setting, onSave, onCancel }: AISettingFo
         <Label htmlFor="model" className="text-sm font-medium text-white">
           AI Model <span className="text-red-500">*</span>
         </Label>
-        <select
-          id="model"
-          value={formData.model}
-          onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-          className="mt-1 w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
-          required
-        >
-          <option value="">Select a model...</option>
-          {/* Group models by category */}
-          {['GPT-4', 'GPT-3.5', 'GPT-4o', 'Specialized'].map((category) => (
-            <optgroup key={category} label={category}>
-              {AI_MODELS.filter(model => model.category === category).map((model) => (
-                <option key={model.value} value={model.value}>
-                  {model.label}
-                </option>
+        {loadingModels ? (
+          <div className="mt-1 flex items-center justify-center py-8 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg">
+            <Loader2 className="h-5 w-5 animate-spin text-[#3b82f6]" />
+            <span className="ml-2 text-sm text-[#737373]">Loading available models...</span>
+          </div>
+        ) : modelsError ? (
+          <div className="mt-1 p-4 bg-[#0a0a0a] border border-red-500/20 rounded-lg">
+            <div className="flex items-center gap-2 text-red-500">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">{modelsError}</span>
+            </div>
+            <p className="mt-2 text-xs text-[#737373]">
+              Using fallback model list. Some models may not be available.
+            </p>
+          </div>
+        ) : (
+          <>
+            <select
+              id="model"
+              value={formData.model}
+              onChange={(e) => {
+                const modelId = e.target.value
+                setFormData({ ...formData, model: modelId })
+                
+                // Find and set the selected model info
+                for (const category of modelCategories) {
+                  const model = category.models.find(m => m.id === modelId)
+                  if (model) {
+                    setSelectedModel(model)
+                    break
+                  }
+                }
+              }}
+              className="mt-1 w-full px-3 py-2 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg text-white focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/20 focus:outline-none transition-all duration-200"
+              required
+            >
+              <option value="">Select a model...</option>
+              {modelCategories.map((category) => (
+                <optgroup key={category.name} label={category.name}>
+                  {category.models.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name} ({model.info.contextWindow})
+                    </option>
+                  ))}
+                </optgroup>
               ))}
-            </optgroup>
-          ))}
-        </select>
-        <p className="mt-1 text-xs text-[#737373]">
-          {formData.model.includes('gpt-4') && !formData.model.includes('gpt-4o') && 'Best quality, slower response time'}
-          {formData.model.includes('gpt-3.5') && 'Fast and affordable, good for simple analysis'}
-          {formData.model.includes('gpt-4o') && 'Optimized balance of speed and quality'}
-          {formData.model.includes('o1') && 'Advanced reasoning for complex analysis'}
-          {!formData.model && 'Choose based on your speed vs quality needs'}
-        </p>
+            </select>
+            
+            {/* Model Info Display */}
+            {selectedModel && (
+              <div className="mt-2 p-3 bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-xs text-[#a3a3a3] mb-1">
+                      {selectedModel.description || `${selectedModel.info.provider} model`}
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="text-green-500">
+                        Input: ${selectedModel.info.pricePerMillionInput.toFixed(2)}/M
+                      </span>
+                      <span className="text-orange-500">
+                        Output: ${selectedModel.info.pricePerMillionOutput.toFixed(2)}/M
+                      </span>
+                      <span className="text-[#737373]">•</span>
+                      <span className="text-[#737373]">
+                        Context: {selectedModel.info.contextWindow} tokens
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {selectedModel.info.features.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {selectedModel.info.features.map((feature) => (
+                      <span
+                        key={feature}
+                        className="px-2 py-0.5 text-xs bg-[#1a1a1a] border border-[#2a2a2a] rounded text-[#a3a3a3]"
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* System Prompt */}
