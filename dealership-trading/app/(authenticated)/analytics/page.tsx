@@ -10,8 +10,8 @@ export default function AnalyticsPage() {
   const analyticsEnabled = process.env.ENABLE_ADVANCED_ANALYTICS === 'true';
 
   return (
-    <div>
-      <div className="mb-8">
+    <div className="space-y-8">
+      <div>
         <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
         <p className="text-[#a3a3a3] mt-2">
           Market intelligence and insights for your dealership inventory

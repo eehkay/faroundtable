@@ -77,7 +77,7 @@ export default function AnalyticsLayout({
       </div>
 
       {/* Page content */}
-      <div className="flex-1">
+      <div className="flex-1 pt-8">
         {children}
       </div>
     </div>
