@@ -127,7 +127,33 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Test 5: Regional stats (the one that's failing)
+    // Test 5: National Popular Cars (the one that's failing in regional analysis)
+    try {
+      console.log('[Test] Testing national popular cars...');
+      const nationalResult = await client.getPopularCarsNational({
+        limit: 10,
+        carType: 'used'
+      });
+      results.tests.push({
+        name: 'National Popular Cars',
+        endpoint: '/v2/popular/cars',
+        status: 'success',
+        result: {
+          count: nationalResult.length,
+          firstItem: nationalResult[0]
+        }
+      });
+    } catch (error) {
+      results.tests.push({
+        name: 'National Popular Cars',
+        endpoint: '/v2/popular/cars',
+        status: 'failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.stack : undefined
+      });
+    }
+
+    // Test 6: Regional stats
     try {
       console.log('[Test] Testing regional stats...');
       const regionalResult = await client.getRegionalStats(
