@@ -291,15 +291,28 @@ export async function POST(request: NextRequest) {
             progress: 5
           });
 
-          const nationalPopularCars = await marketCheckClient.getPopularCarsNational({
-            limit: 50,
-            carType: 'used'
-          });
+          let nationalPopularCars: any[] = [];
+          try {
+            nationalPopularCars = await marketCheckClient.getPopularCarsNational({
+              limit: 50,
+              carType: 'used'
+            });
+            console.log('[Regional Analysis] Successfully fetched national popular cars:', nationalPopularCars.length);
+          } catch (nationalError) {
+            console.error('[Regional Analysis] Failed to fetch national popular cars:', nationalError);
+            // Don't fail the entire analysis, just continue without national data
+            sendUpdate({ 
+              type: 'status', 
+              message: 'National data unavailable, continuing with local analysis...',
+              progress: 10
+            });
+          }
 
-          sendUpdate({ 
-            type: 'national_data',
-            data: {
-              nationalVehicles: nationalPopularCars.map(car => ({
+          if (nationalPopularCars.length > 0) {
+            sendUpdate({ 
+              type: 'national_data',
+              data: {
+                nationalVehicles: nationalPopularCars.map(car => ({
                 make: car.make,
                 model: car.model,
                 inventory: car.count,
@@ -314,6 +327,7 @@ export async function POST(request: NextRequest) {
             },
             progress: 10
           });
+          }
 
           // Step 2: Get city-specific popular cars
           sendUpdate({ 
