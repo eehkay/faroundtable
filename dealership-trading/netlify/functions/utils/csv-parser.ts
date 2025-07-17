@@ -69,10 +69,12 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
     return null;
   }
 
-  if (expectedStoreCode && row.store_code !== expectedStoreCode) {
-    console.warn(`Skipping vehicle ${row.id} - wrong store code: ${row.store_code}`);
-    return null;
-  }
+  // Skip store code validation - we trust the file mapping
+  // The store code in CSV may differ from our internal codes
+  // if (expectedStoreCode && row.store_code !== expectedStoreCode) {
+  //   console.warn(`Skipping vehicle ${row.id} - wrong store code: ${row.store_code}`);
+  //   return null;
+  // }
 
   // Filter out non-used vehicles
   const condition = row.condition ? row.condition.toLowerCase() : 'used';
