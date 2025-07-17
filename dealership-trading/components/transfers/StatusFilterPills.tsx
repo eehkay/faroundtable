@@ -50,7 +50,7 @@ export default function StatusFilterPills({ selectedStatus, onStatusChange, loca
           setStatusCounts(counts);
         }
       } catch (error) {
-        console.error('Failed to fetch transfer stats:', error);
+        // Failed to fetch transfer stats
       } finally {
         setLoading(false);
       }

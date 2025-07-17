@@ -39,10 +39,8 @@ export default function UnifiedActivityFeed({ vehicleId }: UnifiedActivityFeedPr
         }
 
         const { items } = await response.json()
-        console.log('Fetched unified feed for vehicle:', vehicleId, items)
         setFeedItems(items || [])
       } catch (error) {
-        console.error('Failed to fetch feed:', error)
         setError('Failed to load activity feed. Please check your connection.')
         setFeedItems([])
       } finally {
@@ -64,7 +62,6 @@ export default function UnifiedActivityFeed({ vehicleId }: UnifiedActivityFeedPr
           filter: `vehicle_id=eq.${vehicleId}`
         },
         () => {
-          console.log('Activity real-time update received')
           fetchFeed()
         }
       )
@@ -81,7 +78,6 @@ export default function UnifiedActivityFeed({ vehicleId }: UnifiedActivityFeedPr
           filter: `vehicle_id=eq.${vehicleId}`
         },
         () => {
-          console.log('Comment real-time update received')
           fetchFeed()
         }
       )
@@ -98,7 +94,6 @@ export default function UnifiedActivityFeed({ vehicleId }: UnifiedActivityFeedPr
           filter: `vehicle_id=eq.${vehicleId}`
         },
         () => {
-          console.log('Transfer real-time update received')
           fetchFeed()
         }
       )
@@ -136,7 +131,6 @@ export default function UnifiedActivityFeed({ vehicleId }: UnifiedActivityFeedPr
         throw new Error(data.error || `HTTP error! status: ${response.status}`)
       }
 
-      console.log('Comment posted successfully:', data)
       setNewComment('')
       
       // Refetch the entire feed to include the new comment
@@ -144,7 +138,6 @@ export default function UnifiedActivityFeed({ vehicleId }: UnifiedActivityFeedPr
       const { items } = await feedResponse.json()
       setFeedItems(items || [])
     } catch (error) {
-      console.error('Failed to post comment:', error)
       setError(error instanceof Error ? error.message : 'Failed to post comment. Please try again.')
     } finally {
       setPosting(false)

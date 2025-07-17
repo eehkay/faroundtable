@@ -48,7 +48,6 @@ export async function getVehicleByStockNumber(stockNumber: string) {
     .in('status', ['requested', 'approved', 'in-transit'])
 
   if (error) {
-    console.error('Error fetching vehicle:', error)
     return null
   }
 
@@ -139,7 +138,6 @@ export async function getVehicleActivity(vehicleId: string) {
     .limit(20)
 
   if (error) {
-    console.error('Error fetching activity:', error)
     return []
   }
 
@@ -179,7 +177,6 @@ export async function getVehicleComments(vehicleId: string) {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching comments:', error)
     return []
   }
 
@@ -222,7 +219,6 @@ export async function getAllUsers() {
     .order('name', { ascending: true })
 
   if (error) {
-    console.error('Error fetching users:', error)
     return []
   }
 
@@ -268,7 +264,6 @@ export async function getUserById(userId: string) {
     .single()
 
   if (error) {
-    console.error('Error fetching user:', error)
     return null
   }
 
@@ -315,7 +310,6 @@ export async function searchUsers(search: string) {
     .limit(50)
 
   if (error) {
-    console.error('Error searching users:', error)
     return []
   }
 
@@ -356,7 +350,6 @@ export async function getUsersByRole(role: string) {
     .order('name', { ascending: true })
 
   if (error) {
-    console.error('Error fetching users by role:', error)
     return []
   }
 
@@ -483,7 +476,6 @@ export async function getVehicleTransfers(vehicleId: string) {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching vehicle transfers:', error)
     return []
   }
 
@@ -552,13 +544,22 @@ export async function getDealershipLocations() {
       city,
       state,
       zip,
-      phone
+      phone,
+      email,
+      csv_file_name,
+      email_domains,
+      enable_csv_import,
+      active,
+      latitude,
+      longitude,
+      city_state,
+      created_at,
+      updated_at
     `)
     .eq('active', true)
     .order('name', { ascending: true })
 
   if (error) {
-    console.error('Error fetching locations:', error)
     return []
   }
 
@@ -573,6 +574,15 @@ export async function getDealershipLocations() {
     state: location.state,
     zip: location.zip,
     phone: location.phone,
-    active: true // We already filter by active in the query
+    email: location.email,
+    csvFileName: location.csv_file_name,
+    emailDomains: location.email_domains,
+    enableCsvImport: location.enable_csv_import,
+    active: location.active,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    city_state: location.city_state,
+    createdAt: location.created_at,
+    updatedAt: location.updated_at
   })) || []
 }

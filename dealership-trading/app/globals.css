@@ -157,3 +157,27 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 input[type="time"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* Improved text selection visibility in dark mode */
+.dark ::selection {
+  background-color: #60a5fa;
+  color: #000000;
+}
+
+.dark input::selection,
+.dark textarea::selection {
+  background-color: #60a5fa;
+  color: #000000;
+}
+
+/* Firefox specific selection */
+.dark ::-moz-selection {
+  background-color: #60a5fa;
+  color: #000000;
+}
+
+.dark input::-moz-selection,
+.dark textarea::-moz-selection {
+  background-color: #60a5fa;
+  color: #000000;
+}

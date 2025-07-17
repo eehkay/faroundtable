@@ -49,7 +49,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (vehicleError || !vehicle) {
-      console.error('Vehicle fetch error:', vehicleError);
       return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 });
     }
     
@@ -96,7 +95,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (transferError) {
-      console.error('Transfer creation error:', transferError);
       return NextResponse.json({ error: 'Failed to create transfer' }, { status: 500 });
     }
     
@@ -136,13 +134,11 @@ export async function POST(request: NextRequest) {
         }
       });
     } catch (notificationError) {
-      console.error('Failed to send transfer request notification:', notificationError);
       // Don't fail the request if notification fails
     }
     
     return NextResponse.json({ success: true, transferId: transfer.id });
   } catch (error) {
-    console.error('Error claiming vehicle:', error);
     // Return more detailed error in development
     if (process.env.NODE_ENV === 'development') {
       return NextResponse.json({ 

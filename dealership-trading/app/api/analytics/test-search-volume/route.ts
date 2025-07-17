@@ -59,13 +59,12 @@ export async function POST(request: NextRequest) {
 
         // Store debug info for the first location only to avoid too much data
         if (Object.keys(debugInfo).length === 0) {
-          debugInfo.curlCommand = debugData.curlCommand;
-          debugInfo.rawResponse = debugData.rawResponse;
-          debugInfo.requestData = debugData.requestData;
-          debugInfo.endpoint = debugData.endpoint;
+          debugInfo.curlCommand = debugData.debug.curlCommand;
+          debugInfo.rawResponse = debugData.debug.rawResponse;
+          debugInfo.requestData = debugData.debug.requestBody;
+          debugInfo.endpoint = debugData.debug.apiUrl;
         }
       } catch (error) {
-        console.error(`Error getting data for location ${locationCode}:`, error);
         results.push({
           locationName: LOCATION_NAMES[locationCode] || `Location ${locationCode}`,
           locationCode,
@@ -80,7 +79,6 @@ export async function POST(request: NextRequest) {
       debug: debugInfo,
     });
   } catch (error) {
-    console.error('Test search volume error:', error);
     return NextResponse.json({ 
       error: 'Failed to get search volume data',
       message: error instanceof Error ? error.message : 'Unknown error',

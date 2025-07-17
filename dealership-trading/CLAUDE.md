@@ -168,6 +168,8 @@ const channel = supabase
 - `ENABLE_ADVANCED_ANALYTICS` (set to 'true' to enable)
 - `MARKETCHECK_API_KEY`
 - `DATAFORSEO_EMAIL`, `DATAFORSEO_API_KEY`
+- `OPENAI_API_KEY` (for AI analysis with OpenAI models)
+- `OPENROUTER_API_KEY` (for AI analysis with multiple providers via OpenRouter)
 
 ## Analytics Feature
 
@@ -184,6 +186,31 @@ To enable analytics:
 2. Add API keys for Market Check and DataForSEO
 3. Run the analytics database migration
 4. See `/docs/ANALYTICS_SETUP.md` for detailed setup
+
+## AI Analysis Feature
+
+The market trend report includes AI-powered analysis using configurable models:
+
+**Supported Providers**:
+- **OpenAI Direct**: GPT-4, GPT-3.5, and specialized models via OpenAI API
+- **OpenRouter**: Access to 400+ models including:
+  - Anthropic Claude (3 Opus, 3.5 Sonnet, Haiku)
+  - Google Gemini (Pro, Pro 1.5)
+  - Meta Llama (3, 3.1 up to 405B)
+  - Mistral, Perplexity, Cohere, and more
+
+**Configuration**:
+1. Add `OPENAI_API_KEY` for direct OpenAI models
+2. Add `OPENROUTER_API_KEY` for OpenRouter models
+3. Models with "/" (e.g., "anthropic/claude-3-opus") use OpenRouter
+4. Models without "/" use OpenAI directly
+5. Configure prompts and models in Admin > Settings > AI Analysis
+
+**Benefits of OpenRouter**:
+- Unified billing across all AI providers
+- Automatic fallbacks if a provider is down
+- Access to latest models without code changes
+- Cost optimization with provider routing
 
 ## Development Guidelines
 

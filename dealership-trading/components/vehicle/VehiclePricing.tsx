@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { TrendingUp, Shield } from 'lucide-react';
+import { TrendingUp, Clock } from 'lucide-react';
 
 interface VehiclePricingProps {
   price?: number;
@@ -9,8 +9,8 @@ interface VehiclePricingProps {
   msrp?: number;
   onGetMarketInsights?: () => void;
   isLoadingInsights?: boolean;
-  onCheckVinRecalls?: () => void;
-  isLoadingVinDecode?: boolean;
+  onCheckListingHistory?: () => void;
+  isLoadingHistory?: boolean;
 }
 
 export default function VehiclePricing({ 
@@ -19,8 +19,8 @@ export default function VehiclePricing({
   msrp, 
   onGetMarketInsights, 
   isLoadingInsights,
-  onCheckVinRecalls,
-  isLoadingVinDecode
+  onCheckListingHistory,
+  isLoadingHistory
 }: VehiclePricingProps) {
   const formatPrice = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -85,9 +85,9 @@ export default function VehiclePricing({
         )}
 
         {/* Action Buttons */}
-        {(onGetMarketInsights || onCheckVinRecalls) && (
+        {(onGetMarketInsights || onCheckListingHistory) && (
           <div className="pt-4 border-t border-[#2a2a2a] space-y-3">
-            <div className={`grid gap-3 ${onGetMarketInsights && onCheckVinRecalls ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`grid gap-3 ${onGetMarketInsights && onCheckListingHistory ? 'grid-cols-2' : 'grid-cols-1'}`}>
               {onGetMarketInsights && (
                 <button
                   onClick={onGetMarketInsights}
@@ -102,27 +102,27 @@ export default function VehiclePricing({
                   ) : (
                     <>
                       <TrendingUp className="h-5 w-5" />
-                      <span>Market Insights</span>
+                      <span>Market Analysis</span>
                     </>
                   )}
                 </button>
               )}
               
-              {onCheckVinRecalls && (
+              {onCheckListingHistory && (
                 <button
-                  onClick={onCheckVinRecalls}
-                  disabled={isLoadingVinDecode}
-                  className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-semibold py-3 px-4 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  onClick={onCheckListingHistory}
+                  disabled={isLoadingHistory}
+                  className="w-full bg-[#9333ea] hover:bg-[#7c3aed] text-white font-semibold py-3 px-4 rounded-full transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isLoadingVinDecode ? (
+                  {isLoadingHistory ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                       <span>Loading...</span>
                     </>
                   ) : (
                     <>
-                      <Shield className="h-5 w-5" />
-                      <span>Check Recalls</span>
+                      <Clock className="h-5 w-5" />
+                      <span>Listing History</span>
                     </>
                   )}
                 </button>

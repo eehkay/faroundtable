@@ -55,10 +55,8 @@ export default function ActivityFeed({ vehicleId }: ActivityFeedProps) {
           } : { _ref: 'unknown' }
         })) || [];
 
-        console.log('Fetched activities for vehicle:', vehicleId, transformedData);
         setActivities(transformedData);
       } catch (error) {
-        console.error('Failed to fetch activities:', error);
         setError('Failed to load activity feed. Please check your connection.');
         setActivities([]);
       } finally {
@@ -80,7 +78,6 @@ export default function ActivityFeed({ vehicleId }: ActivityFeedProps) {
           filter: `vehicle_id=eq.${vehicleId}`
         },
         () => {
-          console.log('Activity real-time update received');
           fetchActivities();
         }
       )

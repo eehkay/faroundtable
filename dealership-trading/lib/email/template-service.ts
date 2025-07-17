@@ -41,7 +41,6 @@ async function getEmailConfig() {
       .single();
 
     if (error) {
-      console.error('Error fetching email config:', error);
       return null;
     }
 
@@ -51,7 +50,6 @@ async function getEmailConfig() {
     
     return data;
   } catch (error) {
-    console.error('Failed to get email config:', error);
     return null;
   }
 }
@@ -73,7 +71,6 @@ export async function sendEmail(options: SendEmailOptions) {
   // Apply test mode if enabled
   let recipients = Array.isArray(to) ? to : [to];
   if (config?.test_mode_enabled && config.test_email_address) {
-    console.log(`Test mode active - redirecting emails to ${config.test_email_address}`);
     recipients = [config.test_email_address];
   }
   
@@ -121,7 +118,6 @@ export async function sendEmail(options: SendEmailOptions) {
 
     return result;
   } catch (error) {
-    console.error('Failed to send email:', error);
     throw error;
   }
 }
@@ -139,7 +135,6 @@ async function getEmailTemplate(templateName: string): Promise<NotificationTempl
     .single();
 
   if (error) {
-    console.error(`Error fetching template ${templateName}:`, error);
     return null;
   }
 
@@ -163,7 +158,6 @@ async function getRecipients(
     .eq('active', true);
 
   if (error) {
-    console.error('Error fetching recipients:', error);
     return [];
   }
 
@@ -194,7 +188,6 @@ export async function sendTransferNotificationEmail(
     const template = await getEmailTemplate(notificationType);
     
     if (!template || !template.channels.email?.enabled) {
-      console.log(`Email template ${notificationType} not found or disabled`);
       return;
     }
 
@@ -273,10 +266,8 @@ export async function sendTransferNotificationEmail(
         }
       });
 
-    console.log(`${notificationType} notification sent to ${recipients.length} recipients`);
     return result;
   } catch (error) {
-    console.error(`Failed to send ${notificationType} notification:`, error);
     
     // Log the failure
         await supabaseAdmin

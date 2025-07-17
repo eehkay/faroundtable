@@ -69,7 +69,6 @@ export async function POST(
       data: previewData
     });
   } catch (error) {
-    console.error('Error in POST /api/admin/notification-templates/[id]/preview:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

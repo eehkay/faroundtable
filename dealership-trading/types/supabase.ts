@@ -56,6 +56,10 @@ export interface DealershipLocationRow {
   email_domains: string[] | null
   enable_csv_import: boolean
   active: boolean
+  latitude: number | null
+  longitude: number | null
+  city_state: string | null
+  dataforseo_location_code: number | null
   created_at: string
   updated_at: string
 }

@@ -25,6 +25,7 @@ interface CSVRow {
   image_link3: string;
   image_link4: string;
   image_link5: string;
+  'Days on Lot'?: string;
   // Note: The CSV contains 10 duplicate "additional_image_link " columns
   // PapaParse puts these duplicate values in __parsed_extra array
   __parsed_extra?: string[];
@@ -92,6 +93,12 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
     return cleaned ? parseInt(cleaned) : null;
   };
 
+  const parseDaysOnLot = (daysStr: string | undefined) => {
+    if (!daysStr) return null;
+    const cleaned = daysStr.toString().replace(/[^0-9]/g, '');
+    return cleaned ? parseInt(cleaned) : null;
+  };
+
   const images = [];
   // Add the main image_link if it exists
   if (row.image_link) images.push(row.image_link);
@@ -154,7 +161,8 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
     address: row.address || null,
     dealershipName: dealershipName || row.dealership_name || null,
     imageUrls: uniqueImages,
-    lastSeenInFeed: new Date().toISOString()
+    lastSeenInFeed: new Date().toISOString(),
+    daysOnLot: parseDaysOnLot(row['Days on Lot'])
   };
 }
 

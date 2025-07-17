@@ -302,7 +302,7 @@ function transformVehicleForDB(vehicle: any) {
     image_urls: vehicle.imageUrls,
     last_seen_in_feed: new Date().toISOString(),
     removed_from_feed_at: vehicle.removed_from_feed_at || null,
-    days_on_lot: vehicle.daysOnLot || calculateDaysOnLot(vehicle.imported_at)
+    days_on_lot: vehicle.daysOnLot !== null && vehicle.daysOnLot !== undefined ? vehicle.daysOnLot : 0
   };
   
   // Only include ID if it exists (for updates)

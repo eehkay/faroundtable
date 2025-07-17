@@ -41,6 +41,7 @@ function validateRegionalInsightsRequest(data: any): { valid: boolean; error?: s
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
+  const searchParams = request.nextUrl.searchParams;
   
   try {
     // Validate session
@@ -50,7 +51,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse query parameters
-    const searchParams = request.nextUrl.searchParams;
     const locationId = searchParams.get('locationId');
     const radius = searchParams.get('radius') ? parseInt(searchParams.get('radius')!) : undefined;
     const includeCompetitors = searchParams.get('includeCompetitors') !== 'false';
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Regional insights error:', error);
+    console.error('[Regional Trends API] Error:', error);
     
     // Log error for monitoring
     const responseTime = Date.now() - startTime;
@@ -129,10 +129,24 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ 
+    // Provide detailed error information for debugging
+    const errorDetails: any = {
       error: 'Failed to get regional insights',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+      endpoint: '/api/analytics/regional/trends',
+      requestParams: {
+        locationId: searchParams.get('locationId'),
+        radius: searchParams.get('radius'),
+      }
+    };
+
+    // Include stack trace in development
+    if (process.env.NODE_ENV === 'development' && error instanceof Error) {
+      errorDetails.stack = error.stack;
+    }
+
+    return NextResponse.json(errorDetails, { status: 500 });
   }
 }
 
@@ -157,6 +171,5 @@ async function logAnalyticsUsage(data: {
         cache_hit: data.cacheHit,
       });
   } catch (error) {
-    console.error('Failed to log analytics usage:', error);
   }
 }

@@ -18,8 +18,7 @@ export async function GET() {
       .order('name', { ascending: true });
 
     if (error) {
-      console.error('Supabase error:', error);
-      throw error;
+        throw error;
     }
 
     // Transform to match frontend format
@@ -37,13 +36,16 @@ export async function GET() {
       emailDomains: dealership.email_domains,
       enableCsvImport: dealership.enable_csv_import,
       active: dealership.active,
+      latitude: dealership.latitude,
+      longitude: dealership.longitude,
+      city_state: dealership.city_state,
+      dataforseo_location_code: dealership.dataforseo_location_code,
       createdAt: dealership.created_at,
       updatedAt: dealership.updated_at
     })) || [];
 
     return NextResponse.json(transformedDealerships);
   } catch (error) {
-    console.error('Error fetching dealerships:', error);
     return NextResponse.json(
       { error: 'Failed to fetch dealerships' },
       { status: 500 }
@@ -60,7 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, code, address, city, state, zip, phone, email, csvFileName, emailDomains, enableCsvImport, active } = body;
+    const { name, code, address, city, state, zip, phone, email, csvFileName, emailDomains, enableCsvImport, active, latitude, longitude, city_state } = body;
 
     // Validate required fields
     if (!name || !code) {
@@ -97,9 +99,12 @@ export async function POST(req: NextRequest) {
         phone: phone || null,
         email: email || null,
         csv_file_name: csvFileName || null,
-        email_domains: emailDomains || [],
+        email_domains: Array.isArray(emailDomains) ? emailDomains : [],
         enable_csv_import: enableCsvImport !== undefined ? enableCsvImport : true,
         active: active !== undefined ? active : true,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        city_state: city_state || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -107,8 +112,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Error creating dealership:', error);
-      throw error;
+        throw error;
     }
 
     // Transform response
@@ -126,13 +130,15 @@ export async function POST(req: NextRequest) {
       emailDomains: newDealership.email_domains,
       enableCsvImport: newDealership.enable_csv_import,
       active: newDealership.active,
+      latitude: newDealership.latitude,
+      longitude: newDealership.longitude,
+      city_state: newDealership.city_state,
       createdAt: newDealership.created_at,
       updatedAt: newDealership.updated_at
     };
 
     return NextResponse.json(transformedDealership, { status: 201 });
   } catch (error) {
-    console.error('Error creating dealership:', error);
     return NextResponse.json(
       { error: 'Failed to create dealership' },
       { status: 500 }

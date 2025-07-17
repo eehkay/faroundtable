@@ -62,7 +62,7 @@ export default function ImportHistory({ limit = 10 }: ImportHistoryProps) {
           setTotal(data.total);
         }
       } catch (error) {
-        console.error('Failed to fetch import logs:', error);
+        // Failed to fetch import logs
       } finally {
         setLoading(false);
       }

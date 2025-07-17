@@ -65,7 +65,7 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
         fetchImportStatuses(data);
       }
     } catch (error) {
-      console.error('Failed to fetch dealerships:', error);
+      // Failed to fetch dealerships
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
             }
           }
         } catch (error) {
-          console.error(`Failed to fetch import status for ${dealership.name}:`, error);
+          // Failed to fetch import status
         }
       })
     );
@@ -124,7 +124,6 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
         alert(error.error || 'Failed to save dealership');
       }
     } catch (error) {
-      console.error('Failed to save dealership:', error);
       alert('Failed to save dealership');
     }
   };
@@ -144,7 +143,6 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
         alert(error.error || 'Failed to deactivate dealership');
       }
     } catch (error) {
-      console.error('Failed to deactivate dealership:', error);
       alert('Failed to deactivate dealership');
     }
   };
@@ -243,6 +241,11 @@ export default function DealershipList({ initialDealerships }: DealershipListPro
                         {dealership.csvFileName && (
                           <span className="px-2.5 py-1 bg-[#2a2a2a]/50 text-gray-400 rounded-full text-xs">
                             CSV: {dealership.csvFileName}
+                          </span>
+                        )}
+                        {(dealership as any).dataforseo_location_code && (
+                          <span className="px-2.5 py-1 bg-[#3b82f6]/20 text-[#3b82f6] rounded-full text-xs">
+                            DataForSEO: {(dealership as any).dataforseo_location_code}
                           </span>
                         )}
                       </div>

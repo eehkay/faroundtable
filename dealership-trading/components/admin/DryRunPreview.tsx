@@ -213,6 +213,23 @@ export default function DryRunPreview({ result, onClose, onProceed, loading = fa
                   </div>
                 </div>
               )}
+
+              {/* Dry Run Limitation Notice */}
+              {result.totals.created === 0 && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-blue-400 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-blue-400">Dry Run Limitation</p>
+                      <p className="text-sm text-blue-400/80 mt-1">
+                        This dry run simulates potential updates and deletions based on current database state. 
+                        New vehicle imports cannot be simulated without actual SFTP access. 
+                        Run the actual import to see all changes including new vehicles.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">

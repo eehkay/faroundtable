@@ -113,7 +113,6 @@ export default function BugReportModal({ open, onOpenChange }: BugReportModalPro
         resetForm()
       }, 2000)
     } catch (err) {
-      console.error('Bug report error:', err)
       setError(err instanceof Error ? err.message : 'Failed to send bug report')
     } finally {
       setLoading(false)

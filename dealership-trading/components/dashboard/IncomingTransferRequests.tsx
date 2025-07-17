@@ -68,7 +68,7 @@ export default function IncomingTransferRequests({
         setTransfers(data.transfers || []);
       }
     } catch (error) {
-      console.error('Failed to fetch incoming transfers:', error);
+      // Failed to fetch incoming transfers
     } finally {
       setLoading(false);
     }

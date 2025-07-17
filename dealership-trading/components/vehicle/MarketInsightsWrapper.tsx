@@ -2,18 +2,25 @@
 
 import { useState } from 'react';
 import VehiclePricing from './VehiclePricing';
-import MarketInsights from './MarketInsights';
-import type { MarketInsightsData } from './MarketInsights';
-import VinDecodeInfo from './VinDecodeInfo';
+import MarketTrendReportCard from './MarketTrendReportCard';
+import ListingHistoryInfo from './ListingHistoryInfo';
 
-interface VinDecodeResponse {
-  vehicleInfo: {
-    [key: string]: string | number | undefined;
+interface ListingHistoryResponse {
+  listings: any[];
+  summary: {
+    totalListings: number;
+    uniqueDealers: number;
+    priceRange: { min: number; max: number; current: number };
+    mileageRange: { min: number; max: number; current: number };
+    totalDaysListed: number;
+    averageDaysPerListing: number;
+    priceHistory: any[];
+    hasMultipleDealers: boolean;
+    currentListing: any;
+    oldestListingDate?: string;
+    newestListingDate?: string;
   };
-  recalls?: any[];
-  complaints?: any[];
-  investigations?: any[];
-  decodedAt?: string;
+  fetchedAt: string;
 }
 
 interface MarketInsightsWrapperProps {
@@ -25,6 +32,7 @@ interface MarketInsightsWrapperProps {
     model?: string;
     year?: string;
     vin?: string;
+    locationId?: string;
   };
 }
 
@@ -34,53 +42,52 @@ export default function MarketInsightsWrapper({
   msrp, 
   vehicleInfo 
 }: MarketInsightsWrapperProps) {
-  const [marketInsights, setMarketInsights] = useState<MarketInsightsData | null>(null);
+  const [marketTrendReport, setMarketTrendReport] = useState<any>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
-  const [vinDecodeData, setVinDecodeData] = useState<VinDecodeResponse | null>(null);
-  const [isLoadingVinDecode, setIsLoadingVinDecode] = useState(false);
+  const [listingHistoryData, setListingHistoryData] = useState<ListingHistoryResponse | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   const fetchMarketInsights = async () => {
-    if (!vehicleInfo.vin) {
-      console.error('VIN is required for market insights');
+    if (!vehicleInfo.vin || !vehicleInfo.locationId) {
       return;
     }
     
     try {
       setIsLoadingInsights(true);
       
-      const response = await fetch('/api/market-insights', {
+      const response = await fetch('/api/analytics/market-trend-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           vin: vehicleInfo.vin,
-          zipCode: '89104', // Default ZIP code, could be made configurable
+          currentPrice: salePrice || price,
+          locationId: vehicleInfo.locationId,
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Market insights API error:', response.status, errorText);
-        throw new Error(`Failed to fetch market insights: ${response.status}`);
+        throw new Error(`Failed to fetch market analysis: ${response.status}`);
       }
 
-      const data = await response.json();
-      setMarketInsights(data);
+      const result = await response.json();
+      setMarketTrendReport(result.data);
     } catch (error) {
-      console.error('Error fetching market insights:', error);
+      // Error fetching market analysis
     } finally {
       setIsLoadingInsights(false);
     }
   };
 
-  const fetchVinDecode = async () => {
+  const fetchListingHistory = async () => {
     if (!vehicleInfo.vin) return;
     
     try {
-      setIsLoadingVinDecode(true);
+      setIsLoadingHistory(true);
       
-      const response = await fetch('/api/vin-decode', {
+      const response = await fetch('/api/vehicle-history', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,21 +99,15 @@ export default function MarketInsightsWrapper({
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('VIN decode API error:', response.status, errorText);
-        throw new Error(`Failed to decode VIN: ${response.status}`);
+        throw new Error(`Failed to fetch listing history: ${response.status}`);
       }
 
       const data = await response.json();
-      // Add decodedAt timestamp if not present
-      const vinData = {
-        ...data,
-        decodedAt: data.decodedAt || new Date().toISOString()
-      };
-      setVinDecodeData(vinData);
+      setListingHistoryData(data);
     } catch (error) {
-      console.error('Error decoding VIN:', error);
+      // Error fetching listing history
     } finally {
-      setIsLoadingVinDecode(false);
+      setIsLoadingHistory(false);
     }
   };
 
@@ -118,26 +119,23 @@ export default function MarketInsightsWrapper({
         msrp={msrp}
         onGetMarketInsights={vehicleInfo.vin ? fetchMarketInsights : undefined}
         isLoadingInsights={isLoadingInsights}
-        onCheckVinRecalls={vehicleInfo.vin ? fetchVinDecode : undefined}
-        isLoadingVinDecode={isLoadingVinDecode}
+        onCheckListingHistory={vehicleInfo.vin ? fetchListingHistory : undefined}
+        isLoadingHistory={isLoadingHistory}
       />
       
-      {marketInsights && (
-        <MarketInsights 
-          data={marketInsights}
+      {marketTrendReport && (
+        <MarketTrendReportCard 
+          data={marketTrendReport}
           currentPrice={salePrice || price || 0}
           vehicleInfo={vehicleInfo}
         />
       )}
       
-      {vinDecodeData && vehicleInfo.vin && (
-        <VinDecodeInfo 
-          data={{
-            vehicleInfo: vinDecodeData.vehicleInfo,
-            recalls: vinDecodeData.recalls || [],
-            decodedAt: vinDecodeData.decodedAt || new Date().toISOString()
-          }}
+      {listingHistoryData && vehicleInfo.vin && (
+        <ListingHistoryInfo 
+          data={listingHistoryData}
           vin={vehicleInfo.vin}
+          currentPrice={salePrice || price}
         />
       )}
     </>

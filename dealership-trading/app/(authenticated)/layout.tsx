@@ -21,7 +21,7 @@ export default async function AuthenticatedLayout({
 
   return (
     <OnboardingRedirect>
-      <div className="min-h-screen bg-gray-50 dark:bg-background flex flex-col">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#141414] flex flex-col">
         <ImpersonationIndicator />
         <div className={isImpersonating ? 'mt-12' : ''}>
           <Navigation />

@@ -77,7 +77,7 @@ export default function ImpersonationSelector() {
         setUsers(validUsers)
       }
     } catch (error) {
-      console.error('Error fetching users:', error)
+      // Error fetching users
     } finally {
       setLoadingUsers(false)
     }
@@ -105,7 +105,6 @@ export default function ImpersonationSelector() {
         alert(error.error || 'Failed to start impersonation')
       }
     } catch (error) {
-      console.error('Error starting impersonation:', error)
       alert('Failed to start impersonation')
     } finally {
       setLoading(false)
@@ -129,7 +128,6 @@ export default function ImpersonationSelector() {
         alert('Failed to stop impersonation')
       }
     } catch (error) {
-      console.error('Error stopping impersonation:', error)
       alert('Failed to stop impersonation')
     } finally {
       setLoading(false)

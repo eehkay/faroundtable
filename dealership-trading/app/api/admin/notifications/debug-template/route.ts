@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { template, transferId, vehicleId } = body;
 
-    console.log('[Debug Template] Request body:', { template, transferId, vehicleId });
 
     // Get preview data
     const previewData = await getPreviewData(supabaseAdmin, {
@@ -26,12 +25,6 @@ export async function POST(request: NextRequest) {
       userId: session.user.id
     });
     
-    console.log('[Debug Template] Preview data result:', {
-      hasTransfer: !!previewData.transfer,
-      hasVehicle: !!previewData.vehicle,
-      transferId,
-      vehicleId
-    });
 
     // Process the template
     const processed = processTemplate(template, previewData);
@@ -49,7 +42,6 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error in debug-template:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

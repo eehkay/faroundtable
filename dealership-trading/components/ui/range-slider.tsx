@@ -19,7 +19,10 @@ const RangeSlider = React.forwardRef<
   ({ 
     className, 
     label, 
-    formatValue = (v) => v.toString(), 
+    formatValue = (v) => {
+      if (v === undefined || v === null) return '0'
+      return v.toString()
+    }, 
     showValues = true,
     prefix = "",
     suffix = "",
@@ -27,7 +30,10 @@ const RangeSlider = React.forwardRef<
     value,
     ...props 
   }, ref) => {
-    const currentValue = value || defaultValue || [0, 100]
+    const currentValue = React.useMemo(() => {
+      const val = value || defaultValue || [0, 100]
+      return Array.isArray(val) ? val : [val]
+    }, [value, defaultValue])
     
     return (
       <div className="w-full space-y-2">
@@ -38,9 +44,14 @@ const RangeSlider = React.forwardRef<
                 {label}
               </span>
             )}
-            {showValues && (
+            {showValues && currentValue && currentValue.length > 0 && (
               <span className="text-gray-600 dark:text-gray-400">
-                {prefix}{formatValue(currentValue[0])}{suffix} - {prefix}{formatValue(currentValue[1])}{suffix}
+                {currentValue.length === 1 
+                  ? `${prefix}${formatValue(currentValue[0])}${suffix}`
+                  : currentValue.length >= 2
+                    ? `${prefix}${formatValue(currentValue[0])}${suffix} - ${prefix}${formatValue(currentValue[1])}${suffix}`
+                    : ''
+                }
               </span>
             )}
           </div>

@@ -5,9 +5,23 @@ import { X, Save, Building2, Plus, Trash2 } from 'lucide-react';
 import type { DealershipLocation } from '@/types/vehicle';
 
 interface DealershipEditModalProps {
-  dealership: Partial<DealershipLocation & { emailDomains?: string[]; enableCsvImport?: boolean }>;
+  dealership: Partial<DealershipLocation & { 
+    emailDomains?: string[]; 
+    enableCsvImport?: boolean;
+    latitude?: number;
+    longitude?: number;
+    city_state?: string;
+    dataforseo_location_code?: number;
+  }>;
   isCreating: boolean;
-  onSave: (dealership: Partial<DealershipLocation & { emailDomains?: string[]; enableCsvImport?: boolean }>) => Promise<void>;
+  onSave: (dealership: Partial<DealershipLocation & { 
+    emailDomains?: string[]; 
+    enableCsvImport?: boolean;
+    latitude?: number;
+    longitude?: number;
+    city_state?: string;
+    dataforseo_location_code?: number;
+  }>) => Promise<void>;
   onClose: () => void;
 }
 
@@ -24,7 +38,11 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
     csvFileName: dealership.csvFileName || '',
     emailDomains: dealership.emailDomains || [],
     enableCsvImport: dealership.enableCsvImport !== undefined ? dealership.enableCsvImport : true,
-    active: dealership.active !== undefined ? dealership.active : true
+    active: dealership.active !== undefined ? dealership.active : true,
+    latitude: dealership.latitude || undefined,
+    longitude: dealership.longitude || undefined,
+    city_state: dealership.city_state || '',
+    dataforseo_location_code: dealership.dataforseo_location_code || undefined
   });
   const [emailDomainInput, setEmailDomainInput] = useState('');
   const [saving, setSaving] = useState(false);
@@ -44,7 +62,11 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
       csvFileName: dealership.csvFileName || '',
       emailDomains: dealership.emailDomains || [],
       enableCsvImport: dealership.enableCsvImport !== undefined ? dealership.enableCsvImport : true,
-      active: dealership.active !== undefined ? dealership.active : true
+      active: dealership.active !== undefined ? dealership.active : true,
+      latitude: dealership.latitude || undefined,
+      longitude: dealership.longitude || undefined,
+      city_state: dealership.city_state || '',
+      dataforseo_location_code: dealership.dataforseo_location_code || undefined
     });
     setEmailDomainInput('');
     setErrors({}); // Clear any existing errors
@@ -82,6 +104,21 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
       newErrors.zip = 'Invalid ZIP code format';
     }
 
+    if (formData.latitude !== undefined && (formData.latitude < -90 || formData.latitude > 90)) {
+      newErrors.latitude = 'Latitude must be between -90 and 90';
+    }
+
+    if (formData.longitude !== undefined && (formData.longitude < -180 || formData.longitude > 180)) {
+      newErrors.longitude = 'Longitude must be between -180 and 180';
+    }
+
+    if (formData.city_state && formData.city_state.includes(',')) {
+      const parts = formData.city_state.split(',');
+      if (parts.length !== 2 || parts[1].trim().length !== 2) {
+        newErrors.city_state = 'Format must be "City, ST" (e.g., Las Vegas, NV)';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -106,7 +143,11 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
         csvFileName: formData.csvFileName || undefined,
         emailDomains: formData.emailDomains.length > 0 ? formData.emailDomains : undefined,
         enableCsvImport: formData.enableCsvImport,
-        active: formData.active
+        active: formData.active,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        city_state: formData.city_state || undefined,
+        dataforseo_location_code: formData.dataforseo_location_code
       });
     } catch (error) {
       setErrors({ general: 'Failed to save dealership' });
@@ -287,6 +328,85 @@ export default function DealershipEditModal({ dealership, isCreating, onSave, on
                   placeholder="e.g., 89146"
                 />
                 {errors.zip && <p className="mt-1 text-sm text-red-400">{errors.zip}</p>}
+              </div>
+            </div>
+
+            {/* Geographic Coordinates */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Latitude */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Latitude
+                </label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  value={formData.latitude || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, latitude: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                  className={`w-full px-3 py-2 bg-[#141414] border rounded-lg text-gray-100 placeholder-gray-400 focus:ring-1 focus:outline-none transition-all duration-200 ${
+                    errors.latitude ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#2a2a2a] focus:border-[#3b82f6] focus:ring-[#3b82f6]/20'
+                  }`}
+                  placeholder="e.g., 36.1699"
+                />
+                {errors.latitude && <p className="mt-1 text-sm text-red-400">{errors.latitude}</p>}
+                <p className="mt-1 text-xs text-gray-500">Used for Market Check API location-based queries</p>
+              </div>
+
+              {/* Longitude */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Longitude
+                </label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  value={formData.longitude || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, longitude: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                  className={`w-full px-3 py-2 bg-[#141414] border rounded-lg text-gray-100 placeholder-gray-400 focus:ring-1 focus:outline-none transition-all duration-200 ${
+                    errors.longitude ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#2a2a2a] focus:border-[#3b82f6] focus:ring-[#3b82f6]/20'
+                  }`}
+                  placeholder="e.g., -115.1398"
+                />
+                {errors.longitude && <p className="mt-1 text-sm text-red-400">{errors.longitude}</p>}
+                <p className="mt-1 text-xs text-gray-500">Used for Market Check API location-based queries</p>
+              </div>
+
+              {/* City State */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  City, State Format
+                </label>
+                <input
+                  type="text"
+                  value={formData.city_state}
+                  onChange={(e) => setFormData(prev => ({ ...prev, city_state: e.target.value }))}
+                  className={`w-full px-3 py-2 bg-[#141414] border rounded-lg text-gray-100 placeholder-gray-400 focus:ring-1 focus:outline-none transition-all duration-200 ${
+                    errors.city_state ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#2a2a2a] focus:border-[#3b82f6] focus:ring-[#3b82f6]/20'
+                  }`}
+                  placeholder="e.g., Las Vegas, NV"
+                />
+                {errors.city_state && <p className="mt-1 text-sm text-red-400">{errors.city_state}</p>}
+                <p className="mt-1 text-xs text-gray-500">Used for Market Check citywise sales statistics</p>
+              </div>
+
+              {/* DataForSEO Location Code */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  DataForSEO Location Code
+                </label>
+                <input
+                  type="number"
+                  value={formData.dataforseo_location_code || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, dataforseo_location_code: e.target.value ? parseInt(e.target.value) : undefined }))}
+                  className={`w-full px-3 py-2 bg-[#141414] border rounded-lg text-gray-100 placeholder-gray-400 focus:ring-1 focus:outline-none transition-all duration-200 ${
+                    errors.dataforseo_location_code ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-[#2a2a2a] focus:border-[#3b82f6] focus:ring-[#3b82f6]/20'
+                  }`}
+                  placeholder="e.g., 9057131 for Las Vegas"
+                />
+                {errors.dataforseo_location_code && <p className="mt-1 text-sm text-red-400">{errors.dataforseo_location_code}</p>}
+                <p className="mt-1 text-xs text-gray-500">
+                  Used for local search volume data. Las Vegas: 9057131, Reno: 9058666 (primary) / 1022620 (secondary)
+                </p>
               </div>
             </div>
           </div>

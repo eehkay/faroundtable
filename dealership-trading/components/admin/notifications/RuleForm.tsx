@@ -56,7 +56,7 @@ export function RuleForm({ rule, onSave }: RuleFormProps) {
         setTemplates(data);
       }
     } catch (error) {
-      console.error('Error fetching templates:', error);
+      // Error fetching templates
     }
   };
 
@@ -109,7 +109,6 @@ export function RuleForm({ rule, onSave }: RuleFormProps) {
         router.push('/admin/notifications/rules');
       }
     } catch (error: any) {
-      console.error('Error saving rule:', error);
       toast.error(error.message || 'Failed to save rule');
     } finally {
       setSaving(false);
@@ -141,7 +140,6 @@ export function RuleForm({ rule, onSave }: RuleFormProps) {
         toast.info('Rule conditions not met - no notifications would be sent');
       }
     } catch (error) {
-      console.error('Error testing rule:', error);
       toast.error('Failed to test rule');
     } finally {
       setTesting(false);

@@ -52,7 +52,7 @@ export default function VehicleEditModal({
       })
       onClose()
     } catch (error) {
-      console.error('Error saving vehicle:', error)
+      // Error saving vehicle
     } finally {
       setSaving(false)
     }

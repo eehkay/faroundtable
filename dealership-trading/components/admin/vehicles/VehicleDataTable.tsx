@@ -99,7 +99,7 @@ export default function VehicleDataTable({
         try {
           return JSON.parse(saved)
         } catch (e) {
-          console.error('Failed to parse saved column widths:', e)
+          // Failed to parse saved column widths
         }
       }
     }

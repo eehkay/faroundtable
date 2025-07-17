@@ -2,10 +2,15 @@ import { DataForSEOClient, SearchVolumeResult } from './dataforseo';
 
 export interface DebugSearchVolumeResult {
   results: SearchVolumeResult[];
-  curlCommand: string;
-  rawResponse: any;
-  requestData: any;
-  endpoint: string;
+  debug: {
+    locationCode: number;
+    keywordsCount: number;
+    resultsCount: number;
+    apiUrl: string;
+    requestBody: any;
+    curlCommand?: string;
+    rawResponse?: any;
+  };
 }
 
 export class DataForSEODebugClient extends DataForSEOClient {
@@ -105,10 +110,15 @@ export class DataForSEODebugClient extends DataForSEOClient {
 
       return {
         results,
-        curlCommand,
-        rawResponse: this.lastRawResponse,
-        requestData: this.lastRequestData,
-        endpoint: this.lastEndpoint,
+        debug: {
+          locationCode,
+          keywordsCount: keywords.length,
+          resultsCount: results.length,
+          apiUrl: this.lastEndpoint || '/v3/keywords_data/google_ads/keywords_for_keywords/live',
+          requestBody: this.lastRequestData,
+          curlCommand,
+          rawResponse: this.lastRawResponse,
+        }
       };
     } finally {
       // Restore original request method

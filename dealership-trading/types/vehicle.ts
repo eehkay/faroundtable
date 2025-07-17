@@ -43,7 +43,12 @@ export interface DealershipLocation {
   phone?: string
   email?: string
   csvFileName?: string
+  emailDomains?: string[]
+  enableCsvImport?: boolean
   active: boolean
+  latitude?: number
+  longitude?: number
+  city_state?: string
   createdAt?: string
   updatedAt?: string
 }

@@ -122,15 +122,13 @@ export default function ClaimButton({ vehicleId, vehicleStatus, vehicleLocation,
         let errorMessage = 'Failed to submit transfer request';
         try {
           const error = await response.json();
-          console.error('Transfer request failed:', error);
           errorMessage = error.details || error.error || errorMessage;
         } catch (e) {
-          console.error('Failed to parse error response:', e);
+          // Failed to parse error response
         }
         alert(errorMessage);
       }
     } catch (error) {
-      console.error('Error submitting transfer request:', error);
       alert('Failed to submit transfer request. Please try again.');
     } finally {
       setLoading(false);

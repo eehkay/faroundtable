@@ -80,7 +80,6 @@ export async function sendSMS(options: SendSMSOptions): Promise<SMSResponse[]> {
         await logSMSActivity(userId, cleanPhone, 'sent', message.sid);
       }
     } catch (error: any) {
-      console.error('Failed to send SMS:', error);
       results.push({
         success: false,
         to: recipient,
@@ -162,7 +161,6 @@ async function logSMSActivity(
         }
       });
   } catch (error) {
-    console.error('Failed to log SMS activity:', error);
   }
 }
 
@@ -218,7 +216,6 @@ export async function handleSMSOptIn(
 
     return { success: true };
   } catch (error: any) {
-    console.error('Failed to handle SMS opt-in:', error);
     return { success: false, error: error.message || 'Failed to opt-in' };
   }
 }
@@ -278,7 +275,6 @@ export async function handleSMSOptOut(
 
     return { success: true };
   } catch (error: any) {
-    console.error('Failed to handle SMS opt-out:', error);
     return { success: false, error: error.message || 'Failed to opt-out' };
   }
 }

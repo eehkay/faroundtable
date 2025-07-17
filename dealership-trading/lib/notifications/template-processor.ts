@@ -49,15 +49,6 @@ function processVariables(template: string, data: TemplatePreviewData): string {
 
     const value = getNestedValue(data, variable.trim());
     
-    // Debug logging for missing values
-    if (value === undefined || value === null) {
-      console.log('[Template Debug] Missing value for variable:', variable.trim());
-      console.log('[Template Debug] Available data keys:', Object.keys(data));
-      if (variable.trim().startsWith('transfer')) {
-        console.log('[Template Debug] Transfer data:', JSON.stringify(data.transfer, null, 2));
-      }
-    }
-    
     return value !== undefined && value !== null ? String(value) : '';
   });
 }

@@ -26,13 +26,11 @@ export async function GET(
       if (error.code === 'PGRST116') {
         return NextResponse.json({ error: 'Template not found' }, { status: 404 });
       }
-      console.error('Error fetching template:', error);
       return NextResponse.json({ error: 'Failed to fetch template' }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error in GET /api/admin/notification-templates/[id]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -93,13 +91,11 @@ export async function PUT(
           { status: 400 }
         );
       }
-      console.error('Error updating template:', error);
       return NextResponse.json({ error: 'Failed to update template' }, { status: 500 });
     }
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error in PUT /api/admin/notification-templates/[id]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -140,13 +136,11 @@ export async function DELETE(
       if (error.code === 'PGRST116') {
         return NextResponse.json({ error: 'Template not found' }, { status: 404 });
       }
-      console.error('Error deleting template:', error);
       return NextResponse.json({ error: 'Failed to delete template' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in DELETE /api/admin/notification-templates/[id]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

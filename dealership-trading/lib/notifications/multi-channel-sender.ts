@@ -47,7 +47,6 @@ export async function sendNotificationsByRules(
       .order('priority', { ascending: false });
 
     if (rulesError || !rules) {
-      console.error('Error fetching notification rules:', rulesError);
       return results;
     }
 
@@ -61,7 +60,6 @@ export async function sendNotificationsByRules(
 
     return results;
   } catch (error) {
-    console.error('Error sending notifications by rules:', error);
     return results;
   }
 }
@@ -87,7 +85,6 @@ async function processNotificationRule(
     // Evaluate rule conditions
     const conditionsMet = await evaluateRule(rule, evalContext);
     if (!conditionsMet) {
-      console.log(`Rule "${rule.name}" conditions not met, skipping`);
       return null;
     }
 
@@ -95,7 +92,6 @@ async function processNotificationRule(
     const recipients = await resolveRecipients(rule.recipients, evalContext);
     
     if (recipients.emails.length === 0 && recipients.phones.length === 0) {
-      console.log(`Rule "${rule.name}" has no recipients, skipping`);
       return null;
     }
 
@@ -112,26 +108,6 @@ async function processNotificationRule(
       Object.assign(templateData, context.additionalData);
     }
     
-    // Debug log the template data
-    console.log('[Notification Debug] Template data from getPreviewData:', {
-      hasTransfer: !!templateData.transfer,
-      transferFields: templateData.transfer ? Object.keys(templateData.transfer) : [],
-      hasVehicle: !!templateData.vehicle,
-      hasUser: !!templateData.user,
-      hasSystem: !!templateData.system,
-      hasLink: !!templateData.link
-    });
-    
-    // Debug: Log the actual transfer data content
-    if (templateData.transfer) {
-      console.log('[Notification Debug] Transfer data content:', {
-        from_location_name: templateData.transfer.from_location?.name,
-        to_location_name: templateData.transfer.to_location?.name,
-        requested_by_name: templateData.transfer.requested_by?.name,
-        requested_by_email: templateData.transfer.requested_by?.email,
-        full_transfer: JSON.stringify(templateData.transfer, null, 2)
-      });
-    }
 
     // Send via configured channels
     if (rule.channels.email?.enabled && rule.channels.email.templateId && recipients.emails.length > 0) {
@@ -157,7 +133,6 @@ async function processNotificationRule(
 
     return result;
   } catch (error) {
-    console.error(`Error processing rule "${rule.name}":`, error);
     return null;
   }
 }
@@ -244,31 +219,13 @@ async function sendEmailNotifications(
     .single();
 
   if (error || !template || !template.channels.email?.enabled) {
-    console.error('Email template not found or disabled:', templateId);
     return;
   }
 
   // Process template
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Notification Debug] Processing template with data:', JSON.stringify(data, null, 2));
-  }
-  
-  // Debug: Log the exact data structure being passed
-  console.log('[Template Data Structure] Keys:', Object.keys(data));
-  if (data.transfer) {
-    console.log('[Template Data Structure] Transfer keys:', Object.keys(data.transfer));
-    console.log('[Template Data Structure] Transfer data:', JSON.stringify(data.transfer, null, 2));
-  }
-  
   const subject = processTemplate(template.channels.email.subject, data);
   const bodyHtml = processTemplate(template.channels.email.bodyHtml, data);
   const bodyText = processTemplate(template.channels.email.bodyText, data);
-  
-  // Log processed content for debugging
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[Notification Debug] Processed subject:', subject);
-    console.log('[Notification Debug] Processed HTML preview:', bodyHtml.substring(0, 500) + '...');
-  }
 
   // Store subject in result for logging
   result.subject = subject;
@@ -310,7 +267,6 @@ async function sendSMSNotifications(
     .single();
 
   if (error || !template || !template.channels.sms?.enabled) {
-    console.error('SMS template not found or disabled:', templateId);
     return;
   }
 
@@ -435,6 +391,5 @@ async function logNotification(
       await supabaseAdmin.from('notification_activity').insert(logs);
     }
   } catch (error) {
-    console.error('Failed to log notifications:', error);
   }
 }

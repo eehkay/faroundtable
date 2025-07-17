@@ -31,7 +31,6 @@ export function SMSPreferences() {
       setPreferences(data);
       setPhone(data.phone || '');
     } catch (error) {
-      console.error('Error fetching SMS preferences:', error);
       toast.error('Failed to load SMS preferences');
     } finally {
       setLoading(false);
@@ -61,7 +60,6 @@ export function SMSPreferences() {
       toast.success('Successfully opted in to SMS notifications');
       await fetchPreferences();
     } catch (error: any) {
-      console.error('Error opting in:', error);
       toast.error(error.message || 'Failed to opt-in to SMS');
     } finally {
       setSaving(false);
@@ -90,7 +88,6 @@ export function SMSPreferences() {
       toast.success('Successfully opted out of SMS notifications');
       await fetchPreferences();
     } catch (error: any) {
-      console.error('Error opting out:', error);
       toast.error(error.message || 'Failed to opt-out');
     } finally {
       setSaving(false);
@@ -120,7 +117,6 @@ export function SMSPreferences() {
       toast.success('Phone number updated successfully');
       await fetchPreferences();
     } catch (error: any) {
-      console.error('Error updating phone:', error);
       toast.error(error.message || 'Failed to update phone number');
     } finally {
       setSaving(false);

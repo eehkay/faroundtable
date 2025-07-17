@@ -42,13 +42,11 @@ export async function GET(
       .single()
 
     if (error) {
-      console.error('Error fetching transfer:', error)
       return new NextResponse('Transfer not found', { status: 404 })
     }
 
     return NextResponse.json(transfer)
   } catch (error) {
-    console.error('Error in transfer GET:', error)
     return new NextResponse('Internal Server Error', { status: 500 })
   }
 }
@@ -146,7 +144,6 @@ export async function PATCH(
       .single()
 
     if (updateError) {
-      console.error('Error updating transfer:', updateError)
       return new NextResponse('Failed to update transfer', { status: 500 })
     }
 
@@ -180,7 +177,6 @@ export async function PATCH(
 
     return NextResponse.json(updatedTransfer)
   } catch (error) {
-    console.error('Error in transfer PATCH:', error)
     return new NextResponse('Internal Server Error', { status: 500 })
   }
 }
