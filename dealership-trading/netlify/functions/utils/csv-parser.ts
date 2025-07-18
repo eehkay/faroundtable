@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 interface CSVRow {
   id: number;
   VIN: string;
-  brand: string;
+  make: string;
   model: string;
   year: number;
   price: string;
@@ -177,10 +177,10 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
     stockNumber: row.id.toString(),
     vin: row.VIN,
     year: row.year || null,
-    make: row.brand || null,
+    make: row.make || null,
     model: row.model || null,
     trim: row.trim || null,
-    title: row.title || `${row.year} ${row.brand} ${row.model}`.trim(),
+    title: row.title || `${row.year} ${row.make} ${row.model}`.trim(),
     price: parsePrice(row.price),
     msrp: parsePrice(row.vehicle_msrp),
     condition: condition,  // Already processed and lowercase
