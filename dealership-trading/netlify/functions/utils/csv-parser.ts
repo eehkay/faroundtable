@@ -48,18 +48,38 @@ export function parseInventoryCSV(csvContent: string, storeCode: string) {
     console.warn('CSV parsing warnings:', parsed.errors.slice(0, 5));
   }
 
+  // Log first few rows for debugging
+  if (parsed.data.length > 0) {
+    console.log(`\n📊 CSV Debug Info for ${storeCode}:`);
+    console.log(`   Total rows: ${parsed.data.length}`);
+    console.log(`   Sample data (first 3 rows):`);
+    parsed.data.slice(0, 3).forEach((row, index) => {
+      console.log(`   Row ${index + 1}: VIN=${row.VIN}, condition="${row.condition}", id=${row.id}`);
+    });
+  }
+
   const vehicles = [];
+  const skipReasons: Record<string, number> = {
+    'missing_data': 0,
+    'condition_new': 0,
+    'condition_other': 0,
+    'valid': 0
+  };
   
   for (const row of parsed.data) {
     try {
       const vehicle = transformVehicle(row, storeCode);
       if (vehicle) {
         vehicles.push(vehicle);
+        skipReasons.valid++;
       }
     } catch (error) {
       console.error(`Error parsing vehicle ${row.id || 'unknown'}:`, error);
     }
   }
+
+  // Log summary
+  console.log(`   Import summary: ${skipReasons.valid} valid, ${parsed.data.length - skipReasons.valid} skipped`);
 
   return vehicles;
 }
@@ -76,11 +96,23 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
   //   return null;
   // }
 
-  // Filter out non-used vehicles
-  const condition = row.condition ? row.condition.toLowerCase() : 'used';
-  if (condition !== 'used') {
-    console.log(`Skipping vehicle ${row.id} - condition: ${condition} (only 'used' vehicles are imported)`);
+  // Filter vehicles based on condition
+  const rawCondition = row.condition;
+  const condition = rawCondition ? rawCondition.toString().toLowerCase().trim() : 'used';
+  
+  // Check if we should skip non-used vehicles
+  const skipNonUsed = process.env.SKIP_NON_USED_VEHICLES !== 'false';
+  
+  // Accept various forms of "used" condition
+  const usedConditions = ['used', 'pre-owned', 'preowned', 'certified', 'cpo'];
+  const isUsed = usedConditions.includes(condition);
+  
+  // Enhanced logging for debugging
+  if (skipNonUsed && !isUsed) {
+    console.log(`Skipping vehicle ${row.id} - condition: "${rawCondition}" -> "${condition}" (not in accepted used conditions: ${usedConditions.join(', ')})`);
     return null;
+  } else if (!skipNonUsed && !isUsed) {
+    console.log(`⚠️  Importing non-used vehicle ${row.id} with condition: "${rawCondition}" (SKIP_NON_USED_VEHICLES=false)`);
   }
 
   const parsePrice = (priceStr: string) => {
@@ -151,7 +183,7 @@ function transformVehicle(row: CSVRow, expectedStoreCode: string) {
     title: row.title || `${row.year} ${row.brand} ${row.model}`.trim(),
     price: parsePrice(row.price),
     msrp: parsePrice(row.vehicle_msrp),
-    condition: row.condition ? row.condition.toLowerCase() : 'used',
+    condition: condition,  // Already processed and lowercase
     mileage: parseMileage(row.mileage),
     exteriorColor: row.color || null,
     bodyStyle: row.body_style || null,
